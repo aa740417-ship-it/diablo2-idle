@@ -3403,3 +3403,9 @@ button.classic-skill-cell { cursor:pointer; }
 #tab-clan .clan-dip-war,    .clan-dip-war    { color: #fca5a5; }                                  /* 我方宣戰：淺紅 */
 #tab-clan .clan-dip-enemy,  .clan-dip-enemy  { color: #fca5a5; }                                  /* 對方宣戰：淺紅 */
 #tab-clan .clan-dip-mutual, .clan-dip-mutual { color: #dc2626; text-shadow: 0 0 6px rgba(220,38,38,.55); }   /* 互相宣戰：深紅＋微光 */
+
+/* mobile item modal scroll fix */
+@media (max-width:768px){
+#item-modal:not(.hidden){height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;padding:8px!important;}
+#item-modal>div:not(#modal-compare){max-height:calc(100dvh - 16px)!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;overscroll-behavior-y:contain!important;}
+}
