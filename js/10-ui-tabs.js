@@ -311,7 +311,11 @@ player.inv.forEach(i => {
     let el = document.createElement('div'); 
     // className 這裡移除了 isDisabled 相關的判定，讓所有項目都可以互動
     el.className = `list-item tip-host text-base ${itemBg} rounded mb-1 ${i.lock ? 'border-red-900 border-2' : ''}`;
-    el.setAttribute('data-tip-uid', i.uid); el.setAttribute('data-tip-src', 'inv');   // 🖱️ hover 即時顯示完整物品資訊 tooltip（同技能·取代原生 title 慢速提示）
+    el.setAttribute('data-tip-uid', i.uid); el.setAttribute('data-tip-src', 'inv');
+    let _invAffixSearch = Array.isArray(i.lootAff)
+        ? i.lootAff.map(a => `${a.n || ''} ${a.k || ''} ${typeof lootAffixText === 'function' ? lootAffixText(a) : ''}`).join(' ')
+        : '';
+    el.setAttribute('data-inv-search', ((d.n || '') + ' ' + _invAffixSearch).toLowerCase());   // 🖱️ hover 即時顯示完整物品資訊 tooltip（同技能·取代原生 title 慢速提示）
     if (i.lock) el.classList.add('classic-item-locked');
     else if (i.junk) el.classList.add('classic-item-junk');
     
@@ -386,6 +390,7 @@ player.inv.forEach(i => {
 //    工具列（負重/快速強化/快速廢品 sticky 列）保留在 viewport 外恆顯。列事件（點擊/雙擊）掛在 .list-item 上不受影響。
 // 🔧 v3.0.92 背包排序選單(↕)開啟狀態持久化：原本 .open class 只掛在每次 renderTabs 重建的 DOM 上→掛機掉物(gainItem→renderTabs)＋自動販賣(每10秒 renderTabs(true))不斷重建此選單、一直把它關掉，導致無法點選分類。改存模組旗標·重建時復原·點選排序或點選單外關閉。
 let _invSortMenuOpen = false;
+let _invSearchText = {};   // 背包名稱／隨機詞綴搜尋
 if (typeof document !== 'undefined' && document.addEventListener && !document._invSortOutsideBound) {
     document.addEventListener('click', function(ev){
         if (!_invSortMenuOpen) return;
@@ -411,6 +416,26 @@ function decorateClassicInventoryTab(div){
         empty.setAttribute('aria-hidden','true');
         viewport.appendChild(empty);
     }
+    let search=document.createElement('input');
+    search.type='search';
+    search.placeholder='搜尋裝備名稱或詞綴';
+    search.value=_invSearchText[div.id] || '';
+    search.autocomplete='off';
+    search.style.cssText='width:calc(100% - 16px);margin:6px 8px;padding:8px 10px;border:1px solid #64748b;border-radius:7px;background:#0f172a;color:#e5e7eb;box-sizing:border-box;font-size:14px;';
+    let _invApplySearch=()=>{
+        let q=(search.value || '').trim().toLowerCase();
+        _invSearchText[div.id]=search.value || '';
+        viewport.querySelectorAll('.list-item').forEach(x=>{
+            let key=(x.getAttribute('data-inv-search') || x.textContent || '').toLowerCase();
+            x.style.display=(!q || key.includes(q)) ? '' : 'none';
+        });
+        viewport.querySelectorAll('.classic-grid-empty').forEach(x=>x.style.display=q?'none':'');
+        viewport.scrollTop=0;
+    };
+    search.oninput=_invApplySearch;
+    div.appendChild(search);
+    _invApplySearch();
+
     let up=document.createElement('button');
     up.type='button'; up.className='classic-inventory-scroll classic-inventory-scroll-up'; up.setAttribute('aria-label','向上捲動');
     up.onclick=()=>viewport.scrollBy({top:-Math.max(32,viewport.clientHeight/CLASSIC_GRID_ROWS),behavior:'smooth'});
@@ -2012,6 +2037,12 @@ function getAutoSellRules() {
     if (r.protectRelic == null) r.protectRelic = true;   // 🏺 v3.1.44 保護遺物（預設開）
     if (r.protectCraftEquip == null) r.protectCraftEquip = true;
     if (r.craftSets == null) r.craftSets = 1;
+    if (r.affixSellMax == null) {
+        if (r.quality && r.quality.blue) r.affixSellMax = 1;
+        else if (r.quality && r.quality.white) r.affixSellMax = 0;
+        else r.affixSellMax = -1;
+    }
+    r.affixSellMax = Math.max(-1, Math.min(4, Number(r.affixSellMax)));
     return r;
 }
 // ===== 🔧 v2.6.91 合併 2683 參考版 5 功能 =====
@@ -2067,11 +2098,13 @@ function _autoSellDecision(i, ruleSnapshot, craftRemain) {   // 🔧 v2.6.77 rul
     if (r.protectRelic !== false && typeof isRelic === 'function' && isRelic(d)) return { sell:false };   // 🏺 v3.1.44 保護遺物（預設開·個別「永遠販賣」例外仍優先）
     let et = _asEquipType(d);
     if (et) {
+        let _lootAffixCount = Array.isArray(i.lootAff) ? i.lootAff.length : 0;
+        if (_lootAffixCount >= 5) return { sell:false };
         let protectedQty=0;   // 🔧 v2.6.91 功能3/4：製作素材裝備保留額度（保留可製作 N 次的數量·多餘才依規則賣）
         if(craftRemain&&craftRemain[i.id]>0){protectedQty=Math.min(Number(i.cnt)||1,craftRemain[i.id]);craftRemain[i.id]-=protectedQty;}
         // 🎨 品質自動販賣：只認新隨機品質系統實際寫入的 lootQ，避免舊存檔／特殊製作品因缺欄位被誤當白裝。
         // 白裝、藍裝可各自勾選；暗金永遠不在這個快捷規則內。既有祝福／遠古／屬性／套裝／傳說等保護仍優先。
-        let qSell = (i.lootQ === 'white' && r.quality && r.quality.white) || (i.lootQ === 'blue' && r.quality && r.quality.blue);
+        let qSell = Number(r.affixSellMax) >= 0 && (Array.isArray(i.lootAff) ? i.lootAff.length : 0) <= Number(r.affixSellMax) && (Array.isArray(i.lootAff) ? i.lootAff.length : 0) < 5;
         let er = r.equip[et];
         let enhanceSell = !!(er && er.on && (i.en || 0) <= Number(er.max || 0));
         if (!qSell && !enhanceSell) return { sell:false };
@@ -2107,7 +2140,16 @@ function openAutoSellRules() {
     let miscTypes = [...new Set(Object.values(DB.items).filter(d => d && !_asEquipType(d)).map(d => d.type).filter(Boolean))].sort();
     let ids = Object.keys(DB.items).filter(id => DB.items[id]).sort((a,b) => (DB.items[a]?.n || a).localeCompare(DB.items[b]?.n || b, 'zh-Hant'));
     let exceptionTypes = [...new Set(ids.map(id => _asEquipType(DB.items[id]) || DB.items[id].type).filter(Boolean))].sort();
-    let qualityRows = `<label class="as-row"><input id="as-q-white" type="checkbox" ${r.quality.white?'checked':''}> ⚪ 自動販賣白裝（0 詞綴）</label><label class="as-row"><input id="as-q-blue" type="checkbox" ${r.quality.blue?'checked':''}> 🔵 自動販賣藍裝（1 詞綴）</label><div class="as-help">可分開勾選；暗金裝（3 詞綴）不會被品質快捷規則販賣。鎖定、製作素材保留與下方保護條件仍優先。</div>`;
+    let _affixMax = Number(r.affixSellMax == null ? -1 : r.affixSellMax);
+    let qualityRows = `<label class="as-row">隨機詞綴自動販賣：
+    <select id="as-affix-max">
+      <option value="-1" ${_affixMax<0?'selected':''}>關閉</option>
+      <option value="0" ${_affixMax===0?'selected':''}>0 詞裝備</option>
+      <option value="1" ${_affixMax===1?'selected':''}>0～1 詞裝備</option>
+      <option value="2" ${_affixMax===2?'selected':''}>0～2 詞裝備</option>
+      <option value="3" ${_affixMax===3?'selected':''}>0～3 詞裝備</option>
+      <option value="4" ${_affixMax===4?'selected':''}>0～4 詞裝備</option>
+    </select></label><div class="as-help">5 詞裝備不會被此規則自動販賣；鎖定與其他保護條件仍優先。</div>`;
     let equipRows = [['wpn','武器'],['arm','防具'],['acc','飾品']].map(([k,n]) => `<label class="as-row"><input id="as-e-${k}" type="checkbox" ${r.equip[k].on?'checked':''}> ${n}，強化值 ≤ <input id="as-em-${k}" type="number" min="0" max="99" value="${r.equip[k].max}"> 自動販賣</label>`).join('');
     let miscRows = miscTypes.map(t => { let x=r.misc[t]||{on:false,keep:0}; return `<label class="as-row"><input class="as-misc" data-type="${t}" type="checkbox" ${x.on?'checked':''}> ${_asTypeLabel(t)}：每種保留 <input class="as-keep" data-type="${t}" type="number" min="0" value="${x.keep}"> 個，多餘販賣</label>`; }).join('');
     let itemRows = ids.map(id => `<option value="${id}">${DB.items[id]?.n || id}</option>`).join('');
@@ -2119,7 +2161,7 @@ function openAutoSellRules() {
       .as-head{display:flex;justify-content:space-between;align-items:center;font-size:23px;font-weight:bold;color:#fde68a}.as-sec{background:#0f172acc;border:1px solid #475569;border-radius:10px;padding:12px;margin-top:12px}.as-title{font-weight:bold;color:#fbbf24;margin-bottom:7px}.as-row{display:block;padding:5px 0}.as-row input[type=number]{width:72px;background:#020617;border:1px solid #64748b;border-radius:5px;padding:3px;text-align:center}.as-row input[type=checkbox]{width:18px;height:18px;vertical-align:middle}.as-help,.as-muted{font-size:13px;color:#94a3b8}.as-actions{display:flex;gap:8px;margin-top:12px}.as-actions button,.as-head button,.as-ex button,.as-ex-tools button{background:#334155;border:1px solid #64748b;border-radius:6px;padding:6px 12px}.as-actions .primary{background:#92400e;border-color:#f59e0b}.as-ex{display:flex;gap:10px;align-items:center;padding:5px;border-bottom:1px solid #334155}.as-ex span{flex:1}.as-ex b{color:#fcd34d}.as-ex-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.as-ex-tools input,.as-ex-tools select,select{background:#020617;border:1px solid #64748b;padding:6px;border-radius:6px}.as-ex-tools input{min-width:180px;flex:1}.as-btnrow{display:flex;align-items:center;flex-wrap:wrap;gap:6px}.as-quick-actions{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto}.as-sell-now-btn{margin-left:0;height:38px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;line-height:1;padding:0 12px;border:2px solid #fb923c;border-radius:7px;background:#7c2d12;color:#ffedd5;font-weight:bold;cursor:pointer;box-shadow:0 2px 7px #0008}.as-sell-now-btn:hover{filter:brightness(1.25)}.as-sort-now-btn{border-color:#22d3ee;background:#164e63;color:#cffafe}.as-override-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.as-override-actions button{padding:7px 13px;border:2px solid;border-radius:7px;font-weight:bold;cursor:pointer;box-shadow:0 2px 7px #0008;transition:filter .15s,transform .15s}.as-override-actions button:hover{filter:brightness(1.25);transform:translateY(-1px)}.as-keep-btn{color:#bbf7d0;background:#14532d;border-color:#4ade80!important}.as-sell-btn{color:#fecaca;background:#7f1d1d;border-color:#f87171!important}#as-item{width:min(100%,390px);margin-bottom:7px}
     </style><div class="as-box"><div class="as-head"><span>自動販賣規則</span><button onclick="closeAutoSellRules()">Close</button></div>
       <div class="as-sec"><label class="as-row"><input id="as-on" type="checkbox" ${player.autoSellOn!==false?'checked':''}> 啟用自動販賣</label><label class="as-row"><input id="as-global" type="checkbox" ${player.autoSellGlobal?'checked':''}> 套用全部存檔（8 個角色共用此設定）</label><div class="as-row as-btnrow"><span>物品取得／符合規則後，等待</span><input id="as-delay" type="number" min="10" max="86400" value="${r.delaySec}"><span>秒才販賣</span><span class="as-quick-actions"><button type="button" class="as-sell-now-btn" onclick="sellAutoSellItemsNow()">立即賣出</button><button type="button" class="as-sell-now-btn as-sort-now-btn" onclick="sortInventoryNow()">立即排列</button></span></div><div class="as-help">等待期間可取消廢品標記或鎖定物品；「立即賣出」會跳過等待秒數。背包整理方式與自動整理開關請在背包左側的整理按鈕設定，與自動販賣互不影響。</div></div>
-      <div class="as-sec"><div class="as-title">裝備品質快捷販賣</div>${qualityRows}</div><div class="as-sec"><div class="as-title">裝備條件</div>${equipRows}<label class="as-row"><input id="as-pb" type="checkbox" ${r.protectBless?'checked':''}> 保護祝福裝備</label><label class="as-row"><input id="as-pa" type="checkbox" ${r.protectAnc?'checked':''}> 保護古代裝備</label><label class="as-row"><input id="as-pt" type="checkbox" ${r.protectAttr?'checked':''}> 保護屬性裝備</label><label class="as-row"><input id="as-ps" type="checkbox" ${r.protectSet?'checked':''}> 保護套裝詞綴裝備</label><label class="as-row"><input id="as-pl" type="checkbox" ${r.protectLegend?'checked':''}> 保護傳說裝備</label><label class="as-row"><input id="as-prelic" type="checkbox" ${r.protectRelic!==false?'checked':''}> 保護遺物</label><label class="as-row"><input id="as-pold" type="checkbox" ${r.protectOldSeries?'checked':''}> 保護解封後的「古老的」系列裝備</label><div class="as-help">解除封印完成後立即保護古老的劍、巨劍、弩槍、鱗甲、皮盔甲、長袍及金屬盔甲，避免成品在取得瞬間被規則標為廢品。</div><label class="as-row"><input id="as-pcraft" type="checkbox" ${r.protectCraftEquip?'checked':''}> 保護製作素材裝備；保留可製作 <input id="as-craftsets" type="number" min="1" max="99" value="${r.craftSets}"> 次的數量</label><div class="as-help">系統會掃描全部製作配方，例如配方需要「暗殺軍王之痕 ×1」，保留 1 次就至少留 1 件，多餘數量才依武器規則處理。</div></div>
+      <div class="as-sec"><div class="as-title">隨機詞綴快捷販賣</div>${qualityRows}</div><div class="as-sec"><div class="as-title">裝備條件</div>${equipRows}<label class="as-row"><input id="as-pb" type="checkbox" ${r.protectBless?'checked':''}> 保護祝福裝備</label><label class="as-row"><input id="as-pa" type="checkbox" ${r.protectAnc?'checked':''}> 保護古代裝備</label><label class="as-row"><input id="as-pt" type="checkbox" ${r.protectAttr?'checked':''}> 保護屬性裝備</label><label class="as-row"><input id="as-ps" type="checkbox" ${r.protectSet?'checked':''}> 保護套裝詞綴裝備</label><label class="as-row"><input id="as-pl" type="checkbox" ${r.protectLegend?'checked':''}> 保護傳說裝備</label><label class="as-row"><input id="as-prelic" type="checkbox" ${r.protectRelic!==false?'checked':''}> 保護遺物</label><label class="as-row"><input id="as-pold" type="checkbox" ${r.protectOldSeries?'checked':''}> 保護解封後的「古老的」系列裝備</label><div class="as-help">解除封印完成後立即保護古老的劍、巨劍、弩槍、鱗甲、皮盔甲、長袍及金屬盔甲，避免成品在取得瞬間被規則標為廢品。</div><label class="as-row"><input id="as-pcraft" type="checkbox" ${r.protectCraftEquip?'checked':''}> 保護製作素材裝備；保留可製作 <input id="as-craftsets" type="number" min="1" max="99" value="${r.craftSets}"> 次的數量</label><div class="as-help">系統會掃描全部製作配方，例如配方需要「暗殺軍王之痕 ×1」，保留 1 次就至少留 1 件，多餘數量才依武器規則處理。</div></div>
       <div class="as-sec"><div class="as-title">材料與一般物品</div>${miscRows}<div class="as-help">任務物品、不可販賣物品與系統保護物品不會被處理。</div></div>
       <div class="as-sec"><div class="as-title">個別例外（全遊戲物品）</div><div class="as-ex-tools"><input id="as-item-search" type="search" placeholder="輸入物品名稱搜尋" oninput="refreshAutoSellItemOptions()"><select id="as-item-type" onchange="refreshAutoSellItemOptions()"><option value="all">全部分類</option>${exceptionTypeRows}</select><select id="as-item-scope" onchange="refreshAutoSellItemOptions()"><option value="all">全部物品</option><option value="held">目前持有</option></select></div><div class="as-override-actions"><select id="as-item">${itemRows}</select><button class="as-keep-btn" onclick="setAutoSellOverride('keep')">永遠保留</button><button class="as-sell-btn" onclick="setAutoSellOverride('sell')">永遠販賣</button></div><div class="as-help">例外依物品本體全局套用，包含未取得物品及其所有強化、祝福、屬性與套裝版本。</div><div id="as-overrides">${rules}</div></div>
       <div class="as-actions"><button onclick="previewAutoSellRules()">預覽符合物品</button><button class="primary" onclick="saveAutoSellRules()">儲存規則</button></div></div>`;
@@ -2130,7 +2172,7 @@ function closeAutoSellRules(){ if(_asBackup){ player.autoSellRules=_asBackup.rul
 function _readAutoSellForm(ruleSnapshot){   // 🔧 v2.6.77 ruleSnapshot：預覽傳入「快照複本」→ 表單只讀進複本、完全不動 live 規則與 player.autoSellOn
     let r=ruleSnapshot || getAutoSellRules(); r.delaySec=Math.max(10,Number(document.getElementById('as-delay').value)||60); if(!ruleSnapshot) player.autoSellOn=document.getElementById('as-on').checked;
     if(!r.quality) r.quality={white:false,blue:false};
-    r.quality.white=!!document.getElementById('as-q-white')?.checked; r.quality.blue=!!document.getElementById('as-q-blue')?.checked;
+    r.affixSellMax=Math.max(-1,Math.min(4,Number(document.getElementById('as-affix-max')?.value ?? -1)));
     ['wpn','arm','acc'].forEach(k=>{r.equip[k].on=document.getElementById('as-e-'+k).checked;r.equip[k].max=Math.max(0,Number(document.getElementById('as-em-'+k).value)||0)});
     r.protectBless=document.getElementById('as-pb').checked;r.protectAnc=document.getElementById('as-pa').checked;r.protectAttr=document.getElementById('as-pt').checked;r.protectSet=document.getElementById('as-ps').checked;r.protectLegend=document.getElementById('as-pl').checked;r.protectRelic=document.getElementById('as-prelic').checked;r.protectOldSeries=document.getElementById('as-pold').checked;r.protectCraftEquip=document.getElementById('as-pcraft').checked;r.craftSets=Math.max(1,Number(document.getElementById('as-craftsets').value)||1);if(!ruleSnapshot)player.autoSellGlobal=document.getElementById('as-global').checked;
     document.querySelectorAll('.as-misc').forEach(x=>{let t=x.dataset.type,k=document.querySelector(`.as-keep[data-type="${t}"]`);r.misc[t]={on:x.checked,keep:Math.max(0,Number(k.value)||0)}}); return r;

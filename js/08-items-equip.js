@@ -101,13 +101,24 @@ const LOOT_AFFIX_POOL = [
     ['hpPct','最大HP',3,10],['mpPct','最大MP',3,10],['defense','防禦',5,20],['mr','魔防',5,20]
 ];
 function rollLootQuality(id) {
-    let r = lootRng('loot-quality|' + id), q = r < 0.05 ? 'unique' : (r < 0.30 ? 'blue' : 'white');
-    let count = LOOT_QUALITY[q].affixes, pool = LOOT_AFFIX_POOL.slice(), aff = [];
-    for (let i=0;i<count && pool.length;i++) {
-        let idx = Math.floor(lootRng('loot-affix-pick|' + id + '|' + i) * pool.length), row = pool.splice(idx,1)[0];
+    let r = lootRng('loot-affix-count|' + id);
+    let count = r < 0.35 ? 0
+              : r < 0.65 ? 1
+              : r < 0.85 ? 2
+              : r < 0.95 ? 3
+              : r < 0.99 ? 4
+              : 5;
+
+    let pool = LOOT_AFFIX_POOL.slice(), aff = [];
+    for (let i=0; i<count && pool.length; i++) {
+        let idx = Math.floor(lootRng('loot-affix-pick|' + id + '|' + i) * pool.length);
+        let row = pool.splice(idx,1)[0];
         let v = row[2] + Math.floor(lootRng('loot-affix-val|' + id + '|' + i) * (row[3]-row[2]+1));
         aff.push({ k:row[0], n:row[1], v:v });
     }
+
+    // 暫留舊欄位相容；真正品質顏色下一步取消
+    let q = count === 0 ? 'white' : (count === 1 ? 'blue' : 'unique');
     return { q:q, aff:aff };
 }
 function lootAffixText(a) {
@@ -115,7 +126,11 @@ function lootAffixText(a) {
     let pct = ['meleeCrit','rangedCrit','magicCrit','meleeCritDmg','rangedCritDmg','magicCritDmg','atkSpdPct','castSpdPct','bossDmgPct','normalDmgPct','hpPct','mpPct'].includes(a.k);
     return a.n + ' +' + a.v + (pct ? '%' : '');
 }
-function lootAffixQualityLabel(item) { let q=LOOT_QUALITY[(item&&item.lootQ)||'white']; return q ? q.n : '白色'; }
+function lootAffixQualityLabel(item) {
+    let n = item && Array.isArray(item.lootAff) ? item.lootAff.length : 0;
+    return n + ' 詞綴';
+}
+
 function applyLootAffixAttributes(p,d) {
     if (!p || !p.eq) return;
     for (let k in p.eq) { let e=p.eq[k]; if(!e || !Array.isArray(e.lootAff)) continue; for (let a of e.lootAff) {
@@ -418,21 +433,12 @@ function elementCounterMult(atkEle, defEle) {
 
 function getItemColor(item) {
     let d = DB.items[item.id];
-    // 🏺 遺物：海藍色名稱（遺物永無詞綴/套裝，優先判定）
     if (d && d.relic) return 'c-relic';
-    // 🏅 傳說武器：琥珀金，優先於套裝與所有詞綴（即使帶套裝效果，名稱仍為琥珀金）
     if (d && d.legend) return 'c-legend';
-    // 🔮 席琳套裝效果：鮮綠＋呼吸綠光，優先於所有詞綴顏色
     if (item.seteff) return 'c-sherine';
-    // 名字顏色 = 套裝 > 祝福(金)/詛咒(紅) > 基底色
-    // 🔧 屬性詞綴與遠古系詞綴（遠古/永恆/不朽/太初）不再影響裝備名稱顏色，
-    //    詞綴字本身仍保留各自專屬色（見 getItemFullName）
     if (item.bless) return blessColorClass(item.bless);
     if (d && d.isB) return 'c-blessed';
-    if (d && d.isC) return 'c-cursed';   // 詛咒的卷軸：名稱紅色
-    if (item && item.lootQ === 'unique') return 'text-amber-400';
-    if (item && item.lootQ === 'blue') return 'text-blue-400';
-    if (item && item.lootQ === 'white') return 'text-white';
+    if (d && d.isC) return 'c-cursed';
     return d.c || 'text-white';
 }
 
@@ -440,25 +446,23 @@ function getItemColor(item) {
 //   單祝福→金光、單遠古→紫光（原樣）；屬性+遠古→紫光(加強)、屬性+祝福→金光(加強)，顯眼度比照雙詞綴；
 //   遠古+祝福→紫金交替(顯眼)；三詞綴→變色循環，顯眼度最高。
 function getGlowClass(item, d) {
-    // 🔮 席琳結晶：圖示帶與套裝文字同款的呼吸綠光
     if ((item && item.id === 'sherine_crystal') || (d && d.n === '席琳結晶')) return 'sherine-glow-icon';
-    // 🔮 席琳套裝效果裝備：套裝光芒優先於傳說圖示光（名稱仍由 getItemColor 決定為琥珀金）
     if (item && item.seteff) return 'sherine-glow-icon';
-    if ((item && item.id === 'wpn_manadagger') || (d && d.n === '魔力短劍')) return 'mana-glow';   // 🔧 魔力短劍：專屬藍色圖示光芒（凌駕傳說琥珀金光）
-    if (d && d.relic) return 'relic-glow';   // 🏺 遺物：海藍色圖示光芒
-    if (d && d.legend) return 'legend-glow';   // 🏅 傳說武器：琥珀金圖示光芒
+    if ((item && item.id === 'wpn_manadagger') || (d && d.n === '魔力短劍')) return 'mana-glow';
+    if (d && d.relic) return 'relic-glow';
+    if (d && d.legend) return 'legend-glow';
     let bless = (item && item.bless) || (d && d.isB);
-    let cursed = !!(item && item.bless === 'cursed') || !!(d && d.isC);   // 詛咒裝備或詛咒卷軸：紅光
+    let cursed = !!(item && item.bless === 'cursed') || !!(d && d.isC);
     let anc = (item && item.anc) || (d && d.isAnc);
     let attr = !!(item && getAttrAffix(item.attr));
-    if (cursed) return 'curse-glow';   // 含詛咒：一律單詛咒紅光（即使二/三詞綴）
-    if (attr && anc && bless) return 'tri-glow';           // 三詞綴：高亮變色循環（顯眼度最高）
-    if (anc && bless) return 'anc-bless-glow';             // 遠古+祝福：紫金交替（顯眼）
-    if (attr && anc) return 'ancient-glow-strong';         // 屬性+遠古：紫光（顯眼度＝雙詞綴）
-    if (attr && bless) return 'bless-glow-strong';         // 屬性+祝福：金光（顯眼度＝雙詞綴）
-    if (anc) return 'ancient-glow';                        // 單遠古：紫光（原樣）
-    if (bless) return 'bless-glow';   // 單祝福（詛咒已於上方優先處理）                        // 單祝福：金光（原樣）
-    if (attr) return 'attr-glow-' + attrCanon(item.attr);  // 🔥 單屬性：武器圖示帶該屬性同色系光芒（階級越高越亮，第5階呼吸光）
+    if (cursed) return 'curse-glow';
+    if (attr && anc && bless) return 'tri-glow';
+    if (anc && bless) return 'anc-bless-glow';
+    if (attr && anc) return 'ancient-glow-strong';
+    if (attr && bless) return 'bless-glow-strong';
+    if (anc) return 'ancient-glow';
+    if (bless) return 'bless-glow';
+    if (attr) return 'attr-glow-' + attrCanon(item.attr);
     return '';
 }
 
