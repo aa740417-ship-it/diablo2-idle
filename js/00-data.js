@@ -3608,3 +3608,62 @@ try {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _origEnforce);
   else _origEnforce();
 } catch (_) {}
+
+
+/* === desktop repost banner offset fix === */
+(function(){
+
+function _syncDesktopRepostOffset(){
+    let bar = document.getElementById('_orig_pbar');
+    let root = document.documentElement;
+
+    if(!root) return;
+
+    if(!bar){
+        root.style.setProperty('--orig-desktop-pbar-h','0px');
+        return;
+    }
+
+    let h = Math.ceil(bar.getBoundingClientRect().height || 0);
+
+    /* 桌機才讓整個遊戲往下，手機維持原本版面 */
+    root.style.setProperty(
+        '--orig-desktop-pbar-h',
+        window.innerWidth > 768 ? h + 'px' : '0px'
+    );
+}
+
+function _installDesktopRepostOffset(){
+    if(!document.getElementById('desktop-repost-offset-style')){
+        let st = document.createElement('style');
+        st.id = 'desktop-repost-offset-style';
+        st.textContent = `
+        @media (min-width:769px){
+            body{
+                padding-top:var(--orig-desktop-pbar-h,0px)!important;
+                box-sizing:border-box!important;
+            }
+
+            #game-screen{
+                min-height:calc(100vh - var(--orig-desktop-pbar-h,0px))!important;
+            }
+        }`;
+        document.head.appendChild(st);
+    }
+
+    _syncDesktopRepostOffset();
+
+    setTimeout(_syncDesktopRepostOffset,50);
+    setTimeout(_syncDesktopRepostOffset,250);
+    setTimeout(_syncDesktopRepostOffset,800);
+
+    window.addEventListener('resize',_syncDesktopRepostOffset);
+}
+
+if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded',_installDesktopRepostOffset);
+}else{
+    _installDesktopRepostOffset();
+}
+
+})();
