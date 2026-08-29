@@ -3565,3 +3565,7 @@ button.classic-skill-cell { cursor:pointer; }
 }
 
 }
+
+/* warehouse below repost banner */
+#warehouse-window:not(.hidden){top:var(--orig-pbar-h,0px)!important;}
+#warehouse-window-frame{top:calc(var(--orig-pbar-h,0px) + 8px)!important;bottom:8px!important;}

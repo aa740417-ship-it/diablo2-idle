@@ -3600,7 +3600,7 @@ function _origEnforce() {
       + '本遊戲<span style="color:#ffcf5a">永久免費</span>，前往<span style="color:#ffcf5a">官方最新版</span>：'
       + '<a href="' + url + '" style="color:#ffcf5a;font-weight:bold;text-decoration:underline">'
       + 'shines871.github.io/idle-lineage-class</a>';
-    document.body.appendChild(bar);
+    document.body.appendChild(bar); var _origSyncBar=function(){document.documentElement.style.setProperty("--orig-pbar-h",Math.ceil(bar.getBoundingClientRect().height)+"px");}; _origSyncBar(); window.addEventListener("resize",_origSyncBar);
   } catch (_) {}
 }
 
