@@ -3437,3 +3437,131 @@ button.classic-skill-cell { cursor:pointer; }
 #warehouse-window-close:before{content:"✕";font-size:24px!important;line-height:1!important;}
 #warehouse-window-content{min-height:0!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;}
 }
+
+/* mobile compact modal controls v2 */
+@media (pointer:coarse), (max-width:768px){
+
+/* ===== 裝備物品視窗 ===== */
+#item-modal>div:not(#modal-compare){
+  position:relative!important;
+  padding:10px!important;
+}
+
+#modal-item-name{
+  padding-right:42px!important;
+  margin-bottom:6px!important;
+}
+
+#modal-lock-icon{
+  margin-right:34px!important;
+}
+
+#modal-actions{
+  gap:6px!important;
+}
+
+#modal-actions button{
+  min-height:36px!important;
+  height:auto!important;
+  padding:5px 6px!important;
+  font-size:13px!important;
+  line-height:1.2!important;
+}
+
+/* 原本最下面的「關閉視窗」變右上角小 X */
+#item-modal>div:not(#modal-compare)>button:last-child{
+  position:absolute!important;
+  top:8px!important;
+  right:8px!important;
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:7px!important;
+  font-size:0!important;
+  z-index:50!important;
+}
+
+#item-modal>div:not(#modal-compare)>button:last-child:before{
+  content:"✕";
+  font-size:18px!important;
+  line-height:1!important;
+}
+
+/* ===== 倉庫 ===== */
+#warehouse-window:not(.hidden){
+  position:fixed!important;
+  inset:0!important;
+  z-index:100000!important;
+  transform:none!important;
+  overflow:visible!important;
+}
+
+#warehouse-window-frame{
+  position:fixed!important;
+  inset:8px!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:none!important;
+  max-height:none!important;
+  transform:none!important;
+  overflow:hidden!important;
+}
+
+#warehouse-window-drag{
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  flex:0 0 52px!important;
+  min-height:52px!important;
+  padding:6px 50px 6px 9px!important;
+  z-index:100!important;
+}
+
+#warehouse-window-drag h2{
+  font-size:16px!important;
+}
+
+#warehouse-window-drag span{
+  font-size:10px!important;
+}
+
+/* 倉庫固定右上角 X */
+#warehouse-window-close{
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:absolute!important;
+  top:7px!important;
+  right:7px!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:0!important;
+  z-index:999999!important;
+  pointer-events:auto!important;
+}
+
+#warehouse-window-close:before{
+  content:"✕";
+  font-size:20px!important;
+  line-height:1!important;
+}
+
+#warehouse-window-content{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  touch-action:pan-y!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+}
