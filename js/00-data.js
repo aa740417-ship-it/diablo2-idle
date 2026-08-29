@@ -3882,107 +3882,206 @@ if(document.readyState === 'loading'){
 })();
 
 
-/* === desktop banner force no cover v4 === */
+
+/* === desktop banner stage offset v5 === */
 (function(){
 
-function fixDesktopOrigBanner(){
+function fitDesktopBannerV5(){
+
+    /* 手機完全不碰 */
+    if(window.innerWidth <= 768) return;
+
     var bar = document.getElementById('_orig_pbar');
-    if(!bar) return;
+    var stage = document.getElementById('app-stage');
 
-    if(window.innerWidth >= 769){
+    if(!bar || !stage) return;
 
-        /* 一定搬到整個頁面最上面 */
-        if(document.body &&
-           document.body.firstElementChild !== bar){
-            document.body.insertBefore(
-                bar,
-                document.body.firstChild
+    /*
+     * 公告維持 fixed。
+     * 不再用 relative，因為 app-stage 本身也是 fixed，
+     * relative 公告推不動它。
+     */
+    bar.style.setProperty(
+        'position','fixed','important'
+    );
+
+    bar.style.setProperty(
+        'top','0','important'
+    );
+
+    bar.style.setProperty(
+        'left','0','important'
+    );
+
+    bar.style.setProperty(
+        'right','0','important'
+    );
+
+    bar.style.setProperty(
+        'bottom','auto','important'
+    );
+
+    bar.style.setProperty(
+        'width','100%','important'
+    );
+
+    bar.style.setProperty(
+        'box-sizing','border-box','important'
+    );
+
+    /* 桌機公告縮薄 */
+    bar.style.setProperty(
+        'padding','5px 12px','important'
+    );
+
+    bar.style.setProperty(
+        'font-size','13px','important'
+    );
+
+    bar.style.setProperty(
+        'line-height','1.35','important'
+    );
+
+    bar.style.setProperty(
+        'margin','0','important'
+    );
+
+    bar.style.setProperty(
+        'transform','none','important'
+    );
+
+    /*
+     * 真正量公告高度。
+     */
+    var h = Math.ceil(
+        bar.getBoundingClientRect().height ||
+        bar.offsetHeight ||
+        0
+    );
+
+    document.documentElement.style.setProperty(
+        '--orig-pbar-h',
+        h + 'px'
+    );
+
+    /*
+     * 整個遊戲固定舞台往公告下面移。
+     */
+    stage.style.setProperty(
+        'top',
+        h + 'px',
+        'important'
+    );
+
+    stage.style.setProperty(
+        'bottom',
+        '0',
+        'important'
+    );
+
+    stage.style.setProperty(
+        'height',
+        'auto',
+        'important'
+    );
+
+    stage.style.setProperty(
+        'max-height',
+        'calc(100dvh - ' + h + 'px)',
+        'important'
+    );
+
+    /*
+     * 倉庫是另外一個 fixed 視窗，
+     * 開啟時也一起避開公告。
+     */
+    var wh = document.getElementById(
+        'warehouse-window'
+    );
+
+    if(wh && !wh.classList.contains('hidden')){
+
+        wh.style.setProperty(
+            'top',
+            h + 'px',
+            'important'
+        );
+
+        wh.style.setProperty(
+            'bottom',
+            '0',
+            'important'
+        );
+
+        wh.style.setProperty(
+            'height',
+            'auto',
+            'important'
+        );
+
+        var frame = document.getElementById(
+            'warehouse-window-frame'
+        );
+
+        if(frame){
+            frame.style.setProperty(
+                'max-height',
+                'calc(100dvh - ' +
+                h +
+                'px - 16px)',
+                'important'
             );
         }
-
-        /* 強制從浮動覆蓋改成正常版面 */
-        bar.style.setProperty(
-            'position','relative','important'
-        );
-        bar.style.setProperty(
-            'top','auto','important'
-        );
-        bar.style.setProperty(
-            'left','auto','important'
-        );
-        bar.style.setProperty(
-            'right','auto','important'
-        );
-        bar.style.setProperty(
-            'bottom','auto','important'
-        );
-
-        bar.style.setProperty(
-            'width','100%','important'
-        );
-        bar.style.setProperty(
-            'height','auto','important'
-        );
-        bar.style.setProperty(
-            'box-sizing','border-box','important'
-        );
-
-        bar.style.setProperty(
-            'margin','0','important'
-        );
-
-        /* 桌機版順便縮薄 */
-        bar.style.setProperty(
-            'padding','5px 12px','important'
-        );
-        bar.style.setProperty(
-            'font-size','13px','important'
-        );
-        bar.style.setProperty(
-            'line-height','1.35','important'
-        );
-
-        bar.style.setProperty(
-            'z-index','50','important'
-        );
-
-        bar.style.setProperty(
-            'transform','none','important'
-        );
-
-        /* 清掉之前補丁可能留下的頂部空間 */
-        document.documentElement.style
-            .setProperty('--orig-pbar-h','0px');
-
-        document.body.style
-            .setProperty('padding-top','0px','important');
     }
+
+    document.body.style.setProperty(
+        'padding-top',
+        '0',
+        'important'
+    );
 }
 
-/* 第一次載入 */
+
+function installDesktopBannerV5(){
+
+    fitDesktopBannerV5();
+
+    window.addEventListener(
+        'resize',
+        fitDesktopBannerV5
+    );
+
+    /*
+     * 開關倉庫、公告生成時重新計算。
+     * 不監視 style，避免自己觸發自己。
+     */
+    new MutationObserver(function(){
+        requestAnimationFrame(
+            fitDesktopBannerV5
+        );
+    }).observe(document.body,{
+        childList:true,
+        subtree:true,
+        attributes:true,
+        attributeFilter:['class']
+    });
+
+    /* 保險重新同步 */
+    setInterval(
+        fitDesktopBannerV5,
+        1500
+    );
+}
+
+
 if(document.readyState === 'loading'){
     document.addEventListener(
         'DOMContentLoaded',
-        fixDesktopOrigBanner
+        installDesktopBannerV5
     );
 }else{
-    fixDesktopOrigBanner();
+    installDesktopBannerV5();
 }
 
-/* 原公告晚一點才出現也抓得到 */
-new MutationObserver(function(){
-    fixDesktopOrigBanner();
-}).observe(document.documentElement,{
-    childList:true,
-    subtree:true
-});
-
-/* 防原遊戲循環重新把公告變回 fixed */
-setInterval(fixDesktopOrigBanner,1000);
-
-window.addEventListener(
-    'resize',
-    fixDesktopOrigBanner
-);
-
 })();
+
