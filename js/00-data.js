@@ -3667,3 +3667,216 @@ if(document.readyState === 'loading'){
 }
 
 })();
+
+
+/* === desktop repost banner normal flow v2 === */
+(function(){
+
+function _origDesktopBannerFlow(){
+    var bar = document.getElementById('_orig_pbar');
+    if(!bar || !document.body) return false;
+
+    if(window.innerWidth > 768){
+
+        /*
+         * 桌機版：
+         * 不再用 fixed 蓋住遊戲。
+         * 把公告搬到 body 最前面，成為正常版面的一部分。
+         */
+        if(document.body.firstElementChild !== bar){
+            document.body.insertBefore(
+                bar,
+                document.body.firstChild
+            );
+        }
+
+        bar.style.setProperty(
+            'position',
+            'relative',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'top',
+            'auto',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'left',
+            'auto',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'right',
+            'auto',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'bottom',
+            'auto',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'width',
+            '100%',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'box-sizing',
+            'border-box',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'margin',
+            '0',
+            'important'
+        );
+
+        /*
+         * 取消上一版 body padding，
+         * 避免公告進正常版面後又多出一塊空白。
+         */
+        document.documentElement.style.setProperty(
+            '--orig-desktop-pbar-h',
+            '0px'
+        );
+
+        document.body.style.setProperty(
+            'padding-top',
+            '0px',
+            'important'
+        );
+
+        document.body.classList.add(
+            'orig-banner-desktop-flow'
+        );
+
+    }else{
+
+        /*
+         * 手機維持原本 fixed 公告。
+         */
+        document.body.classList.remove(
+            'orig-banner-desktop-flow'
+        );
+
+        bar.style.setProperty(
+            'position',
+            'fixed',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'top',
+            '0',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'left',
+            '0',
+            'important'
+        );
+
+        bar.style.setProperty(
+            'right',
+            '0',
+            'important'
+        );
+
+        bar.style.removeProperty('bottom');
+        bar.style.removeProperty('width');
+    }
+
+    return true;
+}
+
+
+function _origInstallDesktopBannerFlow(){
+
+    if(!document.getElementById(
+        'orig-desktop-banner-flow-style'
+    )){
+        var st = document.createElement('style');
+
+        st.id = 'orig-desktop-banner-flow-style';
+
+        st.textContent = `
+        @media (min-width:769px){
+
+          #_orig_pbar{
+            position:relative!important;
+            top:auto!important;
+            left:auto!important;
+            right:auto!important;
+            bottom:auto!important;
+
+            width:100%!important;
+            box-sizing:border-box!important;
+
+            flex:none!important;
+            transform:none!important;
+          }
+
+          body.orig-banner-desktop-flow{
+            padding-top:0!important;
+          }
+
+        }`;
+
+        document.head.appendChild(st);
+    }
+
+    /*
+     * _orig_pbar 是 DOMContentLoaded 後才建立，
+     * 所以多檢查幾次。
+     */
+    var tries = 0;
+
+    var timer = setInterval(function(){
+        tries++;
+
+        if(_origDesktopBannerFlow() || tries > 50){
+            clearInterval(timer);
+        }
+    },100);
+
+    setTimeout(_origDesktopBannerFlow,0);
+    setTimeout(_origDesktopBannerFlow,300);
+    setTimeout(_origDesktopBannerFlow,1000);
+
+    window.addEventListener(
+        'resize',
+        _origDesktopBannerFlow
+    );
+
+    /*
+     * 如果原程式之後重新掛回公告，
+     * 也立即重新整理位置。
+     */
+    new MutationObserver(function(){
+        if(document.getElementById('_orig_pbar')){
+            _origDesktopBannerFlow();
+        }
+    }).observe(document.body,{
+        childList:true
+    });
+}
+
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        _origInstallDesktopBannerFlow
+    );
+}else{
+    _origInstallDesktopBannerFlow();
+}
+
+})();
