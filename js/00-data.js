@@ -3880,3 +3880,109 @@ if(document.readyState === 'loading'){
 }
 
 })();
+
+
+/* === desktop banner force no cover v4 === */
+(function(){
+
+function fixDesktopOrigBanner(){
+    var bar = document.getElementById('_orig_pbar');
+    if(!bar) return;
+
+    if(window.innerWidth >= 769){
+
+        /* 一定搬到整個頁面最上面 */
+        if(document.body &&
+           document.body.firstElementChild !== bar){
+            document.body.insertBefore(
+                bar,
+                document.body.firstChild
+            );
+        }
+
+        /* 強制從浮動覆蓋改成正常版面 */
+        bar.style.setProperty(
+            'position','relative','important'
+        );
+        bar.style.setProperty(
+            'top','auto','important'
+        );
+        bar.style.setProperty(
+            'left','auto','important'
+        );
+        bar.style.setProperty(
+            'right','auto','important'
+        );
+        bar.style.setProperty(
+            'bottom','auto','important'
+        );
+
+        bar.style.setProperty(
+            'width','100%','important'
+        );
+        bar.style.setProperty(
+            'height','auto','important'
+        );
+        bar.style.setProperty(
+            'box-sizing','border-box','important'
+        );
+
+        bar.style.setProperty(
+            'margin','0','important'
+        );
+
+        /* 桌機版順便縮薄 */
+        bar.style.setProperty(
+            'padding','5px 12px','important'
+        );
+        bar.style.setProperty(
+            'font-size','13px','important'
+        );
+        bar.style.setProperty(
+            'line-height','1.35','important'
+        );
+
+        bar.style.setProperty(
+            'z-index','50','important'
+        );
+
+        bar.style.setProperty(
+            'transform','none','important'
+        );
+
+        /* 清掉之前補丁可能留下的頂部空間 */
+        document.documentElement.style
+            .setProperty('--orig-pbar-h','0px');
+
+        document.body.style
+            .setProperty('padding-top','0px','important');
+    }
+}
+
+/* 第一次載入 */
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        fixDesktopOrigBanner
+    );
+}else{
+    fixDesktopOrigBanner();
+}
+
+/* 原公告晚一點才出現也抓得到 */
+new MutationObserver(function(){
+    fixDesktopOrigBanner();
+}).observe(document.documentElement,{
+    childList:true,
+    subtree:true
+});
+
+/* 防原遊戲循環重新把公告變回 fixed */
+setInterval(fixDesktopOrigBanner,1000);
+
+window.addEventListener(
+    'resize',
+    fixDesktopOrigBanner
+);
+
+})();
