@@ -4976,3 +4976,287 @@ if(document.readyState === 'loading'){
 }
 
 })();
+
+
+/* === desktop 44px text inventory v1 === */
+(function(){
+
+if(window.__desktop44TextInventoryV1) return;
+window.__desktop44TextInventoryV1 = true;
+
+function installDesktop44TextInventory(){
+
+    if(document.getElementById(
+        'desktop-44-text-inventory-style'
+    )) return;
+
+    var st = document.createElement('style');
+
+    st.id = 'desktop-44-text-inventory-style';
+
+    st.textContent = `
+    @media (min-width:769px){
+
+      /*
+       * 武器 / 防具 / 道具：
+       * 桌機版改成單欄純文字。
+       */
+      #tab-weapons .classic-inventory-viewport,
+      #tab-armors .classic-inventory-viewport,
+      #tab-items .classic-inventory-viewport{
+
+        display:flex!important;
+        flex-direction:column!important;
+
+        grid-template-columns:none!important;
+        grid-auto-rows:auto!important;
+
+        gap:4px!important;
+        padding:5px 8px!important;
+
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+
+        scrollbar-gutter:stable!important;
+      }
+
+
+      /* 不需要原本 4×6 補空格 */
+      #tab-weapons .classic-grid-empty,
+      #tab-armors .classic-grid-empty,
+      #tab-items .classic-grid-empty{
+        display:none!important;
+      }
+
+
+      /*
+       * 每件固定 44px，
+       * 跟目前手機定版相同。
+       */
+      #tab-weapons .list-item,
+      #tab-armors .list-item,
+      #tab-items .list-item{
+
+        position:relative!important;
+
+        display:block!important;
+
+        width:100%!important;
+
+        height:44px!important;
+        min-height:44px!important;
+        max-height:44px!important;
+
+        flex:0 0 44px!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        overflow:hidden!important;
+
+        border-radius:5px!important;
+        box-sizing:border-box!important;
+
+        cursor:pointer!important;
+      }
+
+
+      #tab-weapons .classic-item-main,
+      #tab-armors .classic-item-main,
+      #tab-items .classic-item-main{
+
+        display:flex!important;
+        align-items:center!important;
+
+        width:100%!important;
+
+        height:42px!important;
+        min-height:42px!important;
+        max-height:42px!important;
+
+        padding:0 10px!important;
+        margin:0!important;
+
+        box-sizing:border-box!important;
+      }
+
+
+      /* 圖示全部移除 */
+      #tab-weapons .classic-icon-box,
+      #tab-armors .classic-icon-box,
+      #tab-items .classic-icon-box{
+
+        display:none!important;
+      }
+
+
+      /*
+       * 名稱佔滿整列，
+       * 右側預留鎖定 / 廢品位置。
+       */
+      #tab-weapons .classic-name-box,
+      #tab-armors .classic-name-box,
+      #tab-items .classic-name-box{
+
+        display:flex!important;
+        align-items:center!important;
+
+        width:100%!important;
+        height:100%!important;
+
+        min-width:0!important;
+
+        margin:0!important;
+        padding:0 48px 0 0!important;
+      }
+
+
+      #tab-weapons .classic-name-box > span:first-child,
+      #tab-armors .classic-name-box > span:first-child,
+      #tab-items .classic-name-box > span:first-child{
+
+        display:block!important;
+
+        min-width:0!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        font-size:14px!important;
+        line-height:18px!important;
+        font-weight:600!important;
+
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
+
+
+      /*
+       * 原本第二行狀態不要撐高。
+       * 有必要的狀態仍可在名稱旁保留。
+       */
+      #tab-weapons .classic-item-flags,
+      #tab-armors .classic-item-flags,
+      #tab-items .classic-item-flags{
+
+        display:inline!important;
+
+        margin-left:6px!important;
+
+        font-size:9px!important;
+        line-height:11px!important;
+
+        white-space:nowrap!important;
+      }
+
+
+      /* 鎖定放右側 */
+      #tab-weapons .classic-item-lock-badge,
+      #tab-armors .classic-item-lock-badge,
+      #tab-items .classic-item-lock-badge{
+
+        position:absolute!important;
+
+        right:9px!important;
+        top:50%!important;
+
+        transform:translateY(-50%)!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        font-size:13px!important;
+        line-height:14px!important;
+      }
+
+
+      /* 廢品也只放右側小字 */
+      #tab-weapons .classic-item-junk-label,
+      #tab-armors .classic-item-junk-label,
+      #tab-items .classic-item-junk-label{
+
+        position:absolute!important;
+
+        right:9px!important;
+        left:auto!important;
+
+        top:50%!important;
+        bottom:auto!important;
+
+        transform:translateY(-50%)!important;
+
+        display:inline-block!important;
+
+        width:auto!important;
+        height:auto!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        border:0!important;
+        background:none!important;
+        box-shadow:none!important;
+
+        font-size:10px!important;
+        line-height:12px!important;
+
+        white-space:nowrap!important;
+      }
+
+
+      /*
+       * 快速強化 / 快速廢品模式：
+       * checkbox 保留。
+       */
+      #tab-weapons .list-item input[type="checkbox"],
+      #tab-armors .list-item input[type="checkbox"],
+      #tab-items .list-item input[type="checkbox"]{
+
+        width:18px!important;
+        height:18px!important;
+
+        margin-right:9px!important;
+
+        flex:0 0 18px!important;
+      }
+
+
+      /*
+       * 單欄之後用滑鼠滾輪即可，
+       * 原格子上下捲箭頭不需要。
+       */
+      #tab-weapons .classic-inventory-scroll,
+      #tab-armors .classic-inventory-scroll,
+      #tab-items .classic-inventory-scroll{
+
+        display:none!important;
+      }
+
+
+      /*
+       * 整理 ↕ 按鈕仍然保留。
+       */
+      #tab-weapons .classic-sort-wrap,
+      #tab-armors .classic-sort-wrap,
+      #tab-items .classic-sort-wrap{
+
+        z-index:5!important;
+      }
+
+    }`;
+
+    document.head.appendChild(st);
+}
+
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        installDesktop44TextInventory
+    );
+}else{
+    installDesktop44TextInventory();
+}
+
+})();
