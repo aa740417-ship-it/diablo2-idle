@@ -427,7 +427,11 @@ function decorateClassicInventoryTab(div){
         _invSearchText[div.id]=search.value || '';
         viewport.querySelectorAll('.list-item').forEach(x=>{
             let key=(x.getAttribute('data-inv-search') || x.textContent || '').toLowerCase();
-            x.style.display=(!q || key.includes(q)) ? '' : 'none';
+            if(!q || key.includes(q)){
+            x.style.removeProperty('display');
+        }else{
+            x.style.setProperty('display','none','important');
+        }
         });
         viewport.querySelectorAll('.classic-grid-empty').forEach(x=>x.style.display=q?'none':'');
         viewport.scrollTop=0;
@@ -2805,3 +2809,548 @@ function setAllyAutoBuff(slot, sid, on) {
 //    自 v2.6.74「自動化設定改分頁內嵌」後已不存在於任何 HTML/CSS，兩函式零外部呼叫者，寫入的 fb5_automation_collapsed 亦零讀取端。
 //    （比照 v2.6.76 處理 _applySquadCollapse/toggleSquadCollapse 的先例。）
 // 🔧 v2.6.76 傭兵隊伍面板收合已移除（恆展開·用戶要求）：_applySquadCollapse/toggleSquadCollapse 刪除、index.html 標題列改純標題無箭頭。
+
+
+/* === mobile item modal scroll + close v1 === */
+(function(){
+
+    function installItemModalMobileStyle(){
+        if(document.getElementById('item-modal-mobile-fix-style')) return;
+
+        let st=document.createElement('style');
+        st.id='item-modal-mobile-fix-style';
+        st.textContent=`
+        @media (max-width:768px){
+
+          #item-modal:not(.hidden){
+            position:fixed!important;
+            left:0!important;
+            right:0!important;
+            top:var(--orig-pbar-h,0px)!important;
+            bottom:0!important;
+            transform:none!important;
+
+            width:auto!important;
+            height:auto!important;
+            max-height:none!important;
+
+            display:block!important;
+            overflow-y:auto!important;
+            overflow-x:hidden!important;
+
+            -webkit-overflow-scrolling:touch!important;
+            overscroll-behavior:contain!important;
+            touch-action:pan-y!important;
+
+            padding:8px 8px 110px!important;
+            z-index:10060!important;
+          }
+
+          #item-modal > div:not(#modal-compare){
+            position:relative!important;
+            width:min(680px,100%)!important;
+            max-width:100%!important;
+            max-height:none!important;
+            overflow:visible!important;
+            margin:0 auto 10px!important;
+            box-sizing:border-box!important;
+          }
+
+          #item-modal #modal-compare{
+            width:min(680px,100%)!important;
+            max-width:100%!important;
+            margin:0 auto 10px!important;
+          }
+
+          #item-modal-close-x{
+            position:sticky!important;
+            top:4px!important;
+            float:right!important;
+            z-index:30!important;
+
+            width:46px!important;
+            height:46px!important;
+            margin:0 0 4px 8px!important;
+
+            border:1px solid #946b3d!important;
+            border-radius:9px!important;
+            background:#211b1b!important;
+            color:#f4e5d1!important;
+
+            font-size:30px!important;
+            line-height:38px!important;
+            font-weight:400!important;
+          }
+
+          #item-modal-bottom-close{
+            grid-column:1/-1!important;
+            width:100%!important;
+            margin-top:10px!important;
+            padding:14px 8px!important;
+            font-size:18px!important;
+            font-weight:bold!important;
+
+            border:1px solid #72503a!important;
+            border-radius:7px!important;
+            background:#211b1b!important;
+            color:#e5e7eb!important;
+          }
+        }`;
+
+        document.head.appendChild(st);
+    }
+
+
+    function removeOldLootQualityText(){
+        let d=document.getElementById('modal-item-desc');
+        if(!d) return;
+
+        let walker=document.createTreeWalker(
+            d,
+            NodeFilter.SHOW_TEXT
+        );
+
+        let nodes=[];
+        while(walker.nextNode()) nodes.push(walker.currentNode);
+
+        nodes.forEach(t=>{
+            let v=t.nodeValue||'';
+
+            if(/品質\s*[:：]\s*(白色|藍色|暗金)/.test(v)){
+                let parent=t.parentElement;
+
+                if(parent &&
+                   parent!==d &&
+                   /^品質\s*[:：]\s*(白色|藍色|暗金)\s*$/.test(parent.textContent.trim())){
+                    parent.remove();
+                }else{
+                    t.nodeValue=v.replace(
+                        /品質\s*[:：]\s*(白色|藍色|暗金)\s*/g,
+                        ''
+                    );
+                }
+            }
+        });
+    }
+
+
+    function ensureItemModalCloseButtons(){
+        let modal=document.getElementById('item-modal');
+        if(!modal) return;
+
+        let box=null;
+
+        for(let c of modal.children){
+            if(c.id!=='modal-compare'){
+                box=c;
+                break;
+            }
+        }
+
+        if(box && !document.getElementById('item-modal-close-x')){
+            let x=document.createElement('button');
+            x.id='item-modal-close-x';
+            x.type='button';
+            x.textContent='×';
+            x.setAttribute('aria-label','關閉視窗');
+            x.onclick=()=>closeModal();
+
+            box.prepend(x);
+        }
+
+        let actions=document.getElementById('modal-actions');
+
+        if(actions && !document.getElementById('item-modal-bottom-close')){
+            let b=document.createElement('button');
+            b.id='item-modal-bottom-close';
+            b.type='button';
+            b.textContent='關閉視窗';
+            b.onclick=()=>closeModal();
+
+            actions.appendChild(b);
+        }
+    }
+
+
+    function fixItemModal(){
+        installItemModalMobileStyle();
+        removeOldLootQualityText();
+        ensureItemModalCloseButtons();
+    }
+
+
+    function initItemModalFix(){
+        installItemModalMobileStyle();
+
+        let modal=document.getElementById('item-modal');
+        if(!modal) return;
+
+        new MutationObserver(()=>{
+            if(!modal.classList.contains('hidden')){
+                requestAnimationFrame(fixItemModal);
+                setTimeout(fixItemModal,40);
+            }
+        }).observe(modal,{
+            attributes:true,
+            attributeFilter:['class']
+        });
+    }
+
+
+    if(document.readyState==='loading'){
+        document.addEventListener('DOMContentLoaded',initItemModalFix);
+    }else{
+        initItemModalFix();
+    }
+
+})();
+
+
+/* === mobile item modal order fix === */
+(function(){
+
+function _fixMobileItemModalOrder(){
+    if(window.innerWidth > 768) return;
+
+    let modal = document.getElementById('item-modal');
+    let cmp   = document.getElementById('modal-compare');
+    let acts  = document.getElementById('modal-actions');
+
+    if(!modal) return;
+
+    /* 找真正的物品主卡 */
+    let main = null;
+    for(let c of modal.children){
+        if(c !== cmp){
+            main = c;
+            break;
+        }
+    }
+
+    /* 真正點選物品永遠放前面，比較卡移到最後 */
+    if(main && cmp && cmp.parentNode === modal){
+        if(modal.firstElementChild !== main)
+            modal.insertBefore(main, modal.firstElementChild);
+
+        modal.appendChild(cmp);
+    }
+
+    /* 清掉舊位置，確保可以真的捲到底 */
+    modal.style.setProperty('overflow-y','auto','important');
+    modal.style.setProperty('-webkit-overflow-scrolling','touch','important');
+    modal.style.setProperty('padding-bottom','160px','important');
+
+    if(main){
+        main.style.setProperty('height','auto','important');
+        main.style.setProperty('min-height','0','important');
+        main.style.setProperty('max-height','none','important');
+        main.style.setProperty('overflow','visible','important');
+    }
+
+    if(acts){
+        acts.style.setProperty('position','relative','important');
+        acts.style.setProperty('bottom','auto','important');
+        acts.style.setProperty('height','auto','important');
+        acts.style.setProperty('max-height','none','important');
+        acts.style.setProperty('overflow','visible','important');
+        acts.style.setProperty('margin-bottom','30px','important');
+    }
+
+    if(cmp && !cmp.classList.contains('hidden')){
+        cmp.style.setProperty('position','relative','important');
+        cmp.style.setProperty('height','auto','important');
+        cmp.style.setProperty('max-height','none','important');
+        cmp.style.setProperty('overflow','visible','important');
+        cmp.style.setProperty('margin-top','12px','important');
+        cmp.style.setProperty('margin-bottom','50px','important');
+    }
+
+    /* 每次開物品都從最上面開始 */
+    modal.scrollTop = 0;
+}
+
+function _watchItemModalOrder(){
+    let modal=document.getElementById('item-modal');
+    if(!modal) return;
+
+    new MutationObserver(()=>{
+        if(!modal.classList.contains('hidden')){
+            requestAnimationFrame(_fixMobileItemModalOrder);
+            setTimeout(_fixMobileItemModalOrder,30);
+            setTimeout(_fixMobileItemModalOrder,100);
+        }
+    }).observe(modal,{
+        attributes:true,
+        attributeFilter:['class']
+    });
+}
+
+if(document.readyState==='loading')
+    document.addEventListener('DOMContentLoaded',_watchItemModalOrder);
+else
+    _watchItemModalOrder();
+
+})();
+
+
+/* === mobile bottom shortcut nav v1 === */
+(function(){
+
+function _mobileNavScroll(el){
+    if(!el) return;
+    setTimeout(()=>{
+        try{
+            el.scrollIntoView({
+                behavior:'smooth',
+                block:'start'
+            });
+        }catch(e){
+            el.scrollIntoView();
+        }
+    },30);
+}
+
+function _mobileNavSetActive(key){
+    document.querySelectorAll('#mobile-game-nav button').forEach(b=>{
+        b.classList.toggle('mgn-active', b.dataset.key===key);
+    });
+}
+
+/* ⚔️ 戰鬥：回目前地圖／戰鬥區 */
+function _mobileNavBattle(){
+    let battle=document.getElementById('battle-view');
+    let town=document.getElementById('town-view');
+
+    let target =
+        battle && !battle.classList.contains('hidden')
+            ? battle
+            : town;
+
+    _mobileNavSetActive('battle');
+    _mobileNavScroll(target);
+}
+
+/* 👥 隊伍：直接使用原本隊伍面板 */
+function _mobileNavTeam(){
+    try{
+        if(typeof switchSquadTab==='function')
+            switchSquadTab('team');
+    }catch(e){}
+
+    let btn=document.getElementById('squad-tab-btn-team');
+
+    let target = btn
+        ? (btn.closest('.panel') ||
+           btn.closest('[class*="border"]') ||
+           btn.parentElement)
+        : document.getElementById('squad-tab-team');
+
+    _mobileNavSetActive('team');
+    _mobileNavScroll(target);
+}
+
+/* 🎒 背包：直接按原本道具分頁 */
+function _mobileNavBag(){
+    let btn=[...document.querySelectorAll('button')].find(b=>{
+        let o=b.getAttribute('onclick')||'';
+        return o.includes("switchTab('items'");
+    });
+
+    if(btn){
+        btn.click();
+    }else{
+        let tab=document.getElementById('tab-items');
+        if(tab){
+            document.querySelectorAll(
+                '#tab-stats,#tab-equip,#tab-weapons,#tab-skill,#tab-armors,#tab-items,#tab-audit,#tab-pvp,#tab-clan,#tab-automation'
+            ).forEach(x=>x.classList.add('hidden'));
+
+            tab.classList.remove('hidden');
+        }
+    }
+
+    _mobileNavSetActive('bag');
+    _mobileNavScroll(document.getElementById('tab-items'));
+}
+
+/* 📜 日誌：切到原本戰鬥日誌 */
+function _mobileNavLog(){
+    try{
+        if(typeof switchLogTab==='function')
+            switchLogTab('combat');
+    }catch(e){}
+
+    _mobileNavSetActive('log');
+    _mobileNavScroll(
+        document.getElementById('combat-log-panel') ||
+        document.getElementById('combat-log')
+    );
+}
+
+/* 🚪 登出：使用遊戲原本角色選擇流程 */
+function _mobileNavLogout(){
+    if(!confirm('要返回角色選擇畫面嗎？'))
+        return;
+
+    try{
+        if(typeof saveGame==='function') saveGame();
+    }catch(e){}
+
+    if(typeof returnToCharacterSelect==='function'){
+        returnToCharacterSelect();
+    }
+}
+
+function _createMobileGameNav(){
+    if(document.getElementById('mobile-game-nav')) return;
+
+    let style=document.createElement('style');
+    style.id='mobile-game-nav-style';
+    style.textContent=`
+    #mobile-game-nav{
+        display:none;
+    }
+
+    @media (max-width:768px){
+        body.mobile-game-nav-on #game-screen{
+            padding-bottom:72px!important;
+        }
+
+        #mobile-game-nav{
+            position:fixed;
+            left:0;
+            right:0;
+            bottom:0;
+            height:64px;
+            z-index:8500;
+
+            display:grid;
+            grid-template-columns:repeat(5,1fr);
+
+            background:#0f1c2f;
+            border-top:1px solid #263b55;
+            box-shadow:0 -3px 12px rgba(0,0,0,.55);
+
+            padding-bottom:env(safe-area-inset-bottom);
+        }
+
+        #mobile-game-nav button{
+            min-width:0;
+            border:0;
+            border-right:1px solid #1d3149;
+            border-radius:0;
+
+            background:#0f1c2f;
+            color:#aebbd0;
+
+            font-size:12px;
+            font-weight:700;
+
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:2px;
+
+            padding:4px 1px;
+            touch-action:manipulation;
+        }
+
+        #mobile-game-nav button:last-child{
+            border-right:0;
+        }
+
+        #mobile-game-nav .mgn-icon{
+            font-size:20px;
+            line-height:22px;
+        }
+
+        #mobile-game-nav button.mgn-active{
+            color:#70b7ff;
+            background:#102944;
+        }
+
+        #mobile-game-nav button:active{
+            background:#173653;
+        }
+
+        /* 所有大型視窗都高於快捷列 */
+        #item-modal,
+        #game-pedia,
+        #warehouse-window{
+            z-index:10050;
+        }
+    }`;
+
+    document.head.appendChild(style);
+
+    let nav=document.createElement('div');
+    nav.id='mobile-game-nav';
+
+    nav.innerHTML=`
+      <button type="button" data-key="battle">
+        <span class="mgn-icon">⚔️</span>
+        <span>戰鬥</span>
+      </button>
+
+      <button type="button" data-key="team">
+        <span class="mgn-icon">👥</span>
+        <span>隊伍</span>
+      </button>
+
+      <button type="button" data-key="bag">
+        <span class="mgn-icon">🎒</span>
+        <span>背包</span>
+      </button>
+
+      <button type="button" data-key="log">
+        <span class="mgn-icon">📜</span>
+        <span>日誌</span>
+      </button>
+
+      <button type="button" data-key="logout">
+        <span class="mgn-icon">🚪</span>
+        <span>登出</span>
+      </button>
+    `;
+
+    document.body.appendChild(nav);
+
+    nav.querySelector('[data-key="battle"]').onclick=_mobileNavBattle;
+    nav.querySelector('[data-key="team"]').onclick=_mobileNavTeam;
+    nav.querySelector('[data-key="bag"]').onclick=_mobileNavBag;
+    nav.querySelector('[data-key="log"]').onclick=_mobileNavLog;
+    nav.querySelector('[data-key="logout"]').onclick=_mobileNavLogout;
+
+    function sync(){
+        let game=document.getElementById('game-screen');
+
+        let on=
+            window.innerWidth<=768 &&
+            game &&
+            !game.classList.contains('hidden');
+
+        nav.style.display=on?'grid':'none';
+        document.body.classList.toggle('mobile-game-nav-on',!!on);
+    }
+
+    sync();
+
+    window.addEventListener('resize',sync);
+
+    let game=document.getElementById('game-screen');
+    if(game){
+        new MutationObserver(sync).observe(game,{
+            attributes:true,
+            attributeFilter:['class']
+        });
+    }
+}
+
+if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',_createMobileGameNav);
+}else{
+    _createMobileGameNav();
+}
+
+})();
