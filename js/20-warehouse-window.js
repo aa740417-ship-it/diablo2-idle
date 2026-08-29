@@ -257,3 +257,303 @@ if(document.readyState === 'loading'){
 }
 
 })();
+
+
+/* === desktop warehouse center below banner v2 === */
+(function(){
+
+if(window.__desktopWarehouseCenterV2) return;
+window.__desktopWarehouseCenterV2 = true;
+
+
+/*
+ * 電腦版：
+ * 倉庫永遠置中於「藍色公告下面的遊戲區」。
+ */
+function fitDesktopWarehouse(){
+
+    if(window.innerWidth <= 768) return;
+
+    var win =
+        document.getElementById('warehouse-window');
+
+    var frame =
+        document.getElementById('warehouse-window-frame');
+
+    if(
+        !win ||
+        !frame ||
+        win.classList.contains('hidden')
+    ) return;
+
+
+    /*
+     * 優先以 app-stage 的實際位置為可用區。
+     * v5 已經讓 app-stage 避開公告。
+     */
+    var stage =
+        document.getElementById('app-stage');
+
+    var bar =
+        document.getElementById('_orig_pbar');
+
+
+    var top = 0;
+    var bottom = window.innerHeight;
+
+    if(stage){
+        var sr = stage.getBoundingClientRect();
+
+        if(sr.height > 100){
+            top = Math.max(0, sr.top);
+            bottom = Math.min(
+                window.innerHeight,
+                sr.bottom
+            );
+        }
+    }else if(bar){
+        top = Math.ceil(
+            bar.getBoundingClientRect().bottom
+        );
+    }
+
+
+    /*
+     * 留一點空隙，不貼公告也不貼畫面底部。
+     */
+    var margin = 14;
+
+    var usableTop =
+        Math.max(0, top + margin);
+
+    var usableBottom =
+        Math.max(
+            usableTop + 100,
+            bottom - margin
+        );
+
+    var usableHeight =
+        Math.max(
+            180,
+            usableBottom - usableTop
+        );
+
+
+    /*
+     * wrapper 不再負責定位。
+     * 讓 frame 自己固定在可用區中央。
+     */
+    win.style.setProperty(
+        'top',
+        '0',
+        'important'
+    );
+
+    win.style.setProperty(
+        'left',
+        '0',
+        'important'
+    );
+
+    win.style.setProperty(
+        'right',
+        '0',
+        'important'
+    );
+
+    win.style.setProperty(
+        'bottom',
+        '0',
+        'important'
+    );
+
+
+    frame.style.setProperty(
+        'position',
+        'fixed',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'left',
+        '50%',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'top',
+        usableTop + 'px',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'transform',
+        'translateX(-50%)',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'bottom',
+        'auto',
+        'important'
+    );
+
+    /*
+     * 不准倉庫高度超過公告下方的可用畫面。
+     */
+    frame.style.setProperty(
+        'max-height',
+        usableHeight + 'px',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'height',
+        'min(720px,' +
+        usableHeight +
+        'px)',
+        'important'
+    );
+
+
+    /*
+     * 限制寬度，接近你第二張參考圖。
+     * 大螢幕不會變成一個超大的倉庫。
+     */
+    frame.style.setProperty(
+        'width',
+        'min(760px,calc(100vw - 40px))',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'max-width',
+        '760px',
+        'important'
+    );
+
+
+    /*
+     * 標題固定、內容區負責捲動。
+     */
+    frame.style.setProperty(
+        'display',
+        'flex',
+        'important'
+    );
+
+    frame.style.setProperty(
+        'flex-direction',
+        'column',
+        'important'
+    );
+
+
+    var content =
+        document.getElementById(
+            'warehouse-window-content'
+        );
+
+    if(content){
+
+        content.style.setProperty(
+            'flex',
+            '1 1 auto',
+            'important'
+        );
+
+        content.style.setProperty(
+            'min-height',
+            '0',
+            'important'
+        );
+
+        content.style.setProperty(
+            'overflow-y',
+            'auto',
+            'important'
+        );
+
+        content.style.setProperty(
+            'overflow-x',
+            'hidden',
+            'important'
+        );
+    }
+}
+
+
+/*
+ * 包住原本 openWarehouseWindow。
+ * 原功能先跑完，再重新定位。
+ */
+function installDesktopWarehouseCenter(){
+
+    if(
+        typeof window.openWarehouseWindow === 'function' &&
+        !window.openWarehouseWindow.__desktopCenterV2
+    ){
+
+        var oldOpen =
+            window.openWarehouseWindow;
+
+        var wrapped = function(){
+
+            var r =
+                oldOpen.apply(
+                    this,
+                    arguments
+                );
+
+            requestAnimationFrame(
+                function(){
+                    fitDesktopWarehouse();
+
+                    requestAnimationFrame(
+                        fitDesktopWarehouse
+                    );
+                }
+            );
+
+            setTimeout(
+                fitDesktopWarehouse,
+                100
+            );
+
+            setTimeout(
+                fitDesktopWarehouse,
+                400
+            );
+
+            return r;
+        };
+
+        wrapped.__desktopCenterV2 = true;
+
+        window.openWarehouseWindow =
+            wrapped;
+    }
+
+
+    window.addEventListener(
+        'resize',
+        fitDesktopWarehouse
+    );
+
+    setTimeout(
+        fitDesktopWarehouse,
+        300
+    );
+}
+
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        installDesktopWarehouseCenter
+    );
+}else{
+    installDesktopWarehouseCenter();
+}
+
+})();
