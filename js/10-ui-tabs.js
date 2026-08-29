@@ -3354,3 +3354,1625 @@ if(document.readyState==='loading'){
 }
 
 })();
+
+
+/* === mobile compact equipment compare v1 === */
+(function(){
+
+if(window.__mobileCompactCompareInstalled) return;
+window.__mobileCompactCompareInstalled = true;
+
+const SLOT_LABEL = {
+    wpn:'武器',
+    offwpn:'副手武器',
+    helm:'頭盔',
+    armor:'盔甲',
+    shin:'脛甲',
+    shield:'副手',
+    cloak:'斗篷',
+    tshirt:'內衣',
+    gloves:'手套',
+    boots:'鞋子',
+    ring1:'戒指 1',
+    ring2:'戒指 2',
+    ring3:'戒指 3',
+    ring4:'戒指 4',
+    amulet:'項鍊',
+    ear1:'耳環 1',
+    ear2:'耳環 2',
+    belt:'腰帶'
+};
+
+function _mccFmt(n){
+    n = Number(n || 0);
+    if(Math.abs(n - Math.round(n)) < 0.001)
+        return String(Math.round(n));
+
+    return String(Math.round(n * 100) / 100);
+}
+
+function _mccCleanLabel(s){
+    return String(s || '')
+        .replace(/^[✦★◆●•\s]+/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function _mccPut(map, label, value, pct){
+    label = _mccCleanLabel(label);
+
+    if(!label) return;
+
+    if(
+        /販賣價格|安定值|重量|適用職業|品質|數量|等級限制/.test(label)
+    ) return;
+
+    let n = Number(value);
+    if(!Number.isFinite(n)) return;
+
+    map[label] = {
+        v:n,
+        pct:!!pct
+    };
+}
+
+function _mccStatMap(item){
+    let out = {};
+    if(!item) return out;
+
+    let html = '';
+
+    try{
+        html = typeof buildItemDescHTML === 'function'
+            ? buildItemDescHTML(item)
+            : '';
+    }catch(e){}
+
+    let box = document.createElement('div');
+
+    box.innerHTML = String(html || '')
+        .replace(/<br\s*\/?>/gi, '\n');
+
+    let text = (box.innerText || box.textContent || '')
+        .replace(/\u00a0/g, ' ');
+
+    let lines = text
+        .split(/\n+/)
+        .map(x => x.trim())
+        .filter(Boolean);
+
+    lines.forEach(line => {
+
+        /* 隨機詞綴，例如：✦ 精神 +5 */
+        let a = line.match(
+            /^[✦★◆]\s*(.+?)\s+([+-]\d+(?:\.\d+)?)(%)?\s*$/
+        );
+
+        if(a){
+            _mccPut(out, a[1], a[2], a[3]);
+            return;
+        }
+
+        /* 攻擊速度 */
+        let atk = line.match(
+            /攻擊速度\s*[：:]\s*每分鐘\s*([\d.]+)\s*次/
+        );
+
+        if(atk)
+            _mccPut(out, '攻擊速度／分', atk[1], false);
+
+        /* 施法速度 */
+        let cast = line.match(
+            /施法速度(?:每分鐘)?\s*([\d.]+)\s*次/
+        );
+
+        if(cast)
+            _mccPut(out, '施法速度／分', cast[1], false);
+
+        /*
+         * 一行可同時抓：
+         * 小型傷害: 7 / 大型傷害: 8
+         * 防禦(AC): -1
+         * 魔防: 5
+         */
+        let reg = /([^\/：:\n]{1,32})[：:]\s*([+-]?\d+(?:\.\d+)?)(\s*%)?/g;
+        let m;
+
+        while((m = reg.exec(line))){
+            _mccPut(out, m[1], m[2], !!m[3]);
+        }
+    });
+
+    /*
+     * 隨機詞綴直接再讀一次資料，
+     * 避免某些顯示格式沒有被文字解析抓到。
+     */
+    if(Array.isArray(item.lootAff)){
+        item.lootAff.forEach(a => {
+            if(!a) return;
+
+            _mccPut(
+                out,
+                a.n || a.k || '詞綴',
+                Number(a.v || 0),
+                /Pct|Crit|Dmg|Speed/i.test(a.k || '') ||
+                /率|傷害|速度/.test(a.n || '')
+            );
+        });
+    }
+
+    return out;
+}
+
+function _mccSlots(item){
+    let d = item && DB.items[item.id];
+
+    if(!d) return [];
+
+    if(d.type === 'wpn')
+        return ['wpn'];
+
+    if(d.slot === 'ring')
+        return ['ring1','ring2','ring3','ring4'];
+
+    if(d.slot === 'ear')
+        return ['ear1','ear2'];
+
+    return d.slot ? [d.slot] : [];
+}
+
+function _mccRowHTML(label, oldObj, newObj){
+    let oldV = oldObj ? Number(oldObj.v || 0) : 0;
+    let newV = newObj ? Number(newObj.v || 0) : 0;
+
+    if(Math.abs(oldV - newV) < 0.0001)
+        return '';
+
+    let pct = !!(
+        (oldObj && oldObj.pct) ||
+        (newObj && newObj.pct)
+    );
+
+    let diff = newV - oldV;
+
+    /*
+     * 天堂 AC 是越低越好。
+     * 其他目前比較的數值預設越高越好。
+     */
+    let lowerBetter = /防禦\s*\(AC\)/i.test(label);
+
+    let better = lowerBetter
+        ? diff < 0
+        : diff > 0;
+
+    let cls = better
+        ? 'mcc-up'
+        : 'mcc-down';
+
+    let arrow = better ? '▲' : '▼';
+
+    let unit = pct ? '%' : '';
+
+    let diffText =
+        (diff > 0 ? '+' : '') +
+        _mccFmt(diff) +
+        unit;
+
+    return `
+      <div class="mcc-row">
+        <div class="mcc-name">${label}</div>
+
+        <div class="mcc-values">
+          <span>${_mccFmt(oldV)}${unit}</span>
+          <span class="mcc-arrow">→</span>
+          <span>${_mccFmt(newV)}${unit}</span>
+        </div>
+
+        <div class="${cls}">
+          ${arrow} ${diffText}
+        </div>
+      </div>
+    `;
+}
+
+function _mccRenderSlot(box, item, slot){
+    let body = box.querySelector('.mcc-body');
+    if(!body) return;
+
+    let current = player && player.eq
+        ? player.eq[slot]
+        : null;
+
+    let label = SLOT_LABEL[slot] || slot;
+
+    if(!current){
+        body.innerHTML = `
+          <div class="mcc-empty">
+            【${label}】目前沒有裝備，可直接裝上。
+          </div>
+        `;
+        return;
+    }
+
+    let oldStats = _mccStatMap(current);
+    let newStats = _mccStatMap(item);
+
+    let keys = Array.from(
+        new Set([
+            ...Object.keys(oldStats),
+            ...Object.keys(newStats)
+        ])
+    );
+
+    let rows = keys
+        .map(k => _mccRowHTML(
+            k,
+            oldStats[k],
+            newStats[k]
+        ))
+        .filter(Boolean)
+        .join('');
+
+    if(!rows){
+        rows = `
+          <div class="mcc-same">
+            顯示出的主要數值沒有差異
+          </div>
+        `;
+    }
+
+    body.innerHTML = `
+      <div class="mcc-current">
+        比較：【${label}】${getItemFullName(current)}
+      </div>
+      ${rows}
+    `;
+}
+
+function _mccRender(item, isEq){
+    let old = document.getElementById(
+        'mobile-compact-compare'
+    );
+
+    if(old) old.remove();
+
+    if(window.innerWidth > 768 || isEq)
+        return;
+
+    if(!item) return;
+
+    let d = DB.items[item.id];
+
+    if(
+        !d ||
+        d.isArrow ||
+        d.slot === 'petwpn' ||
+        d.slot === 'petarm' ||
+        !['wpn','arm','acc'].includes(d.type)
+    ) return;
+
+    let desc = document.getElementById(
+        'modal-item-desc'
+    );
+
+    let cmp = document.getElementById(
+        'modal-compare'
+    );
+
+    if(!desc) return;
+
+    let slots = _mccSlots(item);
+    if(!slots.length) return;
+
+    let box = document.createElement('div');
+
+    box.id = 'mobile-compact-compare';
+
+    let selector = '';
+
+    if(slots.length > 1){
+        selector = `
+          <select class="mcc-slot-select">
+            ${slots.map(sl => `
+              <option value="${sl}">
+                ${SLOT_LABEL[sl] || sl}
+              </option>
+            `).join('')}
+          </select>
+        `;
+    }
+
+    box.innerHTML = `
+      <div class="mcc-head">
+        <span>📊 與目前裝備比較</span>
+        ${selector}
+      </div>
+
+      <div class="mcc-body"></div>
+
+      <button
+        type="button"
+        class="mcc-full-btn"
+      >
+        查看目前裝備完整資料
+      </button>
+    `;
+
+    desc.insertAdjacentElement(
+        'afterend',
+        box
+    );
+
+    let select = box.querySelector(
+        '.mcc-slot-select'
+    );
+
+    let firstSlot =
+        slots.find(sl => player.eq && player.eq[sl]) ||
+        slots[0];
+
+    if(select)
+        select.value = firstSlot;
+
+    _mccRenderSlot(
+        box,
+        item,
+        firstSlot
+    );
+
+    if(select){
+        select.onchange = function(){
+            _mccRenderSlot(
+                box,
+                item,
+                this.value
+            );
+        };
+    }
+
+    /*
+     * 手機預設隱藏原本那張完整比較卡。
+     * 想看時才展開。
+     */
+    if(cmp && !cmp.classList.contains('hidden')){
+        cmp.style.setProperty(
+            'display',
+            'none',
+            'important'
+        );
+    }
+
+    let fullBtn = box.querySelector(
+        '.mcc-full-btn'
+    );
+
+    fullBtn.onclick = function(){
+        if(!cmp) return;
+
+        let hidden =
+            getComputedStyle(cmp).display === 'none';
+
+        if(hidden){
+            cmp.style.setProperty(
+                'display',
+                'block',
+                'important'
+            );
+
+            this.textContent =
+                '收起目前裝備完整資料';
+
+            setTimeout(() => {
+                cmp.scrollIntoView({
+                    behavior:'smooth',
+                    block:'start'
+                });
+            }, 30);
+
+        }else{
+            cmp.style.setProperty(
+                'display',
+                'none',
+                'important'
+            );
+
+            this.textContent =
+                '查看目前裝備完整資料';
+        }
+    };
+}
+
+function _mccInstallStyle(){
+    if(document.getElementById(
+        'mobile-compact-compare-style'
+    )) return;
+
+    let st = document.createElement('style');
+
+    st.id = 'mobile-compact-compare-style';
+
+    st.textContent = `
+    @media (max-width:768px){
+
+      #mobile-compact-compare{
+        margin:10px 0 14px;
+        padding:10px;
+
+        border:1px solid #576b80;
+        border-radius:9px;
+
+        background:#111c2b;
+        color:#dce6f2;
+      }
+
+      .mcc-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
+
+        padding-bottom:8px;
+        margin-bottom:7px;
+
+        border-bottom:1px solid #40546b;
+
+        color:#f6d27a;
+        font-weight:800;
+        font-size:16px;
+      }
+
+      .mcc-slot-select{
+        max-width:130px;
+        padding:5px 7px;
+
+        border:1px solid #536b85;
+        border-radius:6px;
+
+        background:#0d1725;
+        color:#e8edf5;
+      }
+
+      .mcc-current{
+        color:#9fc7ef;
+        font-size:13px;
+        margin-bottom:7px;
+      }
+
+      .mcc-row{
+        display:grid;
+
+        grid-template-columns:
+          minmax(0,1.35fr)
+          minmax(105px,.95fr)
+          minmax(70px,.7fr);
+
+        align-items:center;
+        gap:5px;
+
+        padding:6px 0;
+
+        border-bottom:
+          1px solid rgba(100,116,139,.22);
+
+        font-size:13px;
+      }
+
+      .mcc-name{
+        min-width:0;
+        overflow-wrap:anywhere;
+        color:#e5e7eb;
+      }
+
+      .mcc-values{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:4px;
+
+        white-space:nowrap;
+        color:#cbd5e1;
+      }
+
+      .mcc-arrow{
+        color:#64748b;
+      }
+
+      .mcc-up{
+        text-align:right;
+        white-space:nowrap;
+
+        color:#61d88b;
+        font-weight:800;
+      }
+
+      .mcc-down{
+        text-align:right;
+        white-space:nowrap;
+
+        color:#ff7a7a;
+        font-weight:800;
+      }
+
+      .mcc-same,
+      .mcc-empty{
+        text-align:center;
+        color:#94a3b8;
+        padding:12px 4px;
+      }
+
+      .mcc-full-btn{
+        width:100%;
+        margin-top:9px;
+        padding:9px 8px;
+
+        border:1px solid #536b85;
+        border-radius:7px;
+
+        background:#172438;
+        color:#c7d6ea;
+
+        font-weight:700;
+      }
+    }`;
+
+    document.head.appendChild(st);
+}
+
+/*
+ * 包住原本 openModal。
+ * 原功能全部先照常執行，
+ * 再補上精簡比較，因此不動販賣/強化/鎖定邏輯。
+ */
+function _mccWrapOpenModal(){
+    if(
+        typeof window.openModal !== 'function' ||
+        window.openModal.__mccWrapped
+    ) return;
+
+    let original = window.openModal;
+
+    function wrapped(item, isEq, slot){
+        let result = original.apply(
+            this,
+            arguments
+        );
+
+        setTimeout(() => {
+            try{
+                _mccRender(item, isEq);
+            }catch(e){
+                console.warn(
+                    'compact compare',
+                    e
+                );
+            }
+        }, 0);
+
+        return result;
+    }
+
+    wrapped.__mccWrapped = true;
+
+    window.openModal = wrapped;
+}
+
+function _mccInit(){
+    _mccInstallStyle();
+    _mccWrapOpenModal();
+}
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        _mccInit
+    );
+}else{
+    _mccInit();
+}
+
+})();
+
+
+/* === mobile inventory horizontal list v1 === */
+(function(){
+
+if(window.__mobileInventoryHorizontalList) return;
+window.__mobileInventoryHorizontalList = true;
+
+
+/* 計算現在這件裝備有幾條隨機詞綴 */
+function _milAffixCount(item){
+    return item && Array.isArray(item.lootAff)
+        ? item.lootAff.length
+        : 0;
+}
+
+
+/* 列表的小資訊 */
+function _milSummary(item){
+    if(!item || !window.DB || !DB.items[item.id])
+        return '';
+
+    let d = DB.items[item.id];
+    let parts = [];
+
+    let isEquip =
+        d.type === 'wpn' ||
+        d.type === 'arm' ||
+        d.type === 'acc';
+
+    if(isEquip && !d.isArrow){
+        let n = _milAffixCount(item);
+
+        parts.push(n + ' 詞綴');
+
+        if(Number(item.en || 0) > 0)
+            parts.push('強化 +' + Number(item.en || 0));
+    }
+
+    if((item.cnt || 1) > 1)
+        parts.push('數量 ' + Number(item.cnt || 1).toLocaleString());
+
+    try{
+        if(typeof getSellPrice === 'function' && !d.noSell){
+            let price = getSellPrice(item);
+
+            if(price > 0)
+                parts.push('售價 ' + Number(price).toLocaleString());
+        }
+    }catch(e){}
+
+    if(item.lock)
+        parts.push('🔒 已鎖定');
+    else if(item.junk)
+        parts.push('🗑️ 廢品');
+
+    return parts.join(' · ');
+}
+
+
+/* 每次背包重畫後，把原本方格轉成手機橫列 */
+function _milApply(){
+    if(window.innerWidth > 768)
+        return;
+
+    [
+        '#tab-weapons',
+        '#tab-armors',
+        '#tab-items'
+    ].forEach(tabSel => {
+
+        let tab = document.querySelector(tabSel);
+        if(!tab) return;
+
+        tab.classList.add('mobile-horizontal-inventory');
+
+        let viewport =
+            tab.querySelector('.classic-inventory-viewport');
+
+        if(!viewport) return;
+
+        viewport.querySelectorAll('.list-item').forEach(row => {
+
+            if(row.classList.contains('mil-ready'))
+                return;
+
+            let uid = row.getAttribute('data-tip-uid');
+
+            let item =
+                player &&
+                Array.isArray(player.inv)
+                    ? player.inv.find(x =>
+                        String(x.uid) === String(uid)
+                      )
+                    : null;
+
+            if(!item) return;
+
+            row.classList.add(
+                'mil-ready',
+                'mobile-inventory-row'
+            );
+
+            /*
+             * 原本 classic-item-main 保留：
+             * 圖示、名稱、鎖定、廢品全部繼續用。
+             */
+            let main =
+                row.querySelector('.classic-item-main');
+
+            if(!main) return;
+
+            main.classList.add(
+                'mobile-inventory-row-main'
+            );
+
+            let nameBox =
+                main.querySelector('.classic-name-box');
+
+            if(nameBox &&
+               !nameBox.querySelector('.mil-summary')){
+
+                let summary =
+                    document.createElement('span');
+
+                summary.className = 'mil-summary';
+                summary.textContent = _milSummary(item);
+
+                nameBox.appendChild(summary);
+            }
+
+            if(!main.querySelector('.mil-chevron')){
+                let arrow =
+                    document.createElement('span');
+
+                arrow.className = 'mil-chevron';
+                arrow.textContent = '›';
+                arrow.setAttribute(
+                    'aria-hidden',
+                    'true'
+                );
+
+                main.appendChild(arrow);
+            }
+        });
+    });
+}
+
+
+/* 安裝手機橫列 CSS */
+function _milInstallStyle(){
+
+    if(document.getElementById(
+        'mobile-inventory-horizontal-style'
+    )) return;
+
+    let st = document.createElement('style');
+
+    st.id = 'mobile-inventory-horizontal-style';
+
+    st.textContent = `
+    @media (max-width:768px){
+
+      /*
+       * 武器 / 防具 / 道具背包：
+       * 原本 4 欄方格改成單欄列表。
+       */
+      #tab-weapons.mobile-horizontal-inventory
+        .classic-inventory-viewport,
+
+      #tab-armors.mobile-horizontal-inventory
+        .classic-inventory-viewport,
+
+      #tab-items.mobile-horizontal-inventory
+        .classic-inventory-viewport{
+
+        display:flex!important;
+        flex-direction:column!important;
+
+        grid-template-columns:none!important;
+        grid-auto-rows:auto!important;
+
+        gap:6px!important;
+
+        padding:8px!important;
+
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+
+        -webkit-overflow-scrolling:touch!important;
+      }
+
+
+      /*
+       * 原本補滿 4×6 格子的空白格，
+       * 手機列表不需要。
+       */
+      #tab-weapons.mobile-horizontal-inventory
+        .classic-grid-empty,
+
+      #tab-armors.mobile-horizontal-inventory
+        .classic-grid-empty,
+
+      #tab-items.mobile-horizontal-inventory
+        .classic-grid-empty{
+
+        display:none!important;
+      }
+
+
+      /*
+       * 每件物品一整條。
+       */
+      .mobile-horizontal-inventory
+        .mobile-inventory-row{
+
+        flex:0 0 auto!important;
+
+        width:100%!important;
+        min-width:0!important;
+
+        min-height:66px!important;
+        height:auto!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        border-radius:8px!important;
+
+        cursor:pointer!important;
+
+        box-sizing:border-box!important;
+      }
+
+
+      .mobile-horizontal-inventory
+        .mobile-inventory-row-main{
+
+        display:grid!important;
+
+        grid-template-columns:
+          52px
+          minmax(0,1fr)
+          auto!important;
+
+        align-items:center!important;
+
+        width:100%!important;
+        min-height:66px!important;
+
+        gap:10px!important;
+
+        padding:7px 10px!important;
+
+        box-sizing:border-box!important;
+      }
+
+
+      /*
+       * 左側圖示。
+       */
+      .mobile-horizontal-inventory
+        .mobile-inventory-row
+        .classic-icon-box{
+
+        position:relative!important;
+
+        width:48px!important;
+        height:48px!important;
+
+        min-width:48px!important;
+        min-height:48px!important;
+
+        margin:0!important;
+
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+
+        flex:none!important;
+      }
+
+
+      .mobile-horizontal-inventory
+        .mobile-inventory-row
+        .classic-icon-box img{
+
+        width:42px!important;
+        height:42px!important;
+
+        max-width:42px!important;
+        max-height:42px!important;
+
+        object-fit:contain!important;
+      }
+
+
+      /*
+       * 中間名稱區。
+       */
+      .mobile-horizontal-inventory
+        .mobile-inventory-row
+        .classic-name-box{
+
+        display:flex!important;
+        flex-direction:column!important;
+        align-items:flex-start!important;
+        justify-content:center!important;
+
+        min-width:0!important;
+
+        gap:3px!important;
+        padding:0!important;
+        margin:0!important;
+      }
+
+
+      .mobile-horizontal-inventory
+        .mobile-inventory-row
+        .classic-name-box > span:first-child{
+
+        display:block!important;
+
+        width:100%!important;
+
+        font-size:16px!important;
+        line-height:1.25!important;
+
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+
+        text-align:left!important;
+      }
+
+
+      /*
+       * 第二行：
+       * 5 詞綴 · 強化 +7 · 售價 5400 ...
+       */
+      .mobile-horizontal-inventory
+        .mil-summary{
+
+        display:block!important;
+
+        width:100%!important;
+
+        color:#94a3b8!important;
+
+        font-size:11px!important;
+        font-weight:500!important;
+        line-height:1.25!important;
+
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+
+        text-align:left!important;
+      }
+
+
+      .mobile-horizontal-inventory
+        .classic-item-flags{
+
+        display:block!important;
+
+        font-size:10px!important;
+        line-height:1.15!important;
+      }
+
+
+      /*
+       * 右邊箭頭表示可以點進詳細。
+       */
+      .mobile-horizontal-inventory
+        .mil-chevron{
+
+        position:static!important;
+
+        align-self:center!important;
+
+        margin-left:4px!important;
+
+        color:#94a3b8!important;
+
+        font-size:30px!important;
+        font-weight:300!important;
+        line-height:1!important;
+      }
+
+
+      /*
+       * 鎖定 / 廢品狀態在橫列保留，
+       * 但避免蓋到名稱。
+       */
+      .mobile-horizontal-inventory
+        .classic-item-lock-badge{
+
+        position:absolute!important;
+        top:5px!important;
+        right:32px!important;
+
+        font-size:14px!important;
+      }
+
+
+      .mobile-horizontal-inventory
+        .classic-item-junk-label{
+
+        position:absolute!important;
+        right:32px!important;
+        bottom:4px!important;
+
+        font-size:10px!important;
+      }
+
+
+      /*
+       * 快速強化 / 快速廢品模式的 checkbox
+       * 仍然保留在最右邊。
+       */
+      .mobile-horizontal-inventory
+        .mobile-inventory-row
+        input[type="checkbox"]{
+
+        width:22px!important;
+        height:22px!important;
+        flex:none!important;
+      }
+
+    }`;
+
+    document.head.appendChild(st);
+}
+
+
+/*
+ * renderTabs 本來每次掉寶、整理、販賣都會重建背包，
+ * 所以包住它：原功能先完整執行，再套橫列。
+ */
+function _milWrapRenderTabs(){
+
+    if(
+        typeof window.renderTabs !== 'function' ||
+        window.renderTabs.__milWrapped
+    ) return;
+
+    let original = window.renderTabs;
+
+    function wrapped(){
+        let r = original.apply(
+            this,
+            arguments
+        );
+
+        requestAnimationFrame(_milApply);
+
+        return r;
+    }
+
+    wrapped.__milWrapped = true;
+
+    window.renderTabs = wrapped;
+}
+
+
+function _milInit(){
+    _milInstallStyle();
+    _milWrapRenderTabs();
+
+    requestAnimationFrame(_milApply);
+    setTimeout(_milApply,100);
+    setTimeout(_milApply,400);
+}
+
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        _milInit
+    );
+}else{
+    _milInit();
+}
+
+
+window.addEventListener(
+    'resize',
+    function(){
+        if(window.innerWidth <= 768)
+            setTimeout(_milApply,30);
+    }
+);
+
+})();
+
+
+/* === mobile warehouse style text inventory v2 === */
+(function(){
+
+if(window.__mobileWarehouseTextInventory) return;
+window.__mobileWarehouseTextInventory = true;
+
+function installWarehouseTextInventoryStyle(){
+
+    if(document.getElementById('mobile-wh-text-inventory-style'))
+        return;
+
+    let st = document.createElement('style');
+    st.id = 'mobile-wh-text-inventory-style';
+
+    st.textContent = `
+    @media (max-width:768px){
+
+      /* 背包三個分類全部改成單欄文字清單 */
+      #tab-weapons .classic-inventory-viewport,
+      #tab-armors .classic-inventory-viewport,
+      #tab-items .classic-inventory-viewport{
+        display:flex!important;
+        flex-direction:column!important;
+        grid-template-columns:none!important;
+        grid-auto-rows:auto!important;
+
+        gap:7px!important;
+        padding:8px 10px!important;
+
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+
+        -webkit-overflow-scrolling:touch!important;
+      }
+
+      /* 不再補方格 */
+      #tab-weapons .classic-grid-empty,
+      #tab-armors .classic-grid-empty,
+      #tab-items .classic-grid-empty{
+        display:none!important;
+      }
+
+      /* 每一件物品 = 倉庫式橫列 */
+      #tab-weapons .list-item,
+      #tab-armors .list-item,
+      #tab-items .list-item{
+        position:relative!important;
+
+        display:block!important;
+
+        width:100%!important;
+        min-width:0!important;
+        min-height:0!important;
+        height:auto!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        border:1px solid #5b493b!important;
+        border-radius:7px!important;
+
+        background:
+          linear-gradient(
+            180deg,
+            rgba(54,45,42,.96),
+            rgba(29,27,31,.98)
+          )!important;
+
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,.04)!important;
+
+        cursor:pointer!important;
+        box-sizing:border-box!important;
+      }
+
+      #tab-weapons .list-item:active,
+      #tab-armors .list-item:active,
+      #tab-items .list-item:active{
+        background:#3c342f!important;
+      }
+
+      /*
+       * 整列內容：
+       * 只留物品名稱。
+       */
+      #tab-weapons .classic-item-main,
+      #tab-armors .classic-item-main,
+      #tab-items .classic-item-main{
+        display:block!important;
+
+        width:100%!important;
+        min-height:0!important;
+
+        padding:11px 14px!important;
+        margin:0!important;
+
+        box-sizing:border-box!important;
+      }
+
+      /* 圖片全部拿掉 */
+      #tab-weapons .classic-icon-box,
+      #tab-armors .classic-icon-box,
+      #tab-items .classic-icon-box{
+        display:none!important;
+      }
+
+      /* 上一版加入的小摘要拿掉 */
+      #tab-weapons .mil-summary,
+      #tab-armors .mil-summary,
+      #tab-items .mil-summary{
+        display:none!important;
+      }
+
+      /* 右邊箭頭拿掉 */
+      #tab-weapons .mil-chevron,
+      #tab-armors .mil-chevron,
+      #tab-items .mil-chevron{
+        display:none!important;
+      }
+
+      /* 名稱區改純文字 */
+      #tab-weapons .classic-name-box,
+      #tab-armors .classic-name-box,
+      #tab-items .classic-name-box{
+        display:block!important;
+
+        width:100%!important;
+        min-width:0!important;
+
+        padding:0!important;
+        margin:0!important;
+
+        text-align:left!important;
+      }
+
+      #tab-weapons .classic-name-box > span:first-child,
+      #tab-armors .classic-name-box > span:first-child,
+      #tab-items .classic-name-box > span:first-child{
+        display:block!important;
+
+        width:100%!important;
+
+        font-size:16px!important;
+        font-weight:600!important;
+        line-height:1.35!important;
+
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+
+        text-align:left!important;
+      }
+
+      /*
+       * 無法裝備 / 已學習等文字狀態仍保留，
+       * 但排在名稱後面，不放圖示。
+       */
+      #tab-weapons .classic-item-flags,
+      #tab-armors .classic-item-flags,
+      #tab-items .classic-item-flags{
+        display:inline!important;
+
+        margin-left:7px!important;
+        font-size:10px!important;
+      }
+
+      /* 鎖定改成右側小文字符號 */
+      #tab-weapons .classic-item-lock-badge,
+      #tab-armors .classic-item-lock-badge,
+      #tab-items .classic-item-lock-badge{
+        position:absolute!important;
+        right:10px!important;
+        top:50%!important;
+        transform:translateY(-50%)!important;
+
+        font-size:14px!important;
+      }
+
+      /* 廢品狀態保留小字 */
+      #tab-weapons .classic-item-junk-label,
+      #tab-armors .classic-item-junk-label,
+      #tab-items .classic-item-junk-label{
+        position:absolute!important;
+        right:10px!important;
+        top:50%!important;
+        bottom:auto!important;
+        transform:translateY(-50%)!important;
+
+        font-size:11px!important;
+      }
+
+      /*
+       * 快速強化 / 快速廢品模式開啟時
+       * checkbox 仍保留，功能不拆。
+       */
+      #tab-weapons .list-item > .flex,
+      #tab-armors .list-item > .flex,
+      #tab-items .list-item > .flex{
+        width:100%!important;
+      }
+
+      #tab-weapons .list-item input[type="checkbox"],
+      #tab-armors .list-item input[type="checkbox"],
+      #tab-items .list-item input[type="checkbox"]{
+        width:20px!important;
+        height:20px!important;
+
+        margin-right:10px!important;
+        flex:none!important;
+      }
+
+    }`;
+
+    document.head.appendChild(st);
+}
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        installWarehouseTextInventoryStyle
+    );
+}else{
+    installWarehouseTextInventoryStyle();
+}
+
+})();
+
+
+/* === mobile text inventory compact rows v1 === */
+(function(){
+if(window.__mobileTextInventoryCompactRowsV1) return;
+window.__mobileTextInventoryCompactRowsV1 = true;
+
+function installCompactRows(){
+    if(document.getElementById('mobile-text-inventory-compact-style')) return;
+
+    let st = document.createElement('style');
+    st.id = 'mobile-text-inventory-compact-style';
+    st.textContent = `
+    @media (max-width:768px){
+
+      #tab-weapons .classic-inventory-viewport,
+      #tab-armors .classic-inventory-viewport,
+      #tab-items .classic-inventory-viewport{
+        8px!important;
+        5px 6px!important;
+      }
+
+      #tab-weapons .list-item,
+      #tab-armors .list-item,
+      #tab-items .list-item{
+        8px!important;
+      }
+
+      #tab-weapons .classic-item-main,
+      #tab-armors .classic-item-main,
+      #tab-items .classic-item-main{
+        6px 10px!important;
+        min-height:0!important;
+      }
+
+      #tab-weapons .classic-name-box,
+      #tab-armors .classic-name-box,
+      #tab-items .classic-name-box{
+        padding-right:54px!important;
+      }
+
+      #tab-weapons .classic-name-box > span:first-child,
+      #tab-armors .classic-name-box > span:first-child,
+      #tab-items .classic-name-box > span:first-child{
+        11px!important;
+        line-height:1.2!important;
+        margin:0!important;
+      }
+
+      #tab-weapons .classic-item-flags,
+      #tab-armors .classic-item-flags,
+      #tab-items .classic-item-flags{
+        8px!important;
+        margin-left:4px!important;
+      }
+
+      #tab-weapons .classic-item-lock-badge,
+      #tab-armors .classic-item-lock-badge,
+      #tab-items .classic-item-lock-badge{
+        right:8px!important;
+        top:50%!important;
+        transform:translateY(-50%)!important;
+        10px!important;
+      }
+
+      #tab-weapons .classic-item-junk-label,
+      #tab-armors .classic-item-junk-label,
+      #tab-items .classic-item-junk-label{
+        position:absolute!important;
+        right:8px!important;
+        top:50%!important;
+        left:auto!important;
+        bottom:auto!important;
+        transform:translateY(-50%)!important;
+
+        display:inline-block!important;
+        width:auto!important;
+        min-width:0!important;
+        max-width:none!important;
+
+        padding:0!important;
+        margin:0!important;
+        border:none!important;
+        background:none!important;
+        box-shadow:none!important;
+
+        color:#c84d4d!important;
+        8px!important;
+        line-height:1!important;
+        white-space:nowrap!important;
+        text-align:right!important;
+      }
+
+      /* 若有數量顯示，也一起縮小 */
+      #tab-weapons .classic-item-count,
+      #tab-armors .classic-item-count,
+      #tab-items .classic-item-count{
+        9px!important;
+      }
+    }`;
+    document.head.appendChild(st);
+}
+
+if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', installCompactRows);
+}else{
+    installCompactRows();
+}
+})();
+
+
+/* === warehouse size inventory rows v3 === */
+(function(){
+
+function installWarehouseSizeRows(){
+    if(document.getElementById('warehouse-size-inventory-style')) return;
+
+    let st = document.createElement('style');
+    st.id = 'warehouse-size-inventory-style';
+
+    st.textContent = `
+    @media (max-width:768px){
+
+      #tab-weapons .classic-inventory-viewport,
+      #tab-armors .classic-inventory-viewport,
+      #tab-items .classic-inventory-viewport{
+        gap:4px!important;
+        padding:5px 8px!important;
+      }
+
+      /* 強制每一列就是倉庫那種高度 */
+      #tab-weapons .list-item,
+      #tab-armors .list-item,
+      #tab-items .list-item,
+      #tab-weapons .mobile-inventory-row,
+      #tab-armors .mobile-inventory-row,
+      #tab-items .mobile-inventory-row{
+        display:block!important;
+
+        width:100%!important;
+
+        height:44px!important;
+        min-height:44px!important;
+        max-height:44px!important;
+
+        flex:0 0 44px!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        overflow:hidden!important;
+
+        border-radius:5px!important;
+        box-sizing:border-box!important;
+      }
+
+      #tab-weapons .classic-item-main,
+      #tab-armors .classic-item-main,
+      #tab-items .classic-item-main,
+      #tab-weapons .mobile-inventory-row-main,
+      #tab-armors .mobile-inventory-row-main,
+      #tab-items .mobile-inventory-row-main{
+        display:flex!important;
+        align-items:center!important;
+
+        width:100%!important;
+
+        height:42px!important;
+        min-height:42px!important;
+        max-height:42px!important;
+
+        padding:0 10px!important;
+        margin:0!important;
+
+        box-sizing:border-box!important;
+      }
+
+      /* 完全沒有圖片 */
+      #tab-weapons .classic-icon-box,
+      #tab-armors .classic-icon-box,
+      #tab-items .classic-icon-box,
+      #tab-weapons .mil-chevron,
+      #tab-armors .mil-chevron,
+      #tab-items .mil-chevron,
+      #tab-weapons .mil-summary,
+      #tab-armors .mil-summary,
+      #tab-items .mil-summary{
+        display:none!important;
+      }
+
+      #tab-weapons .classic-name-box,
+      #tab-armors .classic-name-box,
+      #tab-items .classic-name-box{
+        display:flex!important;
+        align-items:center!important;
+
+        width:100%!important;
+        height:100%!important;
+
+        min-width:0!important;
+
+        padding:0 48px 0 0!important;
+        margin:0!important;
+      }
+
+      #tab-weapons .classic-name-box > span:first-child,
+      #tab-armors .classic-name-box > span:first-child,
+      #tab-items .classic-name-box > span:first-child{
+        display:block!important;
+
+        font-size:14px!important;
+        line-height:18px!important;
+        font-weight:600!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        white-space:nowrap!important;
+        overflow:hidden!important;
+        text-overflow:ellipsis!important;
+      }
+
+      /* 廢品放右側，不再增加列高 */
+      #tab-weapons .classic-item-junk-label,
+      #tab-armors .classic-item-junk-label,
+      #tab-items .classic-item-junk-label{
+        position:absolute!important;
+
+        right:9px!important;
+        top:50%!important;
+        bottom:auto!important;
+        left:auto!important;
+
+        transform:translateY(-50%)!important;
+
+        width:auto!important;
+        height:auto!important;
+
+        padding:0!important;
+        margin:0!important;
+
+        border:0!important;
+        background:none!important;
+
+        font-size:10px!important;
+        line-height:12px!important;
+        white-space:nowrap!important;
+      }
+
+      /* 鎖定也是右側小圖示 */
+      #tab-weapons .classic-item-lock-badge,
+      #tab-armors .classic-item-lock-badge,
+      #tab-items .classic-item-lock-badge{
+        position:absolute!important;
+
+        right:9px!important;
+        top:50%!important;
+
+        transform:translateY(-50%)!important;
+
+        margin:0!important;
+        padding:0!important;
+
+        font-size:13px!important;
+        line-height:14px!important;
+      }
+
+    }`;
+
+    document.head.appendChild(st);
+}
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        installWarehouseSizeRows
+    );
+}else{
+    installWarehouseSizeRows();
+}
+
+})();
