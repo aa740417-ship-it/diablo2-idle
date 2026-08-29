@@ -3590,7 +3590,7 @@ function _origEnforce() {
     var url = 'https://shines871.github.io/idle-lineage-class/';
     var bar = document.createElement('div');
     bar.id = '_orig_pbar';
-    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2147483647;'
+    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:50000;'
       + 'background:linear-gradient(90deg,#0d1f3a,#17408a,#0d1f3a);color:#eef4ff;'
       + 'font:bold 15px/1.5 "Microsoft JhengHei","Segoe UI",Arial,sans-serif;'
       + 'padding:11px 16px;text-align:center;letter-spacing:.3px;'
