@@ -2851,3 +2851,403 @@ window.offlineV2Checkpoint =
     offlineV2Checkpoint;
 
 })();
+
+
+/* === OFFLINE_LOAD_BADGE_V1 === */
+(function(){
+
+if(window.__offlineLoadBadgeV1) return;
+window.__offlineLoadBadgeV1 = true;
+
+var PREFIX =
+    'fb5_offline_hunt_v2_';
+
+var MAX_MS =
+    12 * 60 * 60 * 1000;
+
+
+/* ---------- 樣式 ---------- */
+
+function installOfflineBadgeCss(){
+
+    if(
+        document.getElementById(
+            'offline-load-badge-style'
+        )
+    ) return;
+
+    var st =
+        document.createElement('style');
+
+    st.id =
+        'offline-load-badge-style';
+
+    st.textContent = `
+
+    .load-slot-card{
+        position:relative;
+    }
+
+    .offline-v2-load-status{
+        position:absolute;
+        left:50%;
+        bottom:8px;
+        transform:translateX(-50%);
+        z-index:8;
+
+        max-width:calc(100% - 12px);
+
+        padding:4px 9px;
+
+        border:1px solid rgba(125,211,252,.75);
+        border-radius:999px;
+
+        background:rgba(8,47,73,.92);
+
+        color:#bae6fd;
+
+        font-size:11px;
+        font-weight:800;
+        line-height:1.15;
+
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+
+        box-shadow:
+            0 2px 8px rgba(0,0,0,.55);
+
+        pointer-events:none;
+    }
+
+    @media (max-width:768px){
+
+        .offline-v2-load-status{
+            bottom:6px;
+            padding:3px 7px;
+            font-size:10px;
+        }
+
+    }
+
+    `;
+
+    document.head.appendChild(st);
+}
+
+
+/* ---------- 讀取 checkpoint ---------- */
+
+function readOffline(slot){
+
+    try{
+
+        var key =
+            PREFIX + String(slot);
+
+        var raw;
+
+        if(typeof _lsGet === 'function'){
+            raw = _lsGet(key);
+        }else{
+            raw =
+                localStorage.getItem(key);
+        }
+
+        if(!raw) return null;
+
+        var d =
+            JSON.parse(raw);
+
+        if(
+            !d ||
+            Number(d.v) !== 2 ||
+            !d.active ||
+            !d.map ||
+            !Number.isFinite(
+                Number(d.ts)
+            )
+        ){
+            return null;
+        }
+
+        return d;
+
+    }catch(e){
+        return null;
+    }
+}
+
+
+/* ---------- 判斷另一個分頁是否還在玩 ---------- */
+
+function sameSlotStillOpen(slot){
+
+    try{
+
+        if(
+            typeof _roleOtherActiveSessions
+                !== 'function'
+        ){
+            return false;
+        }
+
+        return (
+            _roleOtherActiveSessions() || []
+        ).some(function(x){
+
+            return (
+                x &&
+                String(x.slot) ===
+                String(slot)
+            );
+
+        });
+
+    }catch(e){
+        return false;
+    }
+}
+
+
+/* ---------- 時間文字 ---------- */
+
+function offlineTimeText(ms){
+
+    ms =
+        Math.max(
+            0,
+            Number(ms) || 0
+        );
+
+    var capped =
+        Math.min(ms, MAX_MS);
+
+    var sec =
+        Math.floor(
+            capped / 1000
+        );
+
+    var h =
+        Math.floor(
+            sec / 3600
+        );
+
+    var m =
+        Math.floor(
+            (sec % 3600) / 60
+        );
+
+    var s =
+        sec % 60;
+
+
+    if(h > 0){
+
+        return (
+            h +
+            '小時' +
+            (m ? m + '分' : '') +
+            (
+                ms > MAX_MS
+                    ? '+'
+                    : ''
+            )
+        );
+    }
+
+
+    if(m > 0){
+
+        return (
+            m +
+            '分' +
+            (s ? s + '秒' : '')
+        );
+    }
+
+
+    return s + '秒';
+}
+
+
+/* ---------- 更新角色選擇卡片 ---------- */
+
+function refreshOfflineLoadBadges(){
+
+    installOfflineBadgeCss();
+
+    var panel =
+        document.getElementById(
+            'load-select-panel'
+        );
+
+    if(
+        !panel ||
+        panel.classList.contains(
+            'hidden'
+        )
+    ){
+        return;
+    }
+
+
+    var grid =
+        document.getElementById(
+            'load-slot-grid'
+        );
+
+    if(!grid) return;
+
+
+    grid
+    .querySelectorAll(
+        '.load-slot-card[data-slot]'
+    )
+    .forEach(function(btn){
+
+        var slot =
+            Number(
+                btn.getAttribute(
+                    'data-slot'
+                )
+            );
+
+        var old =
+            btn.querySelector(
+                '.offline-v2-load-status'
+            );
+
+
+        /*
+         * 同角色還有另一個分頁正在遊戲：
+         * 這不是離線，所以不顯示掛機。
+         */
+        if(
+            sameSlotStillOpen(slot)
+        ){
+
+            if(old) old.remove();
+            return;
+        }
+
+
+        var d =
+            readOffline(slot);
+
+        if(!d){
+
+            if(old) old.remove();
+            return;
+        }
+
+
+        var elapsed =
+            Date.now() -
+            Number(d.ts || Date.now());
+
+
+        /*
+         * 離線未滿 10 秒先不顯示，
+         * 和離線掛機本體規則一致。
+         */
+        if(elapsed < 10000){
+
+            if(old) old.remove();
+            return;
+        }
+
+
+        var txt =
+            '🌙 掛機中 ' +
+            offlineTimeText(elapsed);
+
+
+        if(!old){
+
+            old =
+                document.createElement(
+                    'span'
+                );
+
+            old.className =
+                'offline-v2-load-status';
+
+            btn.appendChild(old);
+        }
+
+
+        old.textContent = txt;
+
+        old.title =
+            '離線掛機中';
+    });
+}
+
+
+/* ---------- renderLoadSelect 完成立即補徽章 ---------- */
+
+if(
+    typeof renderLoadSelect ===
+        'function' &&
+    !renderLoadSelect
+        .__offlineBadgeWrapped
+){
+
+    var oldRenderLoadSelect =
+        renderLoadSelect;
+
+    var wrappedRenderLoadSelect =
+        function(){
+
+            var r =
+                oldRenderLoadSelect.apply(
+                    this,
+                    arguments
+                );
+
+            setTimeout(
+                refreshOfflineLoadBadges,
+                0
+            );
+
+            return r;
+        };
+
+
+    wrappedRenderLoadSelect
+        .__offlineBadgeWrapped =
+        true;
+
+
+    renderLoadSelect =
+        wrappedRenderLoadSelect;
+
+    try{
+        window.renderLoadSelect =
+            wrappedRenderLoadSelect;
+    }catch(e){}
+}
+
+
+/*
+ * 每秒刷新時間。
+ * 只在角色選擇畫面真正顯示時工作。
+ */
+setInterval(
+    refreshOfflineLoadBadges,
+    1000
+);
+
+
+/* 首次載入 */
+setTimeout(
+    refreshOfflineLoadBadges,
+    300
+);
+
+
+window.refreshOfflineLoadBadges =
+    refreshOfflineLoadBadges;
+
+})();
