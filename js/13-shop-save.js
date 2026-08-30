@@ -154,7 +154,7 @@ function renderElionUI(div) {
     let header = cur
         ? `<p class="text-slate-300 mb-1">目前屬性：<span class="${cur.cls} font-bold text-lg">${cur.name}屬性</span></p>
            <p class="text-sm text-yellow-400 mb-4">轉換屬性需花費 ${ELF_SWITCH_COST.toLocaleString()} 金幣（目前持有 ${player.gold.toLocaleString()}）</p>`
-        : `<p class="text-slate-300 mb-4">選擇一種屬性，首次選擇免費。選擇後將解鎖對應的三、四階精靈魔法。</p>`;
+        : `<p class="text-slate-300 mb-4">選擇一種屬性，首次選擇免費。四系精靈魔法皆可學習與使用；主屬性只影響屬性精靈與同屬性相關加成。</p>`;
     let btns = Object.keys(ELF_ELE).map(k => {
         let e = ELF_ELE[k];
         let isCur = player.elfEle === k;
@@ -3251,3 +3251,7 @@ window.refreshOfflineLoadBadges =
     refreshOfflineLoadBadges;
 
 })();
+
+
+
+

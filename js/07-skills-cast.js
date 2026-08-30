@@ -432,7 +432,7 @@ function castSkillInner(skId) {
     let __granted = player.grantedSkills && player.grantedSkills.includes(skId);
     let needLv = skillReqLv(sk, skId);   // 🏅 集中化：含魔導精通特例
     if(!__granted && (needLv === undefined || player.lv < needLv)) return false;
-    if(!__granted && sk.reqEle && player.elfEle !== sk.reqEle) return false;      // 屬性不符
+    if(!__granted && sk.reqEle && player.cls !== 'elf' && player.elfEle !== sk.reqEle) return false;      // 屬性不符
     if(!__granted && sk.reqEleAny && !player.elfEle) return false;                 // 尚未選擇屬性
 
     // 🏺 烈焰巫師的正式長袍：燃燒的火球→爆裂的火球。

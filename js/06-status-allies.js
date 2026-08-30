@@ -2771,7 +2771,7 @@ function allySkillElementOk(ally, sid) {
     if (!sk.reqEle && !sk.reqEleAny) return true;
     if (ally && ally.grantedSkills && ally.grantedSkills.includes(sid)) return true;
     let ele = (ally && ally.elfEle) || '';
-    if (sk.reqEle && ele !== sk.reqEle) return false;   // 屬性不符（換屬性後的舊屬性魔法）
+    if (sk.reqEle && (!ally || ally.cls !== 'elf') && ele !== sk.reqEle) return false;   // 屬性不符（換屬性後的舊屬性魔法）
     if (sk.reqEleAny && !ele) return false;             // 尚未選擇屬性
     return true;
 }

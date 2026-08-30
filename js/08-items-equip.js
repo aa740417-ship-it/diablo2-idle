@@ -816,7 +816,7 @@ function useItem(u, silent = false) {
         if(player.lv < reqLv) { logSys(`等級不足，需要等級 ${reqLv} 才能學習「${sd.n}」。`); return; }
         
         // 👇 補上這兩行：確保屬性相符才能吃水晶！
-        if(sd.reqEle && player.elfEle !== sd.reqEle) { logSys(`屬性不符，無法學習「${sd.n}」。`); return; }
+        if (sd.reqEle && player.cls !== 'elf' && player.elfEle !== sd.reqEle) { logSys(`屬性不符，無法學習「${sd.n}」。`); return; }
         if(sd.reqEleAny && !player.elfEle) { logSys(`尚未選擇屬性，無法學習「${sd.n}」。`); return; }
 
         if(!player.skills.includes(d.sk)) {
@@ -1789,10 +1789,7 @@ function _skillbookUseFixed(uid, silent){
 
 
     /* 妖精屬性限制 */
-    if(
-        sd.reqEle &&
-        player.elfEle !== sd.reqEle
-    ){
+    if (sd.reqEle && player.cls !== 'elf' && player.elfEle !== sd.reqEle){
 
         if(!silent)
             logSys(

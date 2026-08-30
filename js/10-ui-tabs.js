@@ -122,7 +122,7 @@ function renderClassicSkillBook(sDiv) {
         let learned = (player.skills || []).includes(id);
         let grantedSkill = granted.includes(id);
         let needLv = grantedSkill ? 0 : skillReqLv(sk, id);
-        let elementOk = !sk.reqEle || player.elfEle === sk.reqEle;
+        let elementOk = !sk.reqEle || player.cls === 'elf' || player.elfEle === sk.reqEle;
         let elementChosen = !sk.reqEleAny || !!player.elfEle;
         let usable = learned && elementOk && elementChosen && (grantedSkill || needLv === undefined || player.lv >= needLv);
         let dim = learned ? (usable ? '' : ' classic-skill-unavailable') : ' classic-skill-unlearned';
@@ -583,7 +583,7 @@ function renderSkillSelects() {
         let __granted = player.grantedSkills && player.grantedSkills.includes(sid);
         let needLv = skillReqLv(sk, sid);   // 🏅 集中化：含魔導精通特例
         if(!__granted && (needLv === undefined || player.lv < needLv)) isAvail = false;
-        if(!__granted && sk.reqEle && player.elfEle !== sk.reqEle) isAvail = false;
+        if(!__granted && sk.reqEle && player.cls !== 'elf' && player.elfEle !== sk.reqEle) isAvail = false;
         if(!__granted && sk.reqEleAny && !player.elfEle) isAvail = false;
         
         let dis = isAvail ? '' : 'disabled class="text-slate-500"';
@@ -5388,10 +5388,12 @@ window.useSkillBookFromModal = function(uid){
         }
 
 
-        /* 妖精屬性技能 */
+        /* === elf four elements real learning fix v1 === */
+/* 妖精屬性技能 */
         if(
             sk.reqEle &&
-            player.elfEle !== sk.reqEle
+            player.cls !== 'elf' &&
+        player.elfEle !== sk.reqEle
         ){
             logSys(
                 '<span class="text-red-400">' +
