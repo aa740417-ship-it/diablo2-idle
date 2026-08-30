@@ -503,7 +503,52 @@ function renderWarehouseNPC(div){
     if (!div) return;
     _activePanel = null;   // 倉庫不需自動刷新
     let w = loadWarehouse();
-    let mkBtn = (it, act) => `<button onclick="${act}('${it.uid}')" data-tip-uid="${it.uid}" data-tip-src="${act === 'whWithdraw' ? 'wh' : 'inv'}" class="tip-host btn w-full text-left py-1.5 px-2 text-sm bg-slate-800 hover:bg-slate-700 border-slate-600">${getItemFullName(it)}</button>`;
+    /* WH_SKILL_STATUS_NATIVE_V1 */
+    let whSkillState = (it) => {
+        let d = DB.items[it.id];
+
+        if(!d || d.type !== 'skillbk' || !d.sk)
+            return { tag:'', cls:'bg-slate-800 hover:bg-slate-700 border-slate-600' };
+
+        let sk = DB.skills[d.sk];
+
+        if(!sk)
+            return { tag:'', cls:'bg-slate-800 hover:bg-slate-700 border-slate-600' };
+
+        if((player.skills || []).includes(d.sk)){
+            return {
+                tag:' <span class="text-slate-400 text-[10px] font-bold ml-2">[已學習]</span>',
+                cls:'bg-slate-900/90 hover:bg-slate-800 border-slate-600 opacity-80'
+            };
+        }
+
+        let reqLv = (typeof skillReqLv === 'function')
+            ? skillReqLv(sk, d.sk)
+            : undefined;
+
+        if(reqLv === undefined){
+            return {
+                tag:' <span class="text-red-400 text-[10px] font-bold ml-2">[無法學習]</span>',
+                cls:'bg-red-950/50 hover:bg-red-900/50 border-red-800'
+            };
+        }
+
+        return {
+            tag:'',
+            cls:'bg-slate-800 hover:bg-slate-700 border-slate-600'
+        };
+    };
+
+    let mkBtn = (it, act) => {
+        let st = whSkillState(it);
+
+        return `<button onclick="${act}('${it.uid}')"
+            data-tip-uid="${it.uid}"
+            data-tip-src="${act === 'whWithdraw' ? 'wh' : 'inv'}"
+            class="tip-host btn w-full text-left py-1.5 px-2 text-sm ${st.cls}">
+            ${getItemFullName(it)}${st.tag}
+        </button>`;
+    };
     let _searching = _whSearchActive();
     let _invItems = player.inv.filter(it => !it.lock && (_searching ? whMatchSearch(it) : whMatchFilter(it.id)));   // 🔒 鎖定物品不顯示於倉庫存放清單（用戶要求：鎖定物品存放時不顯示）
     let _whItems  = w.items.filter(it => _searching ? whMatchSearch(it) : whMatchFilter(it.id));
