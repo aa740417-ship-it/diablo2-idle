@@ -4139,3 +4139,41 @@ function playerHasAutoReviveEarring() {
     let e1 = eq.ear1, e2 = eq.ear2;
     return !!((e1 && DB.items[e1.id] && DB.items[e1.id].autoReviveScroll) || (e2 && DB.items[e2.id] && DB.items[e2.id].autoReviveScroll));
 }
+
+
+/* === hired mercenary free hunt v1 === */
+(function(){
+
+    /*
+     * 注意：
+     * 不修改 currentRoleIsMercenary / mercRoleSafeAreaOnly。
+     *
+     * 受僱身份仍然存在，讓：
+     * 1. 登入畫面繼續顯示「擔任傭兵」
+     * 2. 同一角色不可重複受僱
+     * 3. 存檔的經驗只增不減保護繼續運作
+     *
+     * 只取消「不能出去打怪」這條限制。
+     */
+
+    window.mercenaryRoleBattleBlocked =
+    mercenaryRoleBattleBlocked =
+    function(targetMap, notify){
+        return false;
+    };
+
+
+    window.enforceMercenarySafeArea =
+    enforceMercenarySafeArea =
+    function(){
+        return false;
+    };
+
+
+    window.mercenaryRoleNotifySafeAreaOnly =
+    mercenaryRoleNotifySafeAreaOnly =
+    function(){
+        return false;
+    };
+
+})();

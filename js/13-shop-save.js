@@ -2019,3 +2019,835 @@ function useCandle() { startRespec(); }   // 🔧 舊入口（保留相容）：
 
 // 🗑️ v3.5.83 移除 resetStatsCandle()：零引用的舊「一次性蠟燭配點重置」，已被草稿式 startRespec/confirmRespec 取代；
 //    它既不檢查也不消耗 candle 道具、也不 saveGame。唯一舊入口 useCandle() 已導向 startRespec()。
+
+
+/* === OFFLINE_HUNT_REAL_TICK_V2 === */
+(function(){
+
+if(window.__offlineHuntRealTickV2) return;
+window.__offlineHuntRealTickV2 = true;
+
+
+/* =========================================================
+ * 離線掛機 v2
+ *
+ * 原則：
+ * 1. 不直接送經驗 / 金幣 / 掉落
+ * 2. 重新利用現有 queueCatchupMs 真實逐 tick 補跑
+ * 3. 只有一般狩獵地圖可離線掛
+ * 4. 村莊不掛
+ * ========================================================= */
+
+var OFFLINE_V2_PREFIX =
+    'fb5_offline_hunt_v2_';
+
+var OFFLINE_V2_MIN_MS =
+    10 * 1000;               // 少於 10 秒不補
+
+var OFFLINE_V2_MAX_MS =
+    12 * 60 * 60 * 1000;    // 第一版上限 12 小時
+
+
+function offlineV2Key(slot){
+    return OFFLINE_V2_PREFIX +
+        String(slot || 1);
+}
+
+
+function offlineV2Fingerprint(){
+
+    try{
+        if(typeof _roleFingerprint === 'function')
+            return _roleFingerprint(player);
+    }catch(e){}
+
+    try{
+        return [
+            player.enSeed || '',
+            player.cls || '',
+            player.name || ''
+        ].join('|');
+    }catch(e){}
+
+    return '';
+}
+
+
+/*
+ * 第一版只開一般狩獵區。
+ *
+ * 先排除：
+ * 攻城
+ * 時空裂痕
+ * 傲慢攀登
+ * 遺忘之島旅程
+ * 安塔瑞斯副本
+ * 軍王特殊房
+ */
+function offlineV2MapAllowed(map){
+
+    map = String(map || '');
+
+    if(!map) return false;
+
+    if(map.indexOf('town_') === 0)
+        return false;
+
+    if(
+        typeof DB === 'undefined' ||
+        !DB.maps ||
+        !DB.maps[map]
+    ){
+        return false;
+    }
+
+    if(
+        map.indexOf('siege_') === 0 ||
+        map.indexOf('rift_') === 0 ||
+        map.indexOf('oblivion_') === 0 ||
+        map.indexOf('antharas_') === 0 ||
+        map.indexOf('pride_') === 0
+    ){
+        return false;
+    }
+
+    try{
+        if(
+            typeof KING_ROOMS !== 'undefined' &&
+            KING_ROOMS &&
+            KING_ROOMS[map]
+        ){
+            return false;
+        }
+    }catch(e){}
+
+    try{
+        if(
+            typeof isSiegeArea === 'function' &&
+            isSiegeArea(map)
+        ){
+            return false;
+        }
+    }catch(e){}
+
+    return true;
+}
+
+
+function offlineV2Read(slot){
+
+    try{
+        var raw = (typeof _lsGet === 'function')
+            ? _lsGet(offlineV2Key(slot))
+            : localStorage.getItem(
+                offlineV2Key(slot)
+            );
+
+        if(!raw) return null;
+
+        var d = JSON.parse(raw);
+
+        if(
+            !d ||
+            d.v !== 2 ||
+            !Number.isFinite(Number(d.ts))
+        ){
+            return null;
+        }
+
+        return d;
+
+    }catch(e){
+        return null;
+    }
+}
+
+
+function offlineV2WriteRaw(slot, obj){
+
+    try{
+        var raw = JSON.stringify(obj);
+
+        if(typeof _lsSet === 'function'){
+            _lsSet(
+                offlineV2Key(slot),
+                raw
+            );
+        }else{
+            localStorage.setItem(
+                offlineV2Key(slot),
+                raw
+            );
+        }
+
+        return true;
+
+    }catch(e){
+        return false;
+    }
+}
+
+
+/*
+ * 記住目前角色是否正在可離線掛的地圖。
+ *
+ * pagehide / beforeunload / 切角色
+ * 都會呼叫。
+ */
+function offlineV2Checkpoint(reason){
+
+    try{
+
+        if(
+            typeof player === 'undefined' ||
+            !player ||
+            !player.cls ||
+            typeof currentSlot === 'undefined'
+        ){
+            return false;
+        }
+
+        var map =
+            typeof mapState !== 'undefined' &&
+            mapState
+                ? String(
+                    mapState.current || ''
+                  )
+                : '';
+
+        var active =
+            offlineV2MapAllowed(map);
+
+        return offlineV2WriteRaw(
+            currentSlot,
+            {
+                v: 2,
+
+                ts: Date.now(),
+
+                slot:
+                    Number(currentSlot) || 1,
+
+                fp:
+                    offlineV2Fingerprint(),
+
+                active:
+                    active,
+
+                map:
+                    active ? map : '',
+
+                hp:
+                    Number(player.hp || 0),
+
+                mp:
+                    Number(player.mp || 0),
+
+                lv:
+                    Number(player.lv || 1),
+
+                reason:
+                    String(reason || '')
+            }
+        );
+
+    }catch(e){
+        return false;
+    }
+}
+
+
+/*
+ * 登入準備補跑時先把舊 checkpoint 消耗掉。
+ *
+ * 這很重要：
+ * 萬一補跑一半重新整理，
+ * 不可以再把同一段 5 小時重複領一次。
+ */
+function offlineV2ConsumeCheckpoint(){
+
+    try{
+
+        offlineV2WriteRaw(
+            currentSlot,
+            {
+                v: 2,
+                ts: Date.now(),
+                slot:
+                    Number(currentSlot) || 1,
+                fp:
+                    offlineV2Fingerprint(),
+                active: false,
+                map: '',
+                hp:
+                    Number(player.hp || 0),
+                mp:
+                    Number(player.mp || 0),
+                lv:
+                    Number(player.lv || 1),
+                reason:
+                    'consumed'
+            }
+        );
+
+    }catch(e){}
+}
+
+
+function offlineV2DurationText(ms){
+
+    var sec =
+        Math.max(
+            0,
+            Math.floor(ms / 1000)
+        );
+
+    var h =
+        Math.floor(sec / 3600);
+
+    var m =
+        Math.floor(
+            (sec % 3600) / 60
+        );
+
+    var s =
+        sec % 60;
+
+    if(h > 0)
+        return h + ' 小時 ' +
+               m + ' 分';
+
+    if(m > 0)
+        return m + ' 分 ' +
+               s + ' 秒';
+
+    return s + ' 秒';
+}
+
+
+/*
+ * 避免同一角色另一個分頁還在跑時，
+ * 新分頁又把同一段時間當成離線補一次。
+ */
+function offlineV2OtherSameRoleActive(){
+
+    try{
+
+        if(
+            typeof _roleOtherActiveSessions
+                !== 'function'
+        ){
+            return false;
+        }
+
+        var fp =
+            offlineV2Fingerprint();
+
+        var slot =
+            String(currentSlot);
+
+        return (
+            _roleOtherActiveSessions() || []
+        ).some(function(x){
+
+            return (
+                x &&
+                String(x.slot) === slot &&
+                String(x.fp || '') ===
+                    String(fp || '')
+            );
+
+        });
+
+    }catch(e){
+        return false;
+    }
+}
+
+
+/*
+ * 真正開始離線補跑。
+ */
+function offlineV2Resume(meta){
+
+    if(
+        !meta ||
+        !meta.active ||
+        !meta.map
+    ){
+        offlineV2Checkpoint(
+            'login-town'
+        );
+        return;
+    }
+
+
+    /* 不是同一個角色 */
+    if(
+        String(meta.fp || '') !==
+        String(
+            offlineV2Fingerprint() || ''
+        )
+    ){
+        offlineV2Checkpoint(
+            'identity-mismatch'
+        );
+        return;
+    }
+
+
+    if(
+        offlineV2OtherSameRoleActive()
+    ){
+        offlineV2Checkpoint(
+            'other-session-active'
+        );
+
+        try{
+            logSys(
+                '<span class="text-amber-300">' +
+                '偵測到此角色仍有其他遊戲分頁，' +
+                '本次不進行離線補跑，避免重複收益。' +
+                '</span>'
+            );
+        }catch(e){}
+
+        return;
+    }
+
+
+    if(
+        !offlineV2MapAllowed(
+            meta.map
+        )
+    ){
+        offlineV2Checkpoint(
+            'map-not-supported'
+        );
+        return;
+    }
+
+
+    var now =
+        Date.now();
+
+    var elapsed =
+        Math.max(
+            0,
+            now - Number(meta.ts || now)
+        );
+
+
+    if(
+        elapsed <
+        OFFLINE_V2_MIN_MS
+    ){
+        offlineV2Checkpoint(
+            'too-short'
+        );
+        return;
+    }
+
+
+    var runMs =
+        Math.min(
+            elapsed,
+            OFFLINE_V2_MAX_MS
+        );
+
+
+    /*
+     * 先消耗憑證，再開始補。
+     * 防重新整理重複領。
+     */
+    offlineV2ConsumeCheckpoint();
+
+
+    /*
+     * 回到離線前的一般狩獵地圖。
+     */
+    try{
+
+        if(
+            typeof setMapSelectors !==
+            'function' ||
+            typeof changeMap !==
+            'function'
+        ){
+            return;
+        }
+
+        setMapSelectors(
+            meta.map
+        );
+
+        var sel =
+            document.getElementById(
+                'map-select'
+            );
+
+        if(
+            !sel ||
+            String(sel.value) !==
+            String(meta.map)
+        ){
+            try{
+                logSys(
+                    '<span class="text-amber-300">' +
+                    '離線前的狩獵地圖目前無法進入，' +
+                    '本次不補跑。' +
+                    '</span>'
+                );
+            }catch(e){}
+
+            return;
+        }
+
+
+        /*
+         * 不用 force：
+         * 仍保留正常地圖進入條件。
+         */
+        changeMap();
+
+
+        if(
+            !mapState ||
+            String(mapState.current) !==
+            String(meta.map)
+        ){
+            return;
+        }
+
+
+        /*
+         * loadGame 原本會先回村補滿。
+         * 這裡把玩家 HP / MP 還原成離線前狀態，
+         * 再開始真實戰鬥。
+         */
+        if(
+            Number.isFinite(
+                Number(meta.hp)
+            )
+        ){
+            player.hp =
+                Math.max(
+                    1,
+                    Math.min(
+                        Number(player.mhp || 1),
+                        Number(meta.hp)
+                    )
+                );
+        }
+
+        if(
+            Number.isFinite(
+                Number(meta.mp)
+            )
+        ){
+            player.mp =
+                Math.max(
+                    0,
+                    Math.min(
+                        Number(player.mmp || 0),
+                        Number(meta.mp)
+                    )
+                );
+        }
+
+
+        if(
+            typeof updateUI ===
+            'function'
+        ){
+            updateUI();
+        }
+
+
+        /*
+         * 真實逐 tick 補跑。
+         */
+        if(
+            typeof queueCatchupMs ===
+            'function' &&
+            queueCatchupMs(runMs)
+        ){
+
+            try{
+
+                var txt =
+                    '<span class="text-cyan-300 font-bold">' +
+                    '🌙 離線掛機：</span>' +
+                    '離線 ' +
+                    offlineV2DurationText(
+                        elapsed
+                    ) +
+                    '，正在於「' +
+                    (
+                        typeof mapDisplayName ===
+                        'function'
+                            ? (
+                                mapDisplayName(
+                                    meta.map
+                                ) ||
+                                meta.map
+                              )
+                            : meta.map
+                    ) +
+                    '」補跑。';
+
+                if(
+                    elapsed >
+                    OFFLINE_V2_MAX_MS
+                ){
+                    txt +=
+                        '<span class="text-slate-400">' +
+                        '（第一版最多計算 12 小時）' +
+                        '</span>';
+                }
+
+                logSys(txt);
+
+            }catch(e){}
+
+        }else{
+
+            try{
+                logSys(
+                    '<span class="text-red-400">' +
+                    '離線掛機補跑啟動失敗。' +
+                    '</span>'
+                );
+            }catch(e){}
+
+        }
+
+    }catch(err){
+
+        try{
+            console.error(
+                '[offline v2]',
+                err
+            );
+        }catch(e){}
+
+        try{
+            logSys(
+                '<span class="text-red-400">' +
+                '離線掛機發生錯誤，' +
+                '本次已取消，避免重複結算。' +
+                '</span>'
+            );
+        }catch(e){}
+    }
+}
+
+
+/* =========================================================
+ * 包住 loadGame
+ * ========================================================= */
+
+if(
+    typeof loadGame === 'function' &&
+    !loadGame.__offlineV2Wrapped
+){
+
+    var _offlineV2OldLoadGame =
+        loadGame;
+
+    var _offlineV2WrappedLoad =
+        function(){
+
+            /*
+             * 原角色還沒載入前，
+             * 先讀該存檔位的離線 checkpoint。
+             */
+            var slot =
+                Number(currentSlot) || 1;
+
+            var meta =
+                offlineV2Read(slot);
+
+            var result =
+                _offlineV2OldLoadGame.apply(
+                    this,
+                    arguments
+                );
+
+
+            /*
+             * 原 loadGame 已完成：
+             * state.running=true
+             * startGameTimers 已啟動
+             *
+             * 下一拍再啟動離線補跑。
+             */
+            if(
+                typeof state !==
+                    'undefined' &&
+                state &&
+                state.running &&
+                player &&
+                player.cls
+            ){
+
+                setTimeout(
+                    function(){
+
+                        offlineV2Resume(
+                            meta
+                        );
+
+                    },
+                    80
+                );
+            }
+
+            return result;
+        };
+
+    _offlineV2WrappedLoad
+        .__offlineV2Wrapped = true;
+
+    loadGame =
+        _offlineV2WrappedLoad;
+
+    try{
+        window.loadGame =
+            _offlineV2WrappedLoad;
+    }catch(e){}
+}
+
+
+/* =========================================================
+ * 切回角色選擇，也算該角色開始離線
+ * ========================================================= */
+
+if(
+    typeof returnToCharacterSelect
+        === 'function' &&
+    !returnToCharacterSelect
+        .__offlineV2Wrapped
+){
+
+    var _offlineV2OldReturn =
+        returnToCharacterSelect;
+
+    var _offlineV2WrappedReturn =
+        function(){
+
+            offlineV2Checkpoint(
+                'character-select'
+            );
+
+            return _offlineV2OldReturn.apply(
+                this,
+                arguments
+            );
+        };
+
+    _offlineV2WrappedReturn
+        .__offlineV2Wrapped = true;
+
+    returnToCharacterSelect =
+        _offlineV2WrappedReturn;
+
+    try{
+        window.returnToCharacterSelect =
+            _offlineV2WrappedReturn;
+    }catch(e){}
+}
+
+
+/* =========================================================
+ * 關頁 / 背景
+ * ========================================================= */
+
+if(
+    typeof document !== 'undefined' &&
+    document.addEventListener
+){
+
+    document.addEventListener(
+        'visibilitychange',
+        function(){
+
+            if(document.hidden){
+
+                offlineV2Checkpoint(
+                    'hidden'
+                );
+
+            }
+
+        }
+    );
+}
+
+
+if(
+    typeof window !== 'undefined' &&
+    window.addEventListener
+){
+
+    window.addEventListener(
+        'beforeunload',
+        function(){
+
+            offlineV2Checkpoint(
+                'beforeunload'
+            );
+
+        }
+    );
+
+    window.addEventListener(
+        'pagehide',
+        function(){
+
+            offlineV2Checkpoint(
+                'pagehide'
+            );
+
+        }
+    );
+}
+
+
+/*
+ * 每 30 秒刷新一次 checkpoint。
+ *
+ * 即使手機直接殺掉瀏覽器，
+ * 最多也只差約 30 秒。
+ */
+setInterval(
+    function(){
+
+        try{
+
+            if(
+                typeof state !==
+                    'undefined' &&
+                state &&
+                state.running &&
+                player &&
+                player.cls
+            ){
+
+                offlineV2Checkpoint(
+                    'heartbeat'
+                );
+
+            }
+
+        }catch(e){}
+
+    },
+    30000
+);
+
+
+window.offlineV2Checkpoint =
+    offlineV2Checkpoint;
+
+})();

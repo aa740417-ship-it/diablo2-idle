@@ -292,7 +292,7 @@ function mapOptDisabled(m) {
     if (m.disabled) return true;
     // 🧑‍🤝‍🧑 v3.7.84 受僱為其他角色的傭兵期間＝只能停留在安全區 → 下拉中所有非 town_ 地圖一律灰階不可選
     //    （與 changeMap 的 mercenaryRoleBattleBlocked 同一條規則·此處只是把它前推到 UI 上；快取版避免每個選項都掃 localStorage）
-    if (m.v && !String(m.v).startsWith('town_') && typeof mercRoleSafeAreaOnly === 'function' && mercRoleSafeAreaOnly()) return true;
+    /* v1：受僱角色現在可以正常進入狩獵區，不再因傭兵身份停用地圖 */
     if (m.classicHide && player.classicMode) return true;   // 🔥 經典模式：席琳神殿不可進入（縱深防護，配合 populateMapSelect 隱藏選項）
     if (m.needKey && !player.inv.some(i => i.id === m.needKey && (i.cnt || 1) >= 1)) return true;   // 🔑 需鑰匙地圖：背包無鑰匙 → 灰色不可選
     // 🗼 傲慢之塔樓層門檻：2~10樓需曾擊敗潔尼斯女王；11樓以上需持有對應傳送符/支配符/移動卷軸
@@ -330,7 +330,7 @@ function onMapCategoryChange() {
         changeMap();   // 實際移動（受控狀態時 changeMap 會擋下並還原兩個選單）
     }
     // 🧑‍🤝‍🧑 v3.7.84 隊員期間切到「沒有安全區」的地區＝整區灰階、無可選目標 → 補一則提示，否則畫面毫無回應
-    else if (typeof mercRoleSafeAreaOnly === 'function' && mercRoleSafeAreaOnly() && typeof mercenaryRoleNotifySafeAreaOnly === 'function') mercenaryRoleNotifySafeAreaOnly();
+    /* v1：受僱角色可自由前往狩獵區 */
 }
 function setMapSelectors(mapKey) {
     // 將「分類選單 + 地圖選單」同步到指定地圖
@@ -346,7 +346,7 @@ function setMapSelectors(mapKey) {
 //    所以改用一個常駐標籤說明原因（否則玩家只會看到一整排灰色而不知道為什麼）。setMapSelectors 與每輪 updateUI 各呼叫一次。
 function updateMercRoleHint() {
     let el = document.getElementById('merc-role-hint'); if (!el) return;
-    let on = (typeof mercRoleSafeAreaOnly === 'function') && mercRoleSafeAreaOnly();
+    let on = false;   // v1：受僱仍保留身份，但不再限制狩獵
     el.classList.toggle('hidden', !on);
 }
 function syncMapSelectors() { setMapSelectors(mapState.current); }
