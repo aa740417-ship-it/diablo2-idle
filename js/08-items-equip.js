@@ -1257,6 +1257,18 @@ function doEnhance(targetUid, isEq = true) {
     else nochange = true;   // 武器 +9 起 1/6 無事：卷軸已消耗、強化值不變
 
     let fn = getItemFullName(target);
+
+    let protectedByScroll = false;
+
+    if (
+        destroy &&
+        typeof consumeEnhanceProtectScroll === 'function' &&
+        consumeEnhanceProtectScroll()
+    ) {
+        destroy = false;
+        protectedByScroll = true;
+    }
+
     if (success) {
         let add = (DB.items[scroll.id] && DB.items[scroll.id].isB) ? blessEnhanceGain(target.en) : 1;   // 🌟 祝福卷：+2 以下(含負值) +1~+3、+3~+5 +1~+2、+6 起等同一般卷 +1（純機率）
         target.en = Math.min(_cap, target.en + add);   // 🔧 祝福卷軸跳級不超過上限
@@ -1274,6 +1286,11 @@ function doEnhance(targetUid, isEq = true) {
         } else {
             player.inv = player.inv.filter(i => i.uid !== target.uid); // 碎掉背包裝備
         }
+    } else if (protectedByScroll) {
+        logSys(
+            `<span class="text-cyan-300 font-bold">🛡️ 防爆卷軸發動！</span>` +
+            `<span class="text-yellow-300">${fn}</span> 強化失敗，但裝備沒有消失，強化值維持不變。`
+        );
     } else {
         logSys(`<span class="text-slate-400">${fn} 一瞬間發出銀色的光芒。</span>`);
     }
@@ -1885,3 +1902,74 @@ try{
 }catch(e){}
 
 })();
+
+
+/* === anti break scroll v1 === */
+
+/* 通用防爆卷軸 */
+try {
+    if (typeof DB !== 'undefined' && DB.items && !DB.items.scroll_protect) {
+        DB.items.scroll_protect = {
+            n: "防爆卷軸",
+            type: "misc",
+            p: 1000000,
+            c: "text-cyan-300",
+            noUse: true,
+            noSell: true,
+            noJunk: true,
+            gachaWeight: 0,
+            d: "強化武器、防具或飾品時，若本次結果原本會使裝備爆掉，會自動消耗 1 張防爆卷軸，使裝備保留原強化值。成功或無事發生時不消耗。"
+        };
+    }
+} catch(e) {}
+
+
+/* 背包內防爆卷數量 */
+function enhanceProtectCount() {
+    try {
+        return (player.inv || []).reduce(function(n, i) {
+            return n + (
+                i && i.id === 'scroll_protect'
+                    ? Number(i.cnt || 1)
+                    : 0
+            );
+        }, 0);
+    } catch(e) {
+        return 0;
+    }
+}
+
+
+/* 真正消耗 1 張防爆卷 */
+function consumeEnhanceProtectScroll() {
+
+    try {
+
+        let it = (player.inv || []).find(function(i) {
+            return i &&
+                   i.id === 'scroll_protect' &&
+                   Number(i.cnt || 1) > 0;
+        });
+
+        if (!it) return false;
+
+        it.cnt = Number(it.cnt || 1) - 1;
+
+        if (it.cnt <= 0) {
+            player.inv = player.inv.filter(function(x) {
+                return x.uid !== it.uid;
+            });
+        }
+
+        return true;
+
+    } catch(e) {
+        return false;
+    }
+}
+
+try {
+    window.enhanceProtectCount = enhanceProtectCount;
+    window.consumeEnhanceProtectScroll = consumeEnhanceProtectScroll;
+} catch(e) {}
+

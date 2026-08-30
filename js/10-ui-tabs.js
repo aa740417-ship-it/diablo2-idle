@@ -1552,7 +1552,8 @@ function executeAutoSafeEnhance(targetUid, isEq, scrollId, goal) {
     }
 
     let fn0 = getItemFullName(target);
-    let used = 0, destroyed = false, hadRisk = false, ranOut = false;
+    /* === anti break auto enhance v1 === */
+    let used = 0, destroyed = false, protectedBreak = false, hadRisk = false, ranOut = false;
 
     // 逐級強化，直到抵達目標、卷軸用盡或爆裝
     while (target.en < goal) {
@@ -1571,11 +1572,27 @@ function executeAutoSafeEnhance(targetUid, isEq, scrollId, goal) {
             let _oc = enhanceRollOutcome(d, target.en);   // 🏰 天堂經典衝裝規則（機率單一真相 js/01·與單抽 doEnhance 同一套）；🎲 即時擲骰可 save/load 重抽
             if (_oc === 'ok') target.en += 1;             // 成功
             else if (_oc === 'none') continue;            // 武器 +9 起 1/6 無事：卷軸已消耗、強化值不變，續衝
-            else { destroyed = true; break; }             // 失敗即爆裝，過程視為失敗
+            else {
+                if (
+                    typeof consumeEnhanceProtectScroll === 'function' &&
+                    consumeEnhanceProtectScroll()
+                ) {
+                    protectedBreak = true;
+                    break;
+                }
+                destroyed = true;
+                break;
+            }
         }
     }
 
-    if (destroyed) {
+    if (protectedBreak) {
+        logSys(
+            `消耗了 ${used} 張 ${scrollName}。` +
+            `<span class="text-cyan-300 font-bold">🛡️ 防爆卷軸發動！</span>` +
+            `<span class="text-yellow-300">+${target.en} ${d.n}</span> 強化失敗但沒有消失，一鍵強化已停止。`
+        );
+    } else if (destroyed) {
         if (isEq) { if (slot) player.eq[slot] = null; if (typeof syncShahaArrow === 'function') syncShahaArrow(); if (typeof syncDualWield === 'function') syncDualWield(); }   // ⚠️ 快速強化爆裝同樣要同步副手／沙哈箭（與 js/08 doEnhance 一致）
         else { player.inv = player.inv.filter(i => i.uid !== target.uid); }
         logSys(`消耗了 ${used} 張 ${scrollName}。<span class="text-red-500 font-bold">${fn0} 強烈的發出銀色的光芒就消失了。</span>`);
@@ -1650,7 +1667,7 @@ function _qeEligibleItems(type) {
 // 模擬單一件裝備從 startEn 強化到 goal：每階消耗對應卷軸，安定值前必成功、安定值起依機率，失敗即爆裝。
 // scrollStacks 為 {scrollId:{cnt}} 的可變計數器（多件共用同一池），回傳 {en, destroyed, used}
 function _quickEnhanceUnit(d, startEn, goal, scrollStacks, useBless) {
-    let en = startEn, used = 0, destroyed = false;
+    let en = startEn, used = 0, destroyed = false, protectedBreak = false;
     let safe = d.safe || 0;
     let cap = enhanceCap(d);
     goal = Math.min(goal, cap);   // 🔧 批次強化亦不超過各裝備的強化上限（淬鍊）
@@ -1663,12 +1680,21 @@ function _quickEnhanceUnit(d, startEn, goal, scrollStacks, useBless) {
         if (!st || st.cnt <= 0) break;   // 卷軸用盡：停在目前等級（不爆裝）
         st.cnt -= 1; used += 1;
         let _oc = enhanceRollOutcome(d, en);   // 🏰 天堂經典衝裝規則（機率單一真相 js/01）：安定值前必成功；🎲 即時擲骰可 save/load 重抽
-        if (_oc === 'break') { destroyed = true; break; }   // 失敗即爆裝
+        if (_oc === 'break') {
+            let ps = scrollStacks['scroll_protect'];
+            if (ps && ps.cnt > 0) {
+                ps.cnt -= 1;
+                protectedBreak = true;
+                break;
+            }
+            destroyed = true;
+            break;
+        }
         if (_oc === 'none') continue;   // 武器 +9 起 1/6 無事：卷軸已消耗、強化值不變，續衝
         let add = bless ? blessEnhanceGain(en) : 1;   // 🌟 祝福卷：+2 以下 +1~+3、+3~+5 +1~+2、+6 起 +1；一般卷 +1
         en = Math.min(cap, en + add);   // 跳級不超過淬鍊上限
     }
-    return { en, destroyed, used };
+    return { en, destroyed, protected: protectedBreak, used };
 }
 
 function buildQuickEnhanceHeader(type) {
@@ -1715,12 +1741,12 @@ function runQuickEnhance(type) {
 
     // 三種卷軸共用計數池（武器/防具/飾品各自扣自己的卷軸）
     let scrollStacks = {};
-    ['scroll_weapon', 'scroll_armor', 'scroll_acc', 'scroll_weapon_b', 'scroll_armor_b'].forEach(sid => {   // 🌟 含祝福卷（武器/防具）
+    ['scroll_weapon', 'scroll_armor', 'scroll_acc', 'scroll_weapon_b', 'scroll_armor_b', 'scroll_protect'].forEach(sid => {   // 🌟 含祝福卷（武器/防具）
         let it = player.inv.find(i => i.id === sid);
         scrollStacks[sid] = { cnt: it ? (it.cnt || 0) : 0 };
     });
 
-    let reached = 0, destroyed = 0, partial = 0, skipped = 0, usedTotal = 0;
+    let reached = 0, destroyed = 0, protectedCount = 0, partial = 0, skipped = 0, usedTotal = 0;
     let removeUids = new Set();
     let survivors = [];
 
@@ -1732,7 +1758,8 @@ function runQuickEnhance(type) {
             if ((entry.en || 0) >= Math.min(goal, enhanceCap(d))) { skipped++; survivors.push({ ...entry, cnt: 1, uid: uid() }); continue; }   // 已達/超過目標（或已達淬鍊上限）：原樣保留
             let r = _quickEnhanceUnit(d, entry.en || 0, goal, scrollStacks, st.useBless);   // 🌟 st.useBless＝使用祝福卷（強化成敗為即時擲骰）
             usedTotal += r.used;
-            if (r.destroyed) { destroyed++; continue; }   // 爆裝：不保留
+            if (r.destroyed) { destroyed++; continue; }   // 沒防爆卷才真正爆裝
+            if (r.protected) protectedCount++;
             if (r.en >= goal) reached++; else partial++;  // 抵達 or 卷軸不足停在中途
             survivors.push({ ...entry, cnt: 1, uid: uid(), en: r.en, lock: false });
         }
@@ -1740,7 +1767,7 @@ function runQuickEnhance(type) {
 
     // 套用結果：移除原件 → 回寫卷軸 → 加入存活件（同簽章疊加）
     player.inv = player.inv.filter(i => !removeUids.has(i.uid));
-    ['scroll_weapon', 'scroll_armor', 'scroll_acc', 'scroll_weapon_b', 'scroll_armor_b'].forEach(sid => {   // 🌟 含祝福卷回寫
+    ['scroll_weapon', 'scroll_armor', 'scroll_acc', 'scroll_weapon_b', 'scroll_armor_b', 'scroll_protect'].forEach(sid => {   // 🌟 含祝福卷回寫
         let it = player.inv.find(i => i.id === sid);
         if (it) { it.cnt = scrollStacks[sid].cnt; if (it.cnt <= 0) player.inv = player.inv.filter(x => x.uid !== it.uid); }
     });
@@ -1750,7 +1777,8 @@ function runQuickEnhance(type) {
     let parts = [`成功 ${reached} 件`];
     if (partial) parts.push(`卷軸不足停 ${partial} 件`);
     if (skipped) parts.push(`已達標 ${skipped} 件`);
-    parts.push(`<span class="text-red-400">爆裝 ${destroyed} 件</span>`);
+    if (protectedCount) parts.push(`<span class="text-cyan-300">防爆保護 ${protectedCount} 件</span>`);
+    if (destroyed) parts.push(`<span class="text-red-400">爆裝 ${destroyed} 件</span>`);
     logSys(`<span class="text-blue-300 font-bold">快速強化完成（目標 +${goal}${st.useBless ? '·祝福卷' : ''}）：</span>${parts.join('、')}，消耗 ${usedTotal} 張${st.useBless ? '祝福' : ''}卷軸。`);
     calcStats();
     renderTabs(true);

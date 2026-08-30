@@ -2444,3 +2444,127 @@ function _townNpcAnimTick() {
     }
 }
 setInterval(_townNpcAnimTick, 125);   // 8fps 站立循環
+
+
+/* === ismael protect scroll shop v1 === */
+(function(){
+
+if(window.__ismaelProtectScrollShopV1) return;
+window.__ismaelProtectScrollShopV1 = true;
+
+var _oldRenderIsmaelProtectV1 =
+    (typeof renderIsmaelExchange === 'function')
+        ? renderIsmaelExchange
+        : null;
+
+if(_oldRenderIsmaelProtectV1){
+
+    renderIsmaelExchange = function(el){
+
+        _oldRenderIsmaelProtectV1(el);
+
+        if(!el) return;
+
+        var host =
+            el.querySelector('.flex.flex-col.gap-3.p-1');
+
+        if(!host) return;
+
+        var have = 0;
+
+        try {
+            have = (player.inv || []).reduce(function(n, i){
+                return n + (
+                    i && i.id === 'scroll_protect'
+                        ? Number(i.cnt || 1)
+                        : 0
+                );
+            }, 0);
+        } catch(e){}
+
+        var row =
+            document.createElement('div');
+
+        row.className =
+            'flex items-center justify-between gap-2 bg-slate-800/60 border border-cyan-700 rounded p-3';
+
+        row.innerHTML =
+            '<div class="text-sm text-slate-200 leading-relaxed">' +
+            '1,000,000 金幣 → 1 張 ' +
+            '<span class="text-cyan-300 font-bold">防爆卷軸</span>' +
+            '<br><span class="text-xs text-slate-400">' +
+            '爆裝時自動消耗；武器／防具／飾品共用。背包持有：' +
+            have +
+            ' 張（無冷卻）</span></div>' +
+            '<button class="btn bg-cyan-800 hover:bg-cyan-700 border-cyan-500 py-2 px-4 font-bold shrink-0" ' +
+            'onclick="ismaelBuyProtectScroll()">購買</button>';
+
+        host.appendChild(row);
+    };
+
+    try {
+        window.renderIsmaelExchange =
+            renderIsmaelExchange;
+    } catch(e){}
+}
+
+
+window.ismaelBuyProtectScroll =
+function(){
+
+    var price = 1000000;
+
+    var want = 1;
+
+    try {
+        if(typeof trialQtyVal === 'function')
+            want = Math.max(1, Number(trialQtyVal()) || 1);
+    } catch(e){}
+
+    var afford =
+        Math.floor(
+            Number(player.gold || 0) / price
+        );
+
+    var n =
+        Math.min(want, afford);
+
+    if(n < 1){
+        alert(
+            '金幣不足，需要 1,000,000 金幣。'
+        );
+        return;
+    }
+
+    player.gold -=
+        price * n;
+
+    gainItem(
+        'scroll_protect',
+        n,
+        true,
+        true
+    );
+
+    logSys(
+        '向伊賽馬利購買了 ' +
+        n +
+        ' 張 <span class="text-cyan-300 font-bold">防爆卷軸</span>，花費 ' +
+        (price * n).toLocaleString() +
+        ' 金幣。'
+    );
+
+    renderTabs(true);
+    updateUI();
+    saveGame();
+
+    var el =
+        document.getElementById(
+            'interaction-content'
+        );
+
+    if(el)
+        renderIsmaelExchange(el);
+};
+
+})();
