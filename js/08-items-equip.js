@@ -109,6 +109,24 @@ function rollLootQuality(id) {
               : r < 0.99 ? 4
               : 5;
 
+    /* === legendary random affix minimum 1 v1 === */
+    try {
+        let _legendDef =
+            (typeof DB !== 'undefined' &&
+             DB.items)
+                ? DB.items[id]
+                : null;
+
+        if (
+            _legendDef &&
+            _legendDef.legend &&
+            count < 1
+        ) {
+            count = 1;
+        }
+    } catch(e) {}
+
+
     let pool = LOOT_AFFIX_POOL.slice(), aff = [];
     for (let i=0; i<count && pool.length; i++) {
         let idx = Math.floor(lootRng('loot-affix-pick|' + id + '|' + i) * pool.length);
@@ -208,7 +226,7 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false, de
     //   既有裝備上的舊詞綴保留顯示（名稱前綴/資訊欄）但不再計入套裝件數（recomputeStats 只掃遺骸欄）。
     let seteff = false;
     let _lootRoll = { q:'white', aff:[] };
-    if (!forceNormal && !_noAffixCtx && d && !d.relic && !d.legend && ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc')) _lootRoll = rollLootQuality(id);
+    if (!forceNormal && !_noAffixCtx && d && !d.relic && ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc')) _lootRoll = rollLootQuality(id);
     let lootQ = _lootRoll.q, lootAff = _lootRoll.aff;
 
     let _tEn = 0;   // 🏛️ v3.0.83 傳統模式已取消：掉落自帶強化值停用（任何來源恆 +0·手動強化照常）
