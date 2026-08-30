@@ -1358,7 +1358,9 @@ function openModal(item, isEq, slot) {
             act += `<button class="col-span-2 w-full btn border-red-700 bg-red-900 hover:bg-red-800 text-red-200 py-3 text-lg font-bold" onclick="unequipItem('${slot}')">卸除</button>`;
         }
     } else {
-        if(d.type === 'pot' || d.type === 'skillbk' || ((d.type === 'misc' || d.type === 'etc') && d.eff && !d.noUse)) {   // 🔧 misc/etc 且有效果(萬能藥/回憶蠟燭/靈魂之球/🥚頑皮幼龍蛋等)亦顯示使用按鈕；noUse 除外
+        if(d.type === 'skillbk') {
+            act += `<button class="col-span-2 w-full btn border-green-700 bg-emerald-800 hover:bg-emerald-700 text-green-100 py-3 text-lg font-bold" onclick="useSkillBookFromModal('${item.uid}')">使用</button>`;
+        } else if(d.type === 'pot' || ((d.type === 'misc' || d.type === 'etc') && d.eff && !d.noUse)) {   // 🔧 misc/etc 且有效果(萬能藥/回憶蠟燭/靈魂之球/🥚頑皮幼龍蛋等)亦顯示使用按鈕；noUse 除外
             act += `<button class="col-span-2 w-full btn border-green-700 bg-emerald-800 hover:bg-emerald-700 text-green-100 py-3 text-lg font-bold" onclick="useItem('${item.uid}')">使用</button>`;
             if (d.batchUse && item.cnt > 1) act += `<button class="col-span-2 w-full btn border-sky-700 bg-sky-900 hover:bg-sky-800 text-sky-100 py-3 text-lg font-bold" onclick="batchUseItem('${item.uid}')">批量使用（可輸入數量）</button>`;   // 🌅 巨大骷髏的妖魂：批量使用
         }
@@ -5260,3 +5262,187 @@ if(document.readyState === 'loading'){
 }
 
 })();
+
+
+/* === direct skillbook modal use v2 === */
+
+window.useSkillBookFromModal = function(uid){
+
+    try {
+
+        var item = (player.inv || []).find(function(i){
+            return i && String(i.uid) === String(uid);
+        });
+
+        if(!item){
+            alert('找不到這本技能書。');
+            return;
+        }
+
+        var d = DB.items[item.id];
+
+        if(!d || d.type !== 'skillbk'){
+            alert('這個物品不是技能書。');
+            return;
+        }
+
+        var sid = d.sk;
+        var sk = DB.skills[sid];
+
+        if(!sid || !sk){
+            alert('技能資料異常：找不到對應技能。');
+            return;
+        }
+
+
+        /* 已經學會 */
+        if(
+            Array.isArray(player.skills) &&
+            player.skills.includes(sid)
+        ){
+            logSys(
+                '你已經學過「' +
+                sk.n +
+                '」了。'
+            );
+
+            if(typeof closeModal === 'function')
+                closeModal();
+
+            return;
+        }
+
+
+        /* 判斷職業需求 */
+        var needLv;
+
+        if(typeof skillReqLv === 'function'){
+            needLv = skillReqLv(sk, sid);
+        }else{
+            needLv =
+                player.cls === 'mage' ? sk.reqM :
+                player.cls === 'elf' ? sk.reqE :
+                player.cls === 'knight' ? sk.reqK :
+                player.cls === 'dark' ? sk.reqD :
+                player.cls === 'illusion' ? sk.reqI :
+                player.cls === 'dragon' ? sk.reqDk :
+                player.cls === 'warrior' ? sk.reqW :
+                player.cls === 'royal' ? sk.reqRoy :
+                undefined;
+        }
+
+
+        if(needLv === undefined){
+
+            logSys(
+                '<span class="text-red-400 font-bold">' +
+                '你的職業無法學習「' +
+                sk.n +
+                '」。</span>'
+            );
+
+            return;
+        }
+
+
+        if(Number(player.lv || 0) < Number(needLv)){
+
+            logSys(
+                '<span class="text-red-400">' +
+                '等級不足，需要 Lv.' +
+                needLv +
+                ' 才能學習「' +
+                sk.n +
+                '」。</span>'
+            );
+
+            return;
+        }
+
+
+        /* 妖精屬性技能 */
+        if(
+            sk.reqEle &&
+            player.elfEle !== sk.reqEle
+        ){
+            logSys(
+                '<span class="text-red-400">' +
+                '屬性不符，無法學習「' +
+                sk.n +
+                '」。</span>'
+            );
+            return;
+        }
+
+
+        if(
+            sk.reqEleAny &&
+            !player.elfEle
+        ){
+            logSys(
+                '<span class="text-red-400">' +
+                '尚未選擇屬性，無法學習「' +
+                sk.n +
+                '」。</span>'
+            );
+            return;
+        }
+
+
+        /* 真正學習 */
+        if(!Array.isArray(player.skills))
+            player.skills = [];
+
+        player.skills.push(sid);
+
+
+        /* 消耗一本 */
+        item.cnt = Number(item.cnt || 1) - 1;
+
+        if(item.cnt <= 0){
+            player.inv = player.inv.filter(function(x){
+                return String(x.uid) !== String(uid);
+            });
+        }
+
+
+        logSys(
+            '學習了技能：' +
+            '<span class="text-cyan-300 font-bold">' +
+            sk.n +
+            '</span>'
+        );
+
+
+        if(typeof calcStats === 'function')
+            calcStats();
+
+        if(typeof renderTabs === 'function')
+            renderTabs();
+
+        if(typeof renderSkillSelects === 'function')
+            renderSkillSelects();
+
+        if(typeof updateUI === 'function')
+            updateUI();
+
+        if(typeof saveGame === 'function')
+            saveGame();
+
+        if(typeof closeModal === 'function')
+            closeModal();
+
+    } catch(err) {
+
+        console.error(
+            'useSkillBookFromModal error',
+            err
+        );
+
+        alert(
+            '技能書使用發生錯誤：\n' +
+            (err && err.message ? err.message : String(err))
+        );
+    }
+};
+

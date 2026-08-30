@@ -1621,3 +1621,249 @@ function _updateUIImpl() {
     }
     updateSummonLock();   // 同步召喚類技能互斥鎖定（含迷魅生效時鎖定召喚增益）
 }
+
+
+/* === skillbook use safety fix v1 === */
+(function(){
+
+if(window.__skillbookUseSafetyFixV1) return;
+window.__skillbookUseSafetyFixV1 = true;
+
+var _originalUseItemV1 =
+    (typeof window.useItem === 'function')
+        ? window.useItem
+        : ((typeof useItem === 'function') ? useItem : null);
+
+if(!_originalUseItemV1) return;
+
+function _skillbookUseFixed(uid, silent){
+
+    silent = !!silent;
+
+    var item = (player.inv || []).find(function(x){
+        return x && x.uid === uid;
+    });
+
+    /*
+     * 找不到物品或不是技能書：
+     * 完全交回原本 useItem。
+     */
+    if(!item){
+        return _originalUseItemV1(uid, silent);
+    }
+
+    var d = DB.items[item.id];
+
+    if(!d || d.type !== 'skillbk'){
+        return _originalUseItemV1(uid, silent);
+    }
+
+
+    /* ===== 以下只處理技能書 ===== */
+
+    if(player.dead){
+        if(!silent)
+            logSys('死亡狀態無法學習技能。');
+        return;
+    }
+
+    if(
+        typeof inAbsBarrier === 'function' &&
+        inAbsBarrier()
+    ){
+        if(!silent)
+            logSys('絕對屏障期間無法使用技能書。');
+        return;
+    }
+
+
+    var sid = d.sk;
+    var sd = sid && DB.skills
+        ? DB.skills[sid]
+        : null;
+
+    if(!sid || !sd){
+        if(!silent)
+            logSys(
+                '<span class="text-red-400">' +
+                '技能書資料異常：找不到對應技能。' +
+                '</span>'
+            );
+        return;
+    }
+
+
+    /* 已學習 */
+    if(
+        Array.isArray(player.skills) &&
+        player.skills.includes(sid)
+    ){
+        if(!silent)
+            logSys(
+                '你已經學過「' +
+                sd.n +
+                '」了。'
+            );
+
+        return;
+    }
+
+
+    /* 職業 / 等級需求 */
+    var reqLv;
+
+    try{
+        reqLv = (typeof skillReqLv === 'function')
+            ? skillReqLv(sd, sid)
+            : sd.lv;
+    }catch(e){
+        reqLv = sd.lv;
+    }
+
+
+    if(reqLv === undefined){
+
+        if(!silent)
+            logSys(
+                '<span class="text-red-400">' +
+                '你的職業無法學習「' +
+                sd.n +
+                '」。</span>'
+            );
+
+        return;
+    }
+
+
+    if(
+        Number(player.lv || 0) <
+        Number(reqLv || 0)
+    ){
+
+        if(!silent)
+            logSys(
+                '等級不足，需要 Lv' +
+                reqLv +
+                ' 才能學習「' +
+                sd.n +
+                '」。'
+            );
+
+        return;
+    }
+
+
+    /* 妖精屬性限制 */
+    if(
+        sd.reqEle &&
+        player.elfEle !== sd.reqEle
+    ){
+
+        if(!silent)
+            logSys(
+                '<span class="text-red-400">' +
+                '屬性不符，無法學習「' +
+                sd.n +
+                '」。</span>'
+            );
+
+        return;
+    }
+
+
+    if(
+        sd.reqEleAny &&
+        !player.elfEle
+    ){
+
+        if(!silent)
+            logSys(
+                '<span class="text-red-400">' +
+                '尚未選擇屬性，無法學習「' +
+                sd.n +
+                '」。</span>'
+            );
+
+        return;
+    }
+
+
+    /* ===== 真正學習 ===== */
+
+    if(!Array.isArray(player.skills))
+        player.skills = [];
+
+    player.skills.push(sid);
+
+    if(typeof consume === 'function'){
+        consume(item);
+    }else{
+        item.cnt = Number(item.cnt || 1) - 1;
+
+        if(item.cnt <= 0){
+            player.inv = player.inv.filter(function(x){
+                return x.uid !== item.uid;
+            });
+        }
+    }
+
+
+    if(!silent){
+        logSys(
+            '學習了技能：' +
+            '<span class="text-cyan-300 font-bold">' +
+            sd.n +
+            '</span>'
+        );
+    }
+
+
+    try{
+        if(typeof calcStats === 'function')
+            calcStats();
+    }catch(e){}
+
+    try{
+        if(typeof renderTabs === 'function')
+            renderTabs();
+    }catch(e){}
+
+    try{
+        if(typeof renderSkillSelects === 'function')
+            renderSkillSelects();
+    }catch(e){}
+
+    try{
+        if(typeof updateUI === 'function')
+            updateUI();
+    }catch(e){}
+
+    try{
+        if(typeof saveGame === 'function')
+            saveGame();
+    }catch(e){}
+
+
+    try{
+        var modal =
+            document.getElementById('item-modal');
+
+        if(
+            modal &&
+            !modal.classList.contains('hidden') &&
+            typeof closeModal === 'function'
+        ){
+            closeModal();
+        }
+    }catch(e){}
+}
+
+
+/* 同時覆蓋 inline onclick 與程式內直接呼叫 */
+window.useItem = _skillbookUseFixed;
+
+try{
+    useItem = _skillbookUseFixed;
+}catch(e){}
+
+})();
