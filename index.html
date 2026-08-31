@@ -17,6 +17,55 @@
     <link rel="stylesheet" href="css/style.css?v=v3.8.34-warehouse-pedia-fix">
     <link rel="stylesheet" href="css/floating-ui.css?v=v3.5.100-audit-tail">
     <link rel="stylesheet" href="css/tailwind-built.css"><!-- 🔧 預編譯 Tailwind（取代執行期 JIT tailwind.js）：只含實際用到的 class，省 407KB runtime + 移除持續掃描 DOM 的成本。置於 style.css 之後以保留原 cascade（utility 平手時勝過自訂 class，與舊 JIT 注入順序一致） -->
+
+<style>
+/* === public mobile status normal flow v3 === */
+
+@media (max-width:768px){
+
+    /*
+     * 角色資訊列回到正常頁面排版。
+     * 不 fixed、不浮在黑市上面。
+     */
+    .mobile-top-status-host-v1{
+
+        position:relative !important;
+
+        top:auto !important;
+        left:auto !important;
+        right:auto !important;
+
+        width:auto !important;
+
+        transform:none !important;
+
+        /*
+         * 稍微往上縮掉原本空隙，
+         * 但後面的黑市也會一起跟著往上。
+         */
+        margin-top:-16px !important;
+        margin-bottom:0 !important;
+
+        z-index:5 !important;
+    }
+
+
+    /*
+     * 上一版 fixed 產生的佔位元素
+     * 如果瀏覽器 DOM 還殘留，也直接關掉。
+     */
+    #mobile-top-status-spacer-v2{
+
+        display:none !important;
+        height:0 !important;
+        min-height:0 !important;
+        margin:0 !important;
+        padding:0 !important;
+    }
+
+}
+</style>
+
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
@@ -590,221 +639,7 @@
 
 
 
-<script>
-/* === public fixed mobile status below banner v2 === */
-(function(){
 
-    function isLocal(){
-        var h = (location.hostname || '').toLowerCase();
-
-        return (
-            h === '127.0.0.1' ||
-            h === 'localhost'
-        );
-    }
-
-    if(isLocal()) return;
-
-
-    function getBanner(){
-        return document.getElementById('_orig_pbar');
-    }
-
-
-    function getStatus(){
-        return document.querySelector(
-            '.mobile-top-status-host-v1'
-        );
-    }
-
-
-    function restoreDesktop(){
-
-        var host = getStatus();
-
-        if(host){
-            host.style.position = '';
-            host.style.top = '';
-            host.style.left = '';
-            host.style.right = '';
-            host.style.width = '';
-            host.style.margin = '';
-            host.style.zIndex = '';
-        }
-
-        var sp =
-            document.getElementById(
-                'mobile-top-status-spacer-v2'
-            );
-
-        if(sp)
-            sp.style.display = 'none';
-    }
-
-
-    function apply(){
-
-        if(window.innerWidth > 768){
-            restoreDesktop();
-            return;
-        }
-
-        var banner = getBanner();
-        var host = getStatus();
-
-        if(!banner || !host)
-            return;
-
-
-        /*
-         * 在原本狀態列位置放一個同高度佔位，
-         * 避免 position:fixed 後下面內容突然往上跳。
-         */
-        var spacer =
-            document.getElementById(
-                'mobile-top-status-spacer-v2'
-            );
-
-        if(!spacer){
-
-            spacer =
-                document.createElement('div');
-
-            spacer.id =
-                'mobile-top-status-spacer-v2';
-
-            host.parentNode.insertBefore(
-                spacer,
-                host
-            );
-        }
-
-
-        /*
-         * 先暫時取消 fixed，
-         * 取得原本父容器真正寬度。
-         */
-        var parent =
-            spacer.parentElement;
-
-        var pr =
-            parent.getBoundingClientRect();
-
-        var br =
-            banner.getBoundingClientRect();
-
-
-        /*
-         * 狀態列固定在非官方橫幅正下方。
-         */
-        host.style.position = 'fixed';
-
-        host.style.top =
-            Math.ceil(br.bottom + 4) + 'px';
-
-        host.style.left =
-            Math.round(pr.left) + 'px';
-
-        host.style.width =
-            Math.round(pr.width) + 'px';
-
-        host.style.right = 'auto';
-
-        host.style.margin = '0';
-
-        host.style.zIndex = '2147483600';
-
-
-        /*
-         * 佔位高度跟狀態列同步。
-         */
-        var hh =
-            Math.ceil(
-                host.getBoundingClientRect().height ||
-                host.offsetHeight ||
-                0
-            );
-
-        spacer.style.display = 'block';
-        spacer.style.height = hh + 'px';
-        spacer.style.width = '100%';
-        spacer.style.pointerEvents = 'none';
-
-
-        /*
-         * 避免橫幅與狀態列產生黑色大空白。
-         */
-        host.style.transform = 'none';
-    }
-
-
-    var timer = 0;
-
-    function schedule(){
-
-        clearTimeout(timer);
-
-        timer = setTimeout(
-            apply,
-            40
-        );
-    }
-
-
-    window.addEventListener(
-        'load',
-        schedule
-    );
-
-    window.addEventListener(
-        'resize',
-        schedule
-    );
-
-    window.addEventListener(
-        'orientationchange',
-        schedule
-    );
-
-
-    /*
-     * 狀態列是 JS 後建立的，
-     * 所以 DOM 有變動時重新定位。
-     */
-    var ob =
-        new MutationObserver(schedule);
-
-    function start(){
-
-        if(!document.body){
-
-            setTimeout(
-                start,
-                100
-            );
-
-            return;
-        }
-
-        ob.observe(
-            document.body,
-            {
-                childList:true,
-                subtree:true
-            }
-        );
-
-        schedule();
-
-        setTimeout(schedule, 300);
-        setTimeout(schedule, 800);
-        setTimeout(schedule, 1500);
-    }
-
-    start();
-
-})();
-</script>
 
 </body>
 </html>
