@@ -733,5 +733,68 @@
 })();
 </script>
 
+
+<!-- === public status nudge up v1 === -->
+<script>
+(function(){
+  const IS_LOCAL =
+    location.hostname === '127.0.0.1' ||
+    location.hostname === 'localhost';
+
+  if (IS_LOCAL) return;   // 只修公開版，避免影響本機
+
+  function isVisible(el){
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width > 260 && r.height > 60 &&
+           cs.display !== 'none' &&
+           cs.visibility !== 'hidden';
+  }
+
+  function isStatusBox(el){
+    const t = (el.innerText || '').replace(/\s+/g, ' ');
+    return t.includes('HP') && t.includes('MP') && /Lv\s*\d+/i.test(t);
+  }
+
+  function findStatusBox(){
+    const nodes = Array.from(document.querySelectorAll('div,section,article'));
+    let cand = nodes.filter(el => isVisible(el) && isStatusBox(el));
+
+    cand.sort((a, b) => {
+      const ra = a.getBoundingClientRect();
+      const rb = b.getBoundingClientRect();
+      return ra.top - rb.top;
+    });
+
+    return cand[0] || null;
+  }
+
+  function nudge(){
+    if (window.innerWidth > 900) return;
+
+    const box = findStatusBox();
+    if (!box) return;
+
+    box.style.marginTop = '-16px';
+    box.style.position = 'relative';
+    box.style.zIndex = '2';
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(nudge, 150);
+    setTimeout(nudge, 500);
+    setTimeout(nudge, 1200);
+  });
+
+  window.addEventListener('resize', nudge);
+
+  const mo = new MutationObserver(() => nudge());
+  mo.observe(document.documentElement, { childList: true, subtree: true });
+
+  setInterval(nudge, 1200);
+})();
+</script>
+<!-- === /public status nudge up v1 === -->
+
 </body>
 </html>
