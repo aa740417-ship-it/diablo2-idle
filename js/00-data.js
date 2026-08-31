@@ -4093,18 +4093,19 @@ if(document.readyState === 'loading'){
 
 
 
-/* === mobile public vitals flow v7 === */
+
+
+
+/* === mobile banner sticky vitals v8 === */
 (function(){
 
-    if(window.__mobilePublicVitalsFlowV7)
+    if(window.__mobileBannerStickyVitalsV8)
         return;
 
-    window.__mobilePublicVitalsFlowV7 = true;
-
-    var firstDoneV7 = false;
+    window.__mobileBannerStickyVitalsV8 = true;
 
 
-    function isLocalV7(){
+    function isLocalV8(){
 
         var h =
             (location.hostname || '')
@@ -4117,9 +4118,9 @@ if(document.readyState === 'loading'){
     }
 
 
-    function applyV7(){
+    function applyV8(){
 
-        if(isLocalV7())
+        if(isLocalV8())
             return;
 
         if(window.innerWidth > 768)
@@ -4141,13 +4142,8 @@ if(document.readyState === 'loading'){
                 'mobile-vitals'
             );
 
-        var game =
-            document.getElementById(
-                'game-screen'
-            );
 
-
-        if(!bar || !stage || !vitals)
+        if(!bar || !stage)
             return;
 
 
@@ -4161,7 +4157,8 @@ if(document.readyState === 'loading'){
 
 
         /*
-         * 整個遊戲舞台避開非官方橫幅
+         * 整個遊戲舞台從
+         * 非官方橫幅下方開始。
          */
         stage.style.setProperty(
             'top',
@@ -4183,84 +4180,86 @@ if(document.readyState === 'loading'){
 
 
         /*
-         * ★ 真正的根源
+         * 關鍵：
+         * 恢復原版 mobile-vitals 的 sticky。
          *
-         * 新版狀態列其實仍包在 #mobile-vitals 裡。
-         * 把原本固定 / sticky 的 mobile-vitals
-         * 改回正常 flow。
+         * 因為 app-stage 已經在橫幅下面，
+         * sticky top:0 就會剛好黏在橫幅下方。
          */
-        vitals.style.setProperty(
-            'position',
-            'relative',
-            'important'
-        );
+        if(vitals){
 
-        vitals.style.setProperty(
-            'top',
-            'auto',
-            'important'
-        );
+            vitals.style.setProperty(
+                'position',
+                'sticky',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'left',
-            'auto',
-            'important'
-        );
+            vitals.style.setProperty(
+                'top',
+                '0',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'right',
-            'auto',
-            'important'
-        );
+            vitals.style.setProperty(
+                'left',
+                'auto',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'bottom',
-            'auto',
-            'important'
-        );
+            vitals.style.setProperty(
+                'right',
+                'auto',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'width',
-            '100%',
-            'important'
-        );
+            vitals.style.setProperty(
+                'bottom',
+                'auto',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'max-width',
-            'none',
-            'important'
-        );
+            vitals.style.setProperty(
+                'width',
+                '100%',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'margin',
-            '0',
-            'important'
-        );
+            vitals.style.setProperty(
+                'z-index',
+                '70',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'transform',
-            'none',
-            'important'
-        );
+            vitals.style.setProperty(
+                'order',
+                '-10',
+                'important'
+            );
 
-        vitals.style.setProperty(
-            'z-index',
-            '5',
-            'important'
-        );
+            vitals.style.removeProperty(
+                'transform'
+            );
 
-        vitals.style.setProperty(
-            'flex',
-            '0 0 auto',
-            'important'
-        );
+            vitals.style.removeProperty(
+                'margin'
+            );
+
+            vitals.style.removeProperty(
+                'max-width'
+            );
+
+            vitals.style.removeProperty(
+                'flex'
+            );
+        }
 
 
         /*
-         * 裡面的新版狀態列也保持正常 flow
+         * 新版狀態列本體不要自己 fixed。
+         * 由外面的 #mobile-vitals 負責 sticky。
          */
         var host =
-            vitals.querySelector(
+            document.querySelector(
                 '.mobile-top-status-host-v1'
             );
 
@@ -4297,21 +4296,21 @@ if(document.readyState === 'loading'){
             );
 
             host.style.setProperty(
-                'margin',
-                '0',
+                'transform',
+                'none',
                 'important'
             );
 
             host.style.setProperty(
-                'transform',
-                'none',
+                'margin',
+                '0',
                 'important'
             );
         }
 
 
         /*
-         * 舊版產生的 spacer 關掉
+         * 舊版 spacer 不需要。
          */
         var spacer =
             document.getElementById(
@@ -4332,41 +4331,18 @@ if(document.readyState === 'loading'){
                 'important'
             );
         }
-
-
-        /*
-         * 第一次成功定位後回最上面一次。
-         * 之後不干涉玩家捲動畫面。
-         */
-        if(!firstDoneV7){
-
-            firstDoneV7 = true;
-
-            requestAnimationFrame(function(){
-
-                try{
-                    if(game)
-                        game.scrollTop = 0;
-                }catch(e){}
-
-                try{
-                    stage.scrollTop = 0;
-                }catch(e){}
-
-            });
-        }
     }
 
 
-    var timerV7 = 0;
+    var timerV8 = 0;
 
-    function scheduleV7(){
+    function scheduleV8(){
 
-        clearTimeout(timerV7);
+        clearTimeout(timerV8);
 
-        timerV7 =
+        timerV8 =
             setTimeout(
-                applyV7,
+                applyV8,
                 40
             );
     }
@@ -4374,23 +4350,23 @@ if(document.readyState === 'loading'){
 
     window.addEventListener(
         'resize',
-        scheduleV7
+        scheduleV8
     );
 
     window.addEventListener(
         'orientationchange',
-        scheduleV7
+        scheduleV8
     );
 
 
-    function bootV7(){
+    function bootV8(){
 
-        scheduleV7();
+        scheduleV8();
 
-        setTimeout(scheduleV7, 100);
-        setTimeout(scheduleV7, 300);
-        setTimeout(scheduleV7, 700);
-        setTimeout(scheduleV7, 1500);
+        setTimeout(scheduleV8, 100);
+        setTimeout(scheduleV8, 300);
+        setTimeout(scheduleV8, 800);
+        setTimeout(scheduleV8, 1500);
     }
 
 
@@ -4398,34 +4374,34 @@ if(document.readyState === 'loading'){
 
         document.addEventListener(
             'DOMContentLoaded',
-            bootV7
+            bootV8
         );
 
     }else{
 
-        bootV7();
+        bootV8();
     }
 
 
-    var obV7 =
+    var obV8 =
         new MutationObserver(
-            scheduleV7
+            scheduleV8
         );
 
 
-    function observeV7(){
+    function observeV8(){
 
         if(!document.body){
 
             setTimeout(
-                observeV7,
+                observeV8,
                 100
             );
 
             return;
         }
 
-        obV7.observe(
+        obV8.observe(
             document.body,
             {
                 childList:true,
@@ -4434,6 +4410,6 @@ if(document.readyState === 'loading'){
         );
     }
 
-    observeV7();
+    observeV8();
 
 })();
