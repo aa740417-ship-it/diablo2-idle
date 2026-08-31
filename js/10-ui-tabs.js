@@ -4240,8 +4240,9 @@ function _milInstallStyle(){
         width:100%!important;
         min-width:0!important;
 
-        min-height:66px!important;
-        height:auto!important;
+        min-height:44px!important;
+        height:44px!important;
+        max-height:44px!important;
 
         margin:0!important;
         padding:0!important;
@@ -4267,11 +4268,13 @@ function _milInstallStyle(){
         align-items:center!important;
 
         width:100%!important;
-        min-height:66px!important;
+        min-height:44px!important;
+        height:44px!important;
+        max-height:44px!important;
 
         gap:10px!important;
 
-        padding:7px 10px!important;
+        padding:2px 8px!important;
 
         box-sizing:border-box!important;
       }
@@ -5698,5 +5701,390 @@ document.addEventListener(
     },
     true
 );
+
+})();
+
+
+
+
+
+/* === mobile bag 44px rows v2 === */
+(function(){
+
+if(window.__mobileBag44RowsV2)
+    return;
+
+window.__mobileBag44RowsV2 = true;
+
+
+/* ---------- CSS ---------- */
+
+if(!document.getElementById('mobile-bag-44-style-v2')){
+
+    var st = document.createElement('style');
+
+    st.id = 'mobile-bag-44-style-v2';
+
+    st.textContent = `
+
+@media (max-width:768px){
+
+    /*
+     * 背包三個主要列表
+     */
+    #game-screen #tab-weapons,
+    #game-screen #tab-armors,
+    #game-screen #tab-items{
+        display:flex !important;
+        flex-direction:column !important;
+
+        gap:3px !important;
+
+        padding:4px 5px 105px 5px !important;
+
+        overflow-y:auto !important;
+        overflow-x:hidden !important;
+
+        -webkit-overflow-scrolling:touch !important;
+        scroll-padding-bottom:105px !important;
+    }
+
+
+    /*
+     * 強制每列 44px
+     */
+    #game-screen #tab-weapons .list-item,
+    #game-screen #tab-armors .list-item,
+    #game-screen #tab-items .list-item,
+
+    #game-screen #tab-weapons .classic-inventory-viewport .list-item,
+    #game-screen #tab-armors .classic-inventory-viewport .list-item,
+    #game-screen #tab-items .classic-inventory-viewport .list-item{
+        flex:0 0 36px !important;
+
+        width:100% !important;
+
+        height:36px !important;
+        min-height:36px !important;
+        max-height:36px !important;
+
+        padding:0 7px !important;
+        margin:0 !important;
+
+        box-sizing:border-box !important;
+
+        display:flex !important;
+        align-items:center !important;
+
+        border-radius:6px !important;
+
+        overflow:hidden !important;
+    }
+
+
+    /*
+     * 內層也限制高度
+     */
+    #game-screen #tab-weapons .classic-item-main,
+    #game-screen #tab-armors .classic-item-main,
+    #game-screen #tab-items .classic-item-main{
+        flex:1 1 auto !important;
+
+        width:100% !important;
+
+        height:34px !important;
+        min-height:34px !important;
+        max-height:34px !important;
+
+        padding:0 !important;
+        margin:0 !important;
+
+        display:flex !important;
+        align-items:center !important;
+
+        gap:4px !important;
+
+        overflow:hidden !important;
+    }
+
+
+    /*
+     * 名稱區
+     */
+    #game-screen #tab-weapons .classic-name-box,
+    #game-screen #tab-armors .classic-name-box,
+    #game-screen #tab-items .classic-name-box{
+        flex:1 1 auto !important;
+
+        min-width:0 !important;
+
+        height:42px !important;
+
+        padding:0 !important;
+        margin:0 !important;
+
+        display:flex !important;
+        align-items:center !important;
+
+        overflow:hidden !important;
+    }
+
+
+    /*
+     * 物品名稱
+     */
+    #game-screen #tab-weapons .classic-name-box > span:first-child,
+    #game-screen #tab-armors .classic-name-box > span:first-child,
+    #game-screen #tab-items .classic-name-box > span:first-child{
+        display:block !important;
+
+        font-size:13px !important;
+        line-height:1 !important;
+
+        overflow:hidden !important;
+        text-overflow:ellipsis !important;
+        white-space:nowrap !important;
+    }
+
+
+    /*
+     * 保持純文字列表
+     */
+    #game-screen #tab-weapons .classic-icon-box,
+    #game-screen #tab-armors .classic-icon-box,
+    #game-screen #tab-items .classic-icon-box{
+        display:none !important;
+    }
+
+
+    /*
+     * 不要補空格子
+     */
+    #game-screen #tab-weapons .classic-grid-empty,
+    #game-screen #tab-armors .classic-grid-empty,
+    #game-screen #tab-items .classic-grid-empty{
+        display:none !important;
+    }
+
+
+    /*
+     * 外層 viewport 不要再把列撐大
+     */
+    #game-screen .classic-inventory-viewport{
+        display:flex !important;
+        flex-direction:column !important;
+
+        gap:3px !important;
+
+        min-height:0 !important;
+
+        padding:0 0 100px 0 !important;
+
+        overflow-y:auto !important;
+        overflow-x:hidden !important;
+
+        -webkit-overflow-scrolling:touch !important;
+        scroll-padding-bottom:100px !important;
+    }
+
+
+    /*
+     * 鎖定 / 廢品標記
+     */
+    #game-screen .classic-item-lock-badge,
+    #game-screen .classic-item-junk-label{
+        flex:0 0 auto !important;
+
+        font-size:10px !important;
+        line-height:1 !important;
+
+        margin-left:4px !important;
+    }
+
+
+    /*
+     * 百科縮小
+     */
+    .mobile-wiki-compact-v2{
+        position:fixed !important;
+
+        right:10px !important;
+        bottom:92px !important;
+
+        width:88px !important;
+        height:46px !important;
+
+        min-width:88px !important;
+        min-height:46px !important;
+
+        padding:3px 6px !important;
+        margin:0 !important;
+
+        font-size:16px !important;
+        line-height:1 !important;
+
+        border-radius:23px !important;
+
+        z-index:2147482500 !important;
+
+        transform:none !important;
+    }
+
+}
+
+`;
+
+    document.head.appendChild(st);
+}
+
+
+/* ---------- 百科 ---------- */
+
+function cleanTextV2(el){
+
+    return String(
+        el && el.textContent || ''
+    )
+    .replace(/\s+/g, '')
+    .replace(/📖/g, '')
+    .trim();
+}
+
+
+function fixWikiV2(){
+
+    if(window.innerWidth > 768)
+        return;
+
+    var els =
+        document.querySelectorAll(
+            'button,a,[role="button"],div'
+        );
+
+    for(var i = 0; i < els.length; i++){
+
+        var el = els[i];
+
+        if(cleanTextV2(el) !== '百科')
+            continue;
+
+        var r =
+            el.getBoundingClientRect();
+
+        if(r.width < 40 || r.height < 25)
+            continue;
+
+        el.classList.remove(
+            'mobile-wiki-compact-v1'
+        );
+
+        el.classList.add(
+            'mobile-wiki-compact-v2'
+        );
+
+        break;
+    }
+}
+
+
+/* ---------- 重繪後維持 ---------- */
+
+var timerV2 = 0;
+
+function scheduleV2(){
+
+    clearTimeout(timerV2);
+
+    timerV2 = setTimeout(
+        fixWikiV2,
+        50
+    );
+}
+
+
+function bootV2(){
+
+    scheduleV2();
+
+    setTimeout(scheduleV2, 150);
+    setTimeout(scheduleV2, 400);
+    setTimeout(scheduleV2, 900);
+}
+
+
+if(document.readyState === 'loading'){
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        bootV2
+    );
+
+}else{
+
+    bootV2();
+}
+
+
+window.addEventListener(
+    'resize',
+    scheduleV2
+);
+
+
+var obsV2 = new MutationObserver(
+    scheduleV2
+);
+
+obsV2.observe(
+    document.documentElement,
+    {
+        childList:true,
+        subtree:true
+    }
+);
+
+})();
+
+
+/* === mobile inventory hidden safe fix v4 === */
+(function(){
+
+if(window.__mobileInventoryHiddenSafeV4)
+    return;
+
+window.__mobileInventoryHiddenSafeV4 = true;
+
+var style =
+    document.createElement('style');
+
+style.id =
+    'mobile-inventory-hidden-safe-v4';
+
+style.textContent = `
+
+@media (max-width:768px){
+
+    /*
+     * v2 為了做 44px 列表，
+     * 有設定 tab display:flex。
+     *
+     * 這裡只在分頁本身有 hidden 時
+     * 強制隱藏。
+     *
+     * 不改 renderTabs、
+     * 不改切換功能。
+     */
+
+    #game-screen #tab-weapons.hidden,
+    #game-screen #tab-armors.hidden,
+    #game-screen #tab-items.hidden{
+        display:none !important;
+    }
+
+}
+
+`;
+
+document.head.appendChild(style);
 
 })();
