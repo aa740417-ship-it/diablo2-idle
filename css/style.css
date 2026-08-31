@@ -3656,3 +3656,128 @@ button.classic-skill-cell { cursor:pointer; }
         box-sizing:border-box !important;
     }
 }
+
+
+/* === mobile function keys compact force v4 === */
+@media (max-width:768px){
+
+    #game-screen #col-right > .tab-bar{
+        padding:3px !important;
+        gap:2px !important;
+
+        grid-template-columns:
+            repeat(3,minmax(0,1fr)) !important;
+
+        grid-auto-rows:28px !important;
+    }
+
+    #game-screen #col-right > .tab-bar > button{
+        height:28px !important;
+        min-height:28px !important;
+        max-height:28px !important;
+
+        padding:0 2px !important;
+        margin:0 !important;
+
+        font-size:12px !important;
+        line-height:1 !important;
+
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+    }
+}
+
+/* === mobile function keys compact force v5 === */
+/* 不只看 768px，手機觸控裝置也強制套用 */
+@media (max-width:900px), (pointer:coarse) {
+
+    #game-screen #col-right > .tab-bar{
+        display:grid !important;
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        grid-template-rows:repeat(4,30px) !important;
+        grid-auto-rows:30px !important;
+
+        gap:2px !important;
+        padding:3px !important;
+
+        height:132px !important;
+        min-height:132px !important;
+        max-height:132px !important;
+
+        flex:0 0 132px !important;
+        align-self:stretch !important;
+        align-content:start !important;
+
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+    }
+
+    #game-screen #col-right > .tab-bar > button{
+        width:100% !important;
+
+        height:30px !important;
+        min-height:30px !important;
+        max-height:30px !important;
+
+        padding:0 2px !important;
+        margin:0 !important;
+
+        font-size:12px !important;
+        line-height:1 !important;
+
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+
+        box-sizing:border-box !important;
+    }
+}
+
+
+/* === mobile function keys compact force v6 === */
+@media (max-width:900px), (pointer:coarse) {
+
+    #game-screen #col-right > .tab-bar{
+        display:grid !important;
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        grid-template-rows:repeat(4,34px) !important;
+        grid-auto-rows:34px !important;
+
+        gap:3px !important;
+        padding:4px !important;
+
+        height:auto !important;
+        min-height:0 !important;
+        max-height:none !important;
+
+        flex:0 0 auto !important;
+
+        align-content:start !important;
+        overflow:visible !important;
+
+        box-sizing:border-box !important;
+    }
+
+    #game-screen #col-right > .tab-bar > button{
+        width:100% !important;
+
+        height:34px !important;
+        min-height:34px !important;
+        max-height:34px !important;
+
+        padding:0 3px !important;
+        margin:0 !important;
+
+        font-size:13px !important;
+        line-height:1 !important;
+
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+    }
+}
+
