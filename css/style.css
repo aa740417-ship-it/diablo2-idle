@@ -3572,3 +3572,87 @@ button.classic-skill-cell { cursor:pointer; }
 
 /* game pedia below repost banner */
 #game-pedia:not(.hidden){top:var(--orig-pbar-h,0px)!important;bottom:0!important;}
+
+
+/* === mobile right tab bar compact v1 === */
+@media (max-width:768px){
+
+    /* 12 顆功能鍵整體 */
+    #col-right > .tab-bar{
+        display:grid !important;
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        grid-auto-rows:46px !important;
+
+        gap:5px !important;
+        padding:6px !important;
+
+        height:auto !important;
+        min-height:0 !important;
+        max-height:none !important;
+
+        flex:0 0 auto !important;
+        align-self:stretch !important;
+        box-sizing:border-box !important;
+    }
+
+    /* 單顆功能鍵 */
+    #col-right > .tab-bar > button{
+        width:100% !important;
+
+        height:46px !important;
+        min-height:46px !important;
+        max-height:46px !important;
+
+        padding:3px 2px !important;
+        margin:0 !important;
+
+        font-size:16px !important;
+        line-height:1.05 !important;
+
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+
+        box-sizing:border-box !important;
+    }
+}
+
+/* === mobile function keys compact force v2 === */
+@media (max-width:768px){
+
+    #game-screen .tab-bar{
+        display:grid !important;
+        grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+        grid-template-rows:repeat(4,40px) !important;
+        grid-auto-rows:40px !important;
+
+        gap:4px !important;
+        padding:5px !important;
+
+        height:181px !important;
+        min-height:181px !important;
+        max-height:181px !important;
+
+        flex:0 0 181px !important;
+        box-sizing:border-box !important;
+        overflow:hidden !important;
+    }
+
+    #game-screen .tab-bar > button{
+        height:40px !important;
+        min-height:40px !important;
+        max-height:40px !important;
+
+        padding:0 2px !important;
+        margin:0 !important;
+
+        font-size:15px !important;
+        line-height:1 !important;
+
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+
+        box-sizing:border-box !important;
+    }
+}
