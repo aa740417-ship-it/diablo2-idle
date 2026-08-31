@@ -584,217 +584,227 @@
 <script src="js/31-castle-guards.js?v=v3.8.23-sherine-set-rework"></script>
 <script src="js/32-threat.js?v=v3.8.23-sherine-set-rework"></script>
 
+
+
+
+
+
+
 <script>
-/* === public header safe offset v1 === */
-(function () {
-  function isLocalHost() {
-    var h = (location.hostname || '').toLowerCase();
-    return h === '127.0.0.1' || h === 'localhost';
-  }
-
-  function visible(el) {
-    if (!el) return false;
-    var cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
-    var r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
-  }
-
-  function textOf(el) {
-    return ((el.innerText || el.textContent || '') + '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function getBannerEl() {
-    var byId = document.getElementById('_orig_pbar');
-    if (visible(byId)) return byId;
-
-    var nodes = Array.from(document.body.querySelectorAll('*'));
-    var best = null;
-    var bestScore = -1;
-
-    for (var el of nodes) {
-      if (!visible(el)) continue;
-      var txt = textOf(el);
-      if (!txt) continue;
-
-      if (
-        !/這是非官方轉載版本/.test(txt) &&
-        !/本遊戲永久免費/.test(txt) &&
-        !/前往官方最新版/.test(txt) &&
-        !/shines871\.github\.io\/idle-lineage-class/.test(txt)
-      ) continue;
-
-      var r = el.getBoundingClientRect();
-      if (r.top > innerHeight * 0.6) continue;
-
-      var score = r.width + r.height * 2;
-      if (score > bestScore) {
-        best = el;
-        bestScore = score;
-      }
-    }
-
-    return best;
-  }
-
-  function getHeaderEl() {
-    var direct =
-      document.getElementById('top-player-summary') ||
-      document.getElementById('player-top-summary') ||
-      document.getElementById('hero-top-summary') ||
-      document.querySelector('[data-player-summary]') ||
-      document.querySelector('[data-role="player-top-summary"]');
-
-    if (visible(direct)) return direct;
-
-    var nodes = Array.from(document.body.querySelectorAll('div,section,article'));
-    var best = null;
-    var bestScore = -1;
-
-    for (var el of nodes) {
-      if (!visible(el)) continue;
-      var txt = textOf(el);
-      if (!txt) continue;
-      if (!(txt.includes('HP') && txt.includes('MP'))) continue;
-
-      var r = el.getBoundingClientRect();
-      if (r.top > innerHeight * 0.75 || r.width < 260 || r.height < 50) continue;
-
-      var score = 20;
-      if (/Lv|等級/.test(txt)) score += 8;
-      if (/防/.test(txt)) score += 4;
-      if (/魔防/.test(txt)) score += 4;
-      if (/席琳/.test(txt)) score += 6;
-      score += Math.max(0, 500 - r.top);
-
-      if (score > bestScore) {
-        best = el;
-        bestScore = score;
-      }
-    }
-
-    return best;
-  }
-
-  function applyFix() {
-    if (isLocalHost()) return;
-
-    var banner = getBannerEl();
-    var header = getHeaderEl();
-    if (!banner || !header) return;
-
-    if (!header.dataset.safeOffsetBaseMarginTop) {
-      var mt = parseFloat(getComputedStyle(header).marginTop || '0') || 0;
-      header.dataset.safeOffsetBaseMarginTop = String(mt);
-    }
-
-    var base = parseFloat(header.dataset.safeOffsetBaseMarginTop || '0') || 0;
-    header.style.marginTop = base + 'px';
-
-    var br = banner.getBoundingClientRect();
-    var hr = header.getBoundingClientRect();
-    var gap = 8;
-
-    var need = Math.ceil((br.bottom + gap) - hr.top);
-
-    if (need > 0) {
-      header.style.marginTop = (base + need) + 'px';
-    } else {
-      header.style.marginTop = base + 'px';
-    }
-  }
-
-  var t = 0;
-  function schedule() {
-    clearTimeout(t);
-    t = setTimeout(applyFix, 60);
-  }
-
-  window.addEventListener('load', schedule);
-  window.addEventListener('resize', schedule);
-  window.addEventListener('orientationchange', schedule);
-  document.addEventListener('scroll', schedule, { passive: true });
-
-  var mo = new MutationObserver(schedule);
-  function startObserve() {
-    if (!document.body) {
-      setTimeout(startObserve, 100);
-      return;
-    }
-    mo.observe(document.body, { childList: true, subtree: true });
-    schedule();
-    setTimeout(schedule, 300);
-    setTimeout(schedule, 1000);
-  }
-
-  startObserve();
-})();
-</script>
-
-
-<!-- === public status nudge up v1 === -->
-<script>
+/* === public fixed mobile status below banner v2 === */
 (function(){
-  const IS_LOCAL =
-    location.hostname === '127.0.0.1' ||
-    location.hostname === 'localhost';
 
-  if (IS_LOCAL) return;   // 只修公開版，避免影響本機
+    function isLocal(){
+        var h = (location.hostname || '').toLowerCase();
 
-  function isVisible(el){
-    const r = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    return r.width > 260 && r.height > 60 &&
-           cs.display !== 'none' &&
-           cs.visibility !== 'hidden';
-  }
+        return (
+            h === '127.0.0.1' ||
+            h === 'localhost'
+        );
+    }
 
-  function isStatusBox(el){
-    const t = (el.innerText || '').replace(/\s+/g, ' ');
-    return t.includes('HP') && t.includes('MP') && /Lv\s*\d+/i.test(t);
-  }
+    if(isLocal()) return;
 
-  function findStatusBox(){
-    const nodes = Array.from(document.querySelectorAll('div,section,article'));
-    let cand = nodes.filter(el => isVisible(el) && isStatusBox(el));
 
-    cand.sort((a, b) => {
-      const ra = a.getBoundingClientRect();
-      const rb = b.getBoundingClientRect();
-      return ra.top - rb.top;
-    });
+    function getBanner(){
+        return document.getElementById('_orig_pbar');
+    }
 
-    return cand[0] || null;
-  }
 
-  function nudge(){
-    if (window.innerWidth > 900) return;
+    function getStatus(){
+        return document.querySelector(
+            '.mobile-top-status-host-v1'
+        );
+    }
 
-    const box = findStatusBox();
-    if (!box) return;
 
-    box.style.marginTop = '-16px';
-    box.style.position = 'relative';
-    box.style.zIndex = '2';
-  }
+    function restoreDesktop(){
 
-  window.addEventListener('load', () => {
-    setTimeout(nudge, 150);
-    setTimeout(nudge, 500);
-    setTimeout(nudge, 1200);
-  });
+        var host = getStatus();
 
-  window.addEventListener('resize', nudge);
+        if(host){
+            host.style.position = '';
+            host.style.top = '';
+            host.style.left = '';
+            host.style.right = '';
+            host.style.width = '';
+            host.style.margin = '';
+            host.style.zIndex = '';
+        }
 
-  const mo = new MutationObserver(() => nudge());
-  mo.observe(document.documentElement, { childList: true, subtree: true });
+        var sp =
+            document.getElementById(
+                'mobile-top-status-spacer-v2'
+            );
 
-  setInterval(nudge, 1200);
+        if(sp)
+            sp.style.display = 'none';
+    }
+
+
+    function apply(){
+
+        if(window.innerWidth > 768){
+            restoreDesktop();
+            return;
+        }
+
+        var banner = getBanner();
+        var host = getStatus();
+
+        if(!banner || !host)
+            return;
+
+
+        /*
+         * 在原本狀態列位置放一個同高度佔位，
+         * 避免 position:fixed 後下面內容突然往上跳。
+         */
+        var spacer =
+            document.getElementById(
+                'mobile-top-status-spacer-v2'
+            );
+
+        if(!spacer){
+
+            spacer =
+                document.createElement('div');
+
+            spacer.id =
+                'mobile-top-status-spacer-v2';
+
+            host.parentNode.insertBefore(
+                spacer,
+                host
+            );
+        }
+
+
+        /*
+         * 先暫時取消 fixed，
+         * 取得原本父容器真正寬度。
+         */
+        var parent =
+            spacer.parentElement;
+
+        var pr =
+            parent.getBoundingClientRect();
+
+        var br =
+            banner.getBoundingClientRect();
+
+
+        /*
+         * 狀態列固定在非官方橫幅正下方。
+         */
+        host.style.position = 'fixed';
+
+        host.style.top =
+            Math.ceil(br.bottom + 4) + 'px';
+
+        host.style.left =
+            Math.round(pr.left) + 'px';
+
+        host.style.width =
+            Math.round(pr.width) + 'px';
+
+        host.style.right = 'auto';
+
+        host.style.margin = '0';
+
+        host.style.zIndex = '2147483600';
+
+
+        /*
+         * 佔位高度跟狀態列同步。
+         */
+        var hh =
+            Math.ceil(
+                host.getBoundingClientRect().height ||
+                host.offsetHeight ||
+                0
+            );
+
+        spacer.style.display = 'block';
+        spacer.style.height = hh + 'px';
+        spacer.style.width = '100%';
+        spacer.style.pointerEvents = 'none';
+
+
+        /*
+         * 避免橫幅與狀態列產生黑色大空白。
+         */
+        host.style.transform = 'none';
+    }
+
+
+    var timer = 0;
+
+    function schedule(){
+
+        clearTimeout(timer);
+
+        timer = setTimeout(
+            apply,
+            40
+        );
+    }
+
+
+    window.addEventListener(
+        'load',
+        schedule
+    );
+
+    window.addEventListener(
+        'resize',
+        schedule
+    );
+
+    window.addEventListener(
+        'orientationchange',
+        schedule
+    );
+
+
+    /*
+     * 狀態列是 JS 後建立的，
+     * 所以 DOM 有變動時重新定位。
+     */
+    var ob =
+        new MutationObserver(schedule);
+
+    function start(){
+
+        if(!document.body){
+
+            setTimeout(
+                start,
+                100
+            );
+
+            return;
+        }
+
+        ob.observe(
+            document.body,
+            {
+                childList:true,
+                subtree:true
+            }
+        );
+
+        schedule();
+
+        setTimeout(schedule, 300);
+        setTimeout(schedule, 800);
+        setTimeout(schedule, 1500);
+    }
+
+    start();
+
 })();
 </script>
-<!-- === /public status nudge up v1 === -->
 
 </body>
 </html>
