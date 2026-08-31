@@ -4099,444 +4099,288 @@ if(document.readyState === 'loading'){
 
 
 
-/* === mobile public fixed status with spacer v9 === */
+
+
+
+/* === mobile fixed status reserved space v10 === */
 (function(){
 
-    if(window.__mobilePublicFixedStatusV9)
-        return;
+if(window.__mobileFixedStatusReservedV10) return;
+window.__mobileFixedStatusReservedV10 = true;
 
-    window.__mobilePublicFixedStatusV9 = true;
+var timerV10 = 0;
 
-    var timerV9 = 0;
+function localV10(){
+    var h = (location.hostname || '').toLowerCase();
+    return h === '127.0.0.1' || h === 'localhost';
+}
 
+function applyV10(){
 
-    function isLocalV9(){
+    if(localV10()) return;
+    if(window.innerWidth > 768) return;
 
-        var h =
-            (location.hostname || '')
-            .toLowerCase();
+    var banner = document.getElementById('_orig_pbar');
+    var stage  = document.getElementById('app-stage');
+    var game   = document.getElementById('game-screen');
+    var vitals = document.getElementById('mobile-vitals');
 
-        return (
-            h === '127.0.0.1' ||
-            h === 'localhost'
-        );
-    }
+    if(!banner || !stage || !game || !vitals) return;
 
+    /*
+     * 非官方橫幅真正的底部位置
+     */
+    var bannerBottom = Math.ceil(
+        banner.getBoundingClientRect().bottom || 0
+    );
 
-    function applyV9(){
+    if(bannerBottom <= 0) return;
 
-        if(isLocalV9())
-            return;
+    /*
+     * 遊戲舞台從橫幅下面開始
+     */
+    stage.style.setProperty(
+        'top',
+        bannerBottom + 'px',
+        'important'
+    );
 
-        if(window.innerWidth > 768)
-            return;
+    stage.style.setProperty(
+        'bottom',
+        '0',
+        'important'
+    );
 
-
-        var banner =
-            document.getElementById(
-                '_orig_pbar'
-            );
-
-        var stage =
-            document.getElementById(
-                'app-stage'
-            );
-
-        var game =
-            document.getElementById(
-                'game-screen'
-            );
-
-        var vitals =
-            document.getElementById(
-                'mobile-vitals'
-            );
-
-
-        if(
-            !banner ||
-            !stage ||
-            !game ||
-            !vitals
-        ){
-            return;
-        }
+    stage.style.setProperty(
+        'height',
+        'auto',
+        'important'
+    );
 
 
-        var bannerRect =
-            banner.getBoundingClientRect();
+    var sr = stage.getBoundingClientRect();
 
-        var bh =
-            Math.ceil(
-                bannerRect.height || 0
-            );
+    var side = 16;
 
-        if(bh <= 0)
-            return;
+    /*
+     * 角色資訊列固定在橫幅下面
+     */
+    vitals.style.setProperty(
+        'position',
+        'fixed',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'top',
+        bannerBottom + 'px',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'left',
+        Math.round(sr.left + side) + 'px',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'right',
+        'auto',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'width',
+        Math.max(
+            280,
+            Math.round(sr.width - side * 2)
+        ) + 'px',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'margin',
+        '0',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'transform',
+        'none',
+        'important'
+    );
+
+    vitals.style.setProperty(
+        'z-index',
+        '2147483000',
+        'important'
+    );
 
 
-        /*
-         * 整個遊戲舞台先避開非官方橫幅
-         */
-        stage.style.setProperty(
-            'top',
-            bh + 'px',
-            'important'
-        );
+    /*
+     * 裡面新版狀態列不要另外定位
+     */
+    var host = vitals.querySelector(
+        '.mobile-top-status-host-v1'
+    );
 
-        stage.style.setProperty(
-            'bottom',
-            '0',
-            'important'
-        );
-
-        stage.style.setProperty(
-            'height',
-            'auto',
-            'important'
-        );
-
-
-        var stageRect =
-            stage.getBoundingClientRect();
-
-        var sideGap = 16;
-
-        var left =
-            Math.round(
-                stageRect.left + sideGap
-            );
-
-        var width =
-            Math.max(
-                280,
-                Math.round(
-                    stageRect.width -
-                    sideGap * 2
-                )
-            );
-
-
-        /*
-         * ★ 不再使用 sticky
-         *
-         * 直接固定在非官方橫幅下面。
-         */
-        vitals.style.setProperty(
+    if(host){
+        host.style.setProperty(
             'position',
-            'fixed',
+            'relative',
             'important'
         );
 
-        vitals.style.setProperty(
+        host.style.setProperty(
             'top',
-            bh + 'px',
-            'important'
-        );
-
-        vitals.style.setProperty(
-            'left',
-            left + 'px',
-            'important'
-        );
-
-        vitals.style.setProperty(
-            'right',
             'auto',
             'important'
         );
 
-        vitals.style.setProperty(
-            'bottom',
-            'auto',
-            'important'
-        );
-
-        vitals.style.setProperty(
-            'width',
-            width + 'px',
-            'important'
-        );
-
-        vitals.style.setProperty(
-            'max-width',
-            width + 'px',
-            'important'
-        );
-
-        vitals.style.setProperty(
-            'margin',
-            '0',
-            'important'
-        );
-
-        vitals.style.setProperty(
-            'transform',
-            'none',
-            'important'
-        );
-
-        /*
-         * 非官方橫幅本身 z-index 更高，
-         * 所以資訊列會待在它正下方。
-         */
-        vitals.style.setProperty(
-            'z-index',
-            '2147483000',
-            'important'
-        );
-
-
-        /*
-         * 內部新版資訊列保持正常。
-         */
-        var host =
-            vitals.querySelector(
-                '.mobile-top-status-host-v1'
-            );
-
-        if(host){
-
-            host.style.setProperty(
-                'position',
-                'relative',
-                'important'
-            );
-
-            host.style.setProperty(
-                'top',
-                'auto',
-                'important'
-            );
-
-            host.style.setProperty(
-                'left',
-                'auto',
-                'important'
-            );
-
-            host.style.setProperty(
-                'right',
-                'auto',
-                'important'
-            );
-
-            host.style.setProperty(
-                'width',
-                '100%',
-                'important'
-            );
-
-            host.style.setProperty(
-                'margin',
-                '0',
-                'important'
-            );
-
-            host.style.setProperty(
-                'transform',
-                'none',
-                'important'
-            );
-        }
-
-
-        /*
-         * 量出實際資訊列高度。
-         */
-        var vh =
-            Math.ceil(
-                vitals.getBoundingClientRect().height ||
-                vitals.scrollHeight ||
-                0
-            );
-
-        if(vh <= 0)
-            vh = 110;
-
-
-        /*
-         * ★ 動態佔位
-         *
-         * 因為 mobile-vitals 已經 fixed，
-         * 需要一個同高度空間，
-         * 才不會蓋到冒險地圖 / 黑市。
-         */
-        var spacer =
-            document.getElementById(
-                'mobile-vitals-fixed-spacer-v9'
-            );
-
-        if(!spacer){
-
-            spacer =
-                document.createElement(
-                    'div'
-                );
-
-            spacer.id =
-                'mobile-vitals-fixed-spacer-v9';
-
-            spacer.setAttribute(
-                'aria-hidden',
-                'true'
-            );
-
-            vitals.insertAdjacentElement(
-                'afterend',
-                spacer
-            );
-        }
-
-
-        spacer.style.setProperty(
-            'display',
-            'block',
-            'important'
-        );
-
-        spacer.style.setProperty(
+        host.style.setProperty(
             'width',
             '100%',
             'important'
         );
 
-        spacer.style.setProperty(
-            'height',
-            (vh + 8) + 'px',
+        host.style.setProperty(
+            'margin',
+            '0',
             'important'
         );
 
-        spacer.style.setProperty(
-            'min-height',
-            (vh + 8) + 'px',
+        host.style.setProperty(
+            'transform',
+            'none',
             'important'
         );
-
-        spacer.style.setProperty(
-            'flex',
-            '0 0 ' + (vh + 8) + 'px',
-            'important'
-        );
-
-        spacer.style.setProperty(
-            'order',
-            '-9',
-            'important'
-        );
-
-
-        /*
-         * 舊 spacer 關掉
-         */
-        var oldSpacer =
-            document.getElementById(
-                'mobile-top-status-spacer-v2'
-            );
-
-        if(oldSpacer){
-
-            oldSpacer.style.setProperty(
-                'display',
-                'none',
-                'important'
-            );
-
-            oldSpacer.style.setProperty(
-                'height',
-                '0',
-                'important'
-            );
-        }
-    }
-
-
-    function scheduleV9(){
-
-        clearTimeout(timerV9);
-
-        timerV9 =
-            setTimeout(
-                applyV9,
-                50
-            );
-    }
-
-
-    window.addEventListener(
-        'resize',
-        scheduleV9
-    );
-
-    window.addEventListener(
-        'orientationchange',
-        scheduleV9
-    );
-
-
-    function bootV9(){
-
-        scheduleV9();
-
-        setTimeout(scheduleV9, 100);
-        setTimeout(scheduleV9, 300);
-        setTimeout(scheduleV9, 700);
-        setTimeout(scheduleV9, 1200);
-        setTimeout(scheduleV9, 2000);
-    }
-
-
-    if(document.readyState === 'loading'){
-
-        document.addEventListener(
-            'DOMContentLoaded',
-            bootV9
-        );
-
-    }else{
-
-        bootV9();
     }
 
 
     /*
-     * 狀態列內容變動時重新量高度
+     * 關閉之前所有 spacer
      */
-    if(typeof ResizeObserver !== 'undefined'){
+    var sp9 = document.getElementById(
+        'mobile-vitals-fixed-spacer-v9'
+    );
 
-        var roV9 =
-            new ResizeObserver(
-                scheduleV9
-            );
-
-        function watchV9(){
-
-            var b =
-                document.getElementById(
-                    '_orig_pbar'
-                );
-
-            var v =
-                document.getElementById(
-                    'mobile-vitals'
-                );
-
-            if(b)
-                roV9.observe(b);
-
-            if(v)
-                roV9.observe(v);
-
-            if(!b || !v){
-
-                setTimeout(
-                    watchV9,
-                    300
-                );
-            }
-        }
-
-        watchV9();
+    if(sp9){
+        sp9.style.setProperty(
+            'display',
+            'none',
+            'important'
+        );
     }
+
+    var sp2 = document.getElementById(
+        'mobile-top-status-spacer-v2'
+    );
+
+    if(sp2){
+        sp2.style.setProperty(
+            'display',
+            'none',
+            'important'
+        );
+    }
+
+
+    /*
+     * 量角色資訊列真正高度
+     */
+    var vh = Math.ceil(
+        vitals.getBoundingClientRect().height ||
+        vitals.scrollHeight ||
+        0
+    );
+
+    if(vh <= 0) vh = 120;
+
+
+    /*
+     * 第一次記住 game-screen 原本 padding-top
+     */
+    if(!game.dataset.mobileBasePaddingTopV10){
+
+        var base = parseFloat(
+            getComputedStyle(game).paddingTop
+        ) || 0;
+
+        game.dataset.mobileBasePaddingTopV10 =
+            String(base);
+    }
+
+    var originalPadding = Number(
+        game.dataset.mobileBasePaddingTopV10 || 0
+    );
+
+
+    /*
+     * ★ 關鍵
+     * 直接在整個主畫面頂部保留狀態列高度。
+     *
+     * 黑市、瞬移、出發、地圖、NPC
+     * 全部一起往下，不會再被蓋。
+     */
+    game.style.setProperty(
+        'padding-top',
+        (originalPadding + vh + 12) + 'px',
+        'important'
+    );
+
+    game.style.setProperty(
+        'box-sizing',
+        'border-box',
+        'important'
+    );
+}
+
+
+function scheduleV10(){
+    clearTimeout(timerV10);
+    timerV10 = setTimeout(applyV10, 50);
+}
+
+function bootV10(){
+
+    scheduleV10();
+
+    setTimeout(scheduleV10, 100);
+    setTimeout(scheduleV10, 300);
+    setTimeout(scheduleV10, 700);
+    setTimeout(scheduleV10, 1500);
+    setTimeout(scheduleV10, 2500);
+}
+
+window.addEventListener('resize', scheduleV10);
+window.addEventListener('orientationchange', scheduleV10);
+
+if(document.readyState === 'loading'){
+    document.addEventListener(
+        'DOMContentLoaded',
+        bootV10
+    );
+}else{
+    bootV10();
+}
+
+if(typeof ResizeObserver !== 'undefined'){
+
+    var roV10 = new ResizeObserver(scheduleV10);
+
+    function watchV10(){
+
+        var b = document.getElementById('_orig_pbar');
+        var v = document.getElementById('mobile-vitals');
+
+        if(b) roV10.observe(b);
+        if(v) roV10.observe(v);
+
+        if(!b || !v)
+            setTimeout(watchV10, 300);
+    }
+
+    watchV10();
+}
 
 })();
