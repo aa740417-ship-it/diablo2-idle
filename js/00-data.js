@@ -4090,18 +4090,21 @@ if(document.readyState === 'loading'){
 
 
 
-/* === mobile banner stage position v6 === */
+
+
+
+/* === mobile public vitals flow v7 === */
 (function(){
 
-    if(window.__mobileBannerStagePositionV6)
+    if(window.__mobilePublicVitalsFlowV7)
         return;
 
-    window.__mobileBannerStagePositionV6 = true;
+    window.__mobilePublicVitalsFlowV7 = true;
 
-    var firstTopDoneV6 = false;
+    var firstDoneV7 = false;
 
 
-    function isLocalV6(){
+    function isLocalV7(){
 
         var h =
             (location.hostname || '')
@@ -4114,9 +4117,9 @@ if(document.readyState === 'loading'){
     }
 
 
-    function applyV6(){
+    function applyV7(){
 
-        if(isLocalV6())
+        if(isLocalV7())
             return;
 
         if(window.innerWidth > 768)
@@ -4133,7 +4136,18 @@ if(document.readyState === 'loading'){
                 'app-stage'
             );
 
-        if(!bar || !stage)
+        var vitals =
+            document.getElementById(
+                'mobile-vitals'
+            );
+
+        var game =
+            document.getElementById(
+                'game-screen'
+            );
+
+
+        if(!bar || !stage || !vitals)
             return;
 
 
@@ -4147,8 +4161,7 @@ if(document.readyState === 'loading'){
 
 
         /*
-         * #app-stage 本身是 fixed，
-         * 直接把它放到非官方橫幅下方。
+         * 整個遊戲舞台避開非官方橫幅
          */
         stage.style.setProperty(
             'top',
@@ -4170,62 +4183,135 @@ if(document.readyState === 'loading'){
 
 
         /*
-         * 關鍵修正：
-         * 不再強迫角色資訊列 position:relative。
-         * 把之前 v2/v3/v5 留下的 inline 定位清掉，
-         * 交還原本手機 UI 的 CSS 控制。
+         * ★ 真正的根源
+         *
+         * 新版狀態列其實仍包在 #mobile-vitals 裡。
+         * 把原本固定 / sticky 的 mobile-vitals
+         * 改回正常 flow。
          */
-        var status =
-            document.querySelector(
+        vitals.style.setProperty(
+            'position',
+            'relative',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'top',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'left',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'right',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'bottom',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'width',
+            '100%',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'max-width',
+            'none',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'margin',
+            '0',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'transform',
+            'none',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'z-index',
+            '5',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'flex',
+            '0 0 auto',
+            'important'
+        );
+
+
+        /*
+         * 裡面的新版狀態列也保持正常 flow
+         */
+        var host =
+            vitals.querySelector(
                 '.mobile-top-status-host-v1'
             );
 
-        if(status){
+        if(host){
 
-            status.style.removeProperty(
-                'position'
+            host.style.setProperty(
+                'position',
+                'relative',
+                'important'
             );
 
-            status.style.removeProperty(
-                'top'
+            host.style.setProperty(
+                'top',
+                'auto',
+                'important'
             );
 
-            status.style.removeProperty(
-                'left'
+            host.style.setProperty(
+                'left',
+                'auto',
+                'important'
             );
 
-            status.style.removeProperty(
-                'right'
+            host.style.setProperty(
+                'right',
+                'auto',
+                'important'
             );
 
-            status.style.removeProperty(
-                'width'
+            host.style.setProperty(
+                'width',
+                '100%',
+                'important'
             );
 
-            status.style.removeProperty(
-                'margin'
+            host.style.setProperty(
+                'margin',
+                '0',
+                'important'
             );
 
-            status.style.removeProperty(
-                'margin-top'
-            );
-
-            status.style.removeProperty(
-                'margin-bottom'
-            );
-
-            status.style.removeProperty(
-                'transform'
-            );
-
-            status.style.removeProperty(
-                'z-index'
+            host.style.setProperty(
+                'transform',
+                'none',
+                'important'
             );
         }
 
 
         /*
-         * 舊 fixed 版 spacer 完全關閉。
+         * 舊版產生的 spacer 關掉
          */
         var spacer =
             document.getElementById(
@@ -4249,26 +4335,22 @@ if(document.readyState === 'loading'){
 
 
         /*
-         * 只在公開版第一次成功定位後回到頂端一次。
-         *
-         * 不放在每次更新，
-         * 所以之後玩家仍可正常上下滑。
+         * 第一次成功定位後回最上面一次。
+         * 之後不干涉玩家捲動畫面。
          */
-        if(!firstTopDoneV6){
+        if(!firstDoneV7){
 
-            firstTopDoneV6 = true;
+            firstDoneV7 = true;
 
             requestAnimationFrame(function(){
 
                 try{
-                    stage.scrollTop = 0;
+                    if(game)
+                        game.scrollTop = 0;
                 }catch(e){}
 
                 try{
-                    window.scrollTo(
-                        0,
-                        0
-                    );
+                    stage.scrollTop = 0;
                 }catch(e){}
 
             });
@@ -4276,15 +4358,15 @@ if(document.readyState === 'loading'){
     }
 
 
-    var timerV6 = 0;
+    var timerV7 = 0;
 
-    function scheduleV6(){
+    function scheduleV7(){
 
-        clearTimeout(timerV6);
+        clearTimeout(timerV7);
 
-        timerV6 =
+        timerV7 =
             setTimeout(
-                applyV6,
+                applyV7,
                 40
             );
     }
@@ -4292,23 +4374,23 @@ if(document.readyState === 'loading'){
 
     window.addEventListener(
         'resize',
-        scheduleV6
+        scheduleV7
     );
 
     window.addEventListener(
         'orientationchange',
-        scheduleV6
+        scheduleV7
     );
 
 
-    function bootV6(){
+    function bootV7(){
 
-        scheduleV6();
+        scheduleV7();
 
-        setTimeout(scheduleV6, 100);
-        setTimeout(scheduleV6, 300);
-        setTimeout(scheduleV6, 800);
-        setTimeout(scheduleV6, 1500);
+        setTimeout(scheduleV7, 100);
+        setTimeout(scheduleV7, 300);
+        setTimeout(scheduleV7, 700);
+        setTimeout(scheduleV7, 1500);
     }
 
 
@@ -4316,34 +4398,34 @@ if(document.readyState === 'loading'){
 
         document.addEventListener(
             'DOMContentLoaded',
-            bootV6
+            bootV7
         );
 
     }else{
 
-        bootV6();
+        bootV7();
     }
 
 
-    var obV6 =
+    var obV7 =
         new MutationObserver(
-            scheduleV6
+            scheduleV7
         );
 
 
-    function observeV6(){
+    function observeV7(){
 
         if(!document.body){
 
             setTimeout(
-                observeV6,
+                observeV7,
                 100
             );
 
             return;
         }
 
-        obV6.observe(
+        obV7.observe(
             document.body,
             {
                 childList:true,
@@ -4352,6 +4434,6 @@ if(document.readyState === 'loading'){
         );
     }
 
-    observeV6();
+    observeV7();
 
 })();
