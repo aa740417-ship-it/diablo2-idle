@@ -112,6 +112,51 @@
         #equipment-window-slots .equipment-slot-equipped{position:absolute!important;left:0!important;top:0!important;font-size:10px!important;}
         #equipment-window-slots .equipment-slot-enhance,#equipment-window-slots .equipment-slot-count{position:static!important;font-size:12px!important;}
         @media(max-width:480px){#equipment-window-slots .equipment-visual-slot{grid-template-columns:72px 36px minmax(0,1fr) auto!important;padding:4px 6px!important;gap:5px!important}.equipment-list-label{font-size:12px}.equipment-list-name{font-size:13px}}
+
+/* mobile equipment frame scroll v8 */
+@media(max-width:768px){
+
+    #equipment-window-frame{
+        overflow-y:auto!important;
+        overflow-x:hidden!important;
+        -webkit-overflow-scrolling:touch!important;
+        touch-action:pan-y!important;
+        overscroll-behavior-y:contain!important;
+    }
+
+    #equipment-window-slots{
+        position:relative!important;
+        left:auto!important;
+        right:auto!important;
+        top:auto!important;
+        bottom:auto!important;
+        inset:auto!important;
+
+        width:100%!important;
+        height:auto!important;
+        min-height:0!important;
+        max-height:none!important;
+
+        padding:8px 8px 150px 8px!important;
+
+        overflow:visible!important;
+
+        display:flex!important;
+        flex-direction:column!important;
+        gap:4px!important;
+
+        box-sizing:border-box!important;
+    }
+
+    #equipment-window-slots .equipment-visual-slot{
+        flex:0 0 48px!important;
+        width:100%!important;
+        height:48px!important;
+        min-height:48px!important;
+        max-height:48px!important;
+    }
+}
+
         `;
         document.head.appendChild(style);
     }
@@ -191,10 +236,47 @@
         win.style.right = 'auto'; win.style.bottom = 'auto';
         win.style.width = hostRect.width + 'px';
         win.style.height = hostRect.height + 'px';
-        frame.style.left = '50%'; frame.style.top = '0';
-        frame.style.setProperty('width', Math.min(hostRect.width, 520) + 'px', 'important');
-        frame.style.setProperty('height', 'auto', 'important');
-        frame.style.transform = 'translateX(-50%)';
+        if (innerWidth <= 768) {
+            frame.style.left = '0';
+            frame.style.top = '0';
+
+            frame.style.setProperty(
+                'width',
+                hostRect.width + 'px',
+                'important'
+            );
+
+            frame.style.setProperty(
+                'height',
+                hostRect.height + 'px',
+                'important'
+            );
+
+            frame.style.setProperty(
+                'max-height',
+                hostRect.height + 'px',
+                'important'
+            );
+
+            frame.style.transform = 'none';
+        } else {
+            frame.style.left = '50%';
+            frame.style.top = '0';
+
+            frame.style.setProperty(
+                'width',
+                Math.min(hostRect.width, 520) + 'px',
+                'important'
+            );
+
+            frame.style.setProperty(
+                'height',
+                'auto',
+                'important'
+            );
+
+            frame.style.transform = 'translateX(-50%)';
+        }
     }
 
     window.refreshEquipmentWindow = function () {
@@ -212,7 +294,16 @@
         if (host) {
             host.classList.toggle('equipment-panel-host', visible);
             if (!visible || innerWidth > 768) host.style.removeProperty('--equipment-panel-height');
-            else host.style.setProperty('--equipment-panel-height', (page === 0 ? 980 : 500) + 'px');
+            else {
+                const mobileH = Math.max(
+                    440,
+                    Math.min(window.innerHeight - 170, 600)
+                );
+                host.style.setProperty(
+                    '--equipment-panel-height',
+                    mobileH + 'px'
+                );
+            }
         }
         win.classList.add('equipment-window-embedded');
         win.classList.toggle('hidden', !visible);
