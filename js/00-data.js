@@ -4087,16 +4087,21 @@ if(document.readyState === 'loading'){
 
 
 
-/* === mobile banner fixed stage top v5 === */
+
+
+
+/* === mobile banner stage position v6 === */
 (function(){
 
-    if(window.__mobileBannerStageTopV5)
+    if(window.__mobileBannerStagePositionV6)
         return;
 
-    window.__mobileBannerStageTopV5 = true;
+    window.__mobileBannerStagePositionV6 = true;
+
+    var firstTopDoneV6 = false;
 
 
-    function isLocalV5(){
+    function isLocalV6(){
 
         var h =
             (location.hostname || '')
@@ -4109,35 +4114,11 @@ if(document.readyState === 'loading'){
     }
 
 
-    function applyMobileBannerStageV5(){
+    function applyV6(){
 
-        var stage =
-            document.getElementById(
-                'app-stage'
-            );
-
-        if(!stage)
+        if(isLocalV6())
             return;
 
-
-        /*
-         * 本機沒有非官方橫幅：
-         * 恢復原本全螢幕位置。
-         */
-        if(isLocalV5()){
-
-            stage.style.removeProperty('top');
-            stage.style.removeProperty('bottom');
-            stage.style.removeProperty('height');
-
-            return;
-        }
-
-
-        /*
-         * 桌機維持原本 desktop banner v5，
-         * 這裡只處理手機。
-         */
         if(window.innerWidth > 768)
             return;
 
@@ -4147,30 +4128,31 @@ if(document.readyState === 'loading'){
                 '_orig_pbar'
             );
 
-        if(!bar)
+        var stage =
+            document.getElementById(
+                'app-stage'
+            );
+
+        if(!bar || !stage)
             return;
 
 
-        var rect =
-            bar.getBoundingClientRect();
+        var bh =
+            Math.ceil(
+                bar.getBoundingClientRect().height || 0
+            );
 
-        var h =
-            Math.ceil(rect.height || 0);
-
-        if(h <= 0)
+        if(bh <= 0)
             return;
 
 
         /*
-         * 關鍵：
-         * #app-stage 是 position:fixed，
-         * 所以不能再用 margin-top。
-         *
-         * 直接改 fixed 的 top。
+         * #app-stage 本身是 fixed，
+         * 直接把它放到非官方橫幅下方。
          */
         stage.style.setProperty(
             'top',
-            h + 'px',
+            bh + 'px',
             'important'
         );
 
@@ -4188,8 +4170,10 @@ if(document.readyState === 'loading'){
 
 
         /*
-         * 清掉之前角色狀態列留下的
-         * fixed / transform / 負 margin。
+         * 關鍵修正：
+         * 不再強迫角色資訊列 position:relative。
+         * 把之前 v2/v3/v5 留下的 inline 定位清掉，
+         * 交還原本手機 UI 的 CSS 控制。
          */
         var status =
             document.querySelector(
@@ -4198,50 +4182,51 @@ if(document.readyState === 'loading'){
 
         if(status){
 
-            status.style.setProperty(
-                'position',
-                'relative',
-                'important'
+            status.style.removeProperty(
+                'position'
             );
 
-            status.style.setProperty(
-                'top',
-                'auto',
-                'important'
+            status.style.removeProperty(
+                'top'
             );
 
-            status.style.setProperty(
-                'left',
-                'auto',
-                'important'
+            status.style.removeProperty(
+                'left'
             );
 
-            status.style.setProperty(
-                'right',
-                'auto',
-                'important'
+            status.style.removeProperty(
+                'right'
             );
 
-            status.style.setProperty(
-                'width',
-                'auto',
-                'important'
+            status.style.removeProperty(
+                'width'
             );
 
-            status.style.setProperty(
-                'margin-top',
-                '0',
-                'important'
+            status.style.removeProperty(
+                'margin'
             );
 
-            status.style.setProperty(
-                'transform',
-                'none',
-                'important'
+            status.style.removeProperty(
+                'margin-top'
+            );
+
+            status.style.removeProperty(
+                'margin-bottom'
+            );
+
+            status.style.removeProperty(
+                'transform'
+            );
+
+            status.style.removeProperty(
+                'z-index'
             );
         }
 
 
+        /*
+         * 舊 fixed 版 spacer 完全關閉。
+         */
         var spacer =
             document.getElementById(
                 'mobile-top-status-spacer-v2'
@@ -4261,18 +4246,45 @@ if(document.readyState === 'loading'){
                 'important'
             );
         }
+
+
+        /*
+         * 只在公開版第一次成功定位後回到頂端一次。
+         *
+         * 不放在每次更新，
+         * 所以之後玩家仍可正常上下滑。
+         */
+        if(!firstTopDoneV6){
+
+            firstTopDoneV6 = true;
+
+            requestAnimationFrame(function(){
+
+                try{
+                    stage.scrollTop = 0;
+                }catch(e){}
+
+                try{
+                    window.scrollTo(
+                        0,
+                        0
+                    );
+                }catch(e){}
+
+            });
+        }
     }
 
 
-    var timerV5 = 0;
+    var timerV6 = 0;
 
-    function scheduleV5(){
+    function scheduleV6(){
 
-        clearTimeout(timerV5);
+        clearTimeout(timerV6);
 
-        timerV5 =
+        timerV6 =
             setTimeout(
-                applyMobileBannerStageV5,
+                applyV6,
                 40
             );
     }
@@ -4280,63 +4292,58 @@ if(document.readyState === 'loading'){
 
     window.addEventListener(
         'resize',
-        scheduleV5
+        scheduleV6
     );
 
     window.addEventListener(
         'orientationchange',
-        scheduleV5
+        scheduleV6
     );
 
 
-    /*
-     * _orig_pbar 是 DOMContentLoaded 後才建立，
-     * 所以持續等它出現。
-     */
-    function bootV5(){
+    function bootV6(){
 
-        scheduleV5();
+        scheduleV6();
 
-        setTimeout(scheduleV5, 100);
-        setTimeout(scheduleV5, 300);
-        setTimeout(scheduleV5, 800);
-        setTimeout(scheduleV5, 1500);
+        setTimeout(scheduleV6, 100);
+        setTimeout(scheduleV6, 300);
+        setTimeout(scheduleV6, 800);
+        setTimeout(scheduleV6, 1500);
     }
 
 
-    if(
-        document.readyState === 'loading'
-    ){
+    if(document.readyState === 'loading'){
 
         document.addEventListener(
             'DOMContentLoaded',
-            bootV5
+            bootV6
         );
 
     }else{
 
-        bootV5();
+        bootV6();
     }
 
 
-    var obV5 =
+    var obV6 =
         new MutationObserver(
-            scheduleV5
+            scheduleV6
         );
 
-    function observeV5(){
+
+    function observeV6(){
 
         if(!document.body){
 
             setTimeout(
-                observeV5,
+                observeV6,
                 100
             );
 
             return;
         }
 
-        obV5.observe(
+        obV6.observe(
             document.body,
             {
                 childList:true,
@@ -4345,6 +4352,6 @@ if(document.readyState === 'loading'){
         );
     }
 
-    observeV5();
+    observeV6();
 
 })();
