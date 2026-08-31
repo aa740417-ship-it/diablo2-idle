@@ -4105,142 +4105,260 @@ if(document.readyState === 'loading'){
 
 
 
-/* === mobile fixed status center offset v11 === */
+
+
+
+/* === mobile game screen below banner v12 === */
 (function(){
 
-if(window.__mobileFixedStatusCenterV11) return;
-window.__mobileFixedStatusCenterV11 = true;
+if(window.__mobileGameScreenBelowBannerV12)
+    return;
 
-var timerV11 = 0;
+window.__mobileGameScreenBelowBannerV12 = true;
 
-function localV11(){
-    var h = (location.hostname || '').toLowerCase();
-    return h === '127.0.0.1' || h === 'localhost';
+var timerV12 = 0;
+
+
+function localV12(){
+
+    var h =
+        (location.hostname || '')
+        .toLowerCase();
+
+    return (
+        h === '127.0.0.1' ||
+        h === 'localhost'
+    );
 }
 
-function applyV11(){
 
-    if(localV11()) return;
-    if(window.innerWidth > 768) return;
+function applyV12(){
+
+    if(localV12())
+        return;
+
+    if(window.innerWidth > 768)
+        return;
+
 
     var banner =
-        document.getElementById('_orig_pbar');
-
-    var stage =
-        document.getElementById('app-stage');
-
-    var game =
-        document.getElementById('game-screen');
-
-    var vitals =
-        document.getElementById('mobile-vitals');
-
-    var center =
-        document.getElementById('col-center');
-
-    var left =
-        document.getElementById('col-left');
-
-    if(
-        !banner ||
-        !stage ||
-        !game ||
-        !vitals ||
-        !center
-    ) return;
-
-
-    var bannerBottom =
-        Math.ceil(
-            banner.getBoundingClientRect().bottom || 0
+        document.getElementById(
+            '_orig_pbar'
         );
 
-    if(bannerBottom <= 0) return;
+    var stage =
+        document.getElementById(
+            'app-stage'
+        );
+
+    var game =
+        document.getElementById(
+            'game-screen'
+        );
+
+    var vitals =
+        document.getElementById(
+            'mobile-vitals'
+        );
+
+    var center =
+        document.getElementById(
+            'col-center'
+        );
+
+    var left =
+        document.getElementById(
+            'col-left'
+        );
+
+
+    if(!banner || !game)
+        return;
 
 
     /*
-     * 遊戲舞台避開非官方橫幅
+     * 取得非官方橫幅真正底部座標
      */
-    stage.style.setProperty(
+    var br =
+        banner.getBoundingClientRect();
+
+    var bannerBottom =
+        Math.ceil(br.bottom || 0);
+
+    if(bannerBottom <= 0)
+        return;
+
+
+    /*
+     * app-stage 仍避開橫幅
+     * 給登入/其他非 fixed 畫面使用
+     */
+    if(stage){
+
+        stage.style.setProperty(
+            'top',
+            bannerBottom + 'px',
+            'important'
+        );
+
+        stage.style.setProperty(
+            'bottom',
+            '0',
+            'important'
+        );
+
+        stage.style.setProperty(
+            'height',
+            'auto',
+            'important'
+        );
+    }
+
+
+    /*
+     * ★ 真正根源
+     *
+     * 手機版 #game-screen 本身：
+     *
+     * position: fixed;
+     * inset: 0;
+     *
+     * 所以以前移 app-stage 根本影響不到它。
+     *
+     * 現在直接把 game-screen 頂端
+     * 移到非官方橫幅下面。
+     */
+    game.style.setProperty(
         'top',
         bannerBottom + 'px',
         'important'
     );
 
-    stage.style.setProperty(
+    game.style.setProperty(
+        'right',
+        '0',
+        'important'
+    );
+
+    game.style.setProperty(
         'bottom',
         '0',
         'important'
     );
 
-    stage.style.setProperty(
+    game.style.setProperty(
+        'left',
+        '0',
+        'important'
+    );
+
+    game.style.setProperty(
         'height',
         'auto',
         'important'
     );
 
-
-    /*
-     * 角色資訊列保持現在的位置
-     */
-    var sr =
-        stage.getBoundingClientRect();
-
-    var side = 16;
-
-    vitals.style.setProperty(
-        'position',
-        'fixed',
-        'important'
-    );
-
-    vitals.style.setProperty(
-        'top',
-        bannerBottom + 'px',
-        'important'
-    );
-
-    vitals.style.setProperty(
-        'left',
-        Math.round(sr.left + side) + 'px',
-        'important'
-    );
-
-    vitals.style.setProperty(
-        'right',
-        'auto',
-        'important'
-    );
-
-    vitals.style.setProperty(
-        'width',
-        Math.max(
-            280,
-            Math.round(sr.width - side * 2)
-        ) + 'px',
-        'important'
-    );
-
-    vitals.style.setProperty(
-        'margin',
-        '0',
-        'important'
-    );
-
-    vitals.style.setProperty(
-        'transform',
+    game.style.setProperty(
+        'max-height',
         'none',
         'important'
     );
 
-    vitals.style.setProperty(
-        'z-index',
-        '2147483000',
+    /*
+     * 避免修改排版時瀏覽器自動補償捲動位置
+     */
+    game.style.setProperty(
+        'overflow-anchor',
+        'none',
         'important'
     );
 
 
+    /*
+     * ★ 狀態列恢復正常 sticky
+     *
+     * 現在 game-screen 本身已經在橫幅下面，
+     * 所以 sticky top:0 就會剛好黏在橫幅下方。
+     *
+     * 而且它仍在正常 flex 排版裡，
+     * 所以黑市會自然排在它下面。
+     */
+    if(vitals){
+
+        vitals.style.setProperty(
+            'position',
+            'sticky',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'top',
+            '0',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'left',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'right',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'bottom',
+            'auto',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'width',
+            '100%',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'max-width',
+            'none',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'margin',
+            '0',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'transform',
+            'none',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'z-index',
+            '70',
+            'important'
+        );
+
+        vitals.style.setProperty(
+            'order',
+            '-10',
+            'important'
+        );
+    }
+
+
+    /*
+     * 裡面的新版角色資訊列
+     * 不自己定位
+     */
     var host =
+        vitals &&
         vitals.querySelector(
             '.mobile-top-status-host-v1'
         );
@@ -4255,6 +4373,18 @@ function applyV11(){
 
         host.style.setProperty(
             'top',
+            'auto',
+            'important'
+        );
+
+        host.style.setProperty(
+            'left',
+            'auto',
+            'important'
+        );
+
+        host.style.setProperty(
+            'right',
             'auto',
             'important'
         );
@@ -4280,73 +4410,39 @@ function applyV11(){
 
 
     /*
-     * 取得資訊列實際高度
-     */
-    var vh =
-        Math.ceil(
-            vitals.getBoundingClientRect().height ||
-            vitals.scrollHeight ||
-            0
-        );
-
-    if(vh <= 0)
-        vh = 120;
-
-
-    /*
-     * v10 曾改 game-screen padding，
-     * 現在清掉。
+     * 清除 v10 / v11 曾留下的位置設定
      */
     game.style.removeProperty(
         'padding-top'
     );
 
 
-    /*
-     * ★ 真正修正
-     *
-     * 黑市 / 瞬移 / 出發 / 地圖
-     * 都在 #col-center 裡。
-     *
-     * 直接把整個中間欄往下移。
-     */
-    center.style.setProperty(
-        'margin-top',
-        (vh + 12) + 'px',
-        'important'
-    );
+    if(center){
+
+        center.style.removeProperty(
+            'margin-top'
+        );
+    }
 
 
-    /*
-     * 左欄也同步，
-     * 避免切換畫面時頂端高度不一致。
-     */
     if(left){
 
-        left.style.setProperty(
-            'margin-top',
-            (vh + 12) + 'px',
-            'important'
+        left.style.removeProperty(
+            'margin-top'
         );
     }
 
 
     /*
-     * 關閉舊 spacer
+     * 舊 spacer 全部不用
      */
     var sp9 =
         document.getElementById(
             'mobile-vitals-fixed-spacer-v9'
         );
 
-    if(sp9){
-
-        sp9.style.setProperty(
-            'display',
-            'none',
-            'important'
-        );
-    }
+    if(sp9)
+        sp9.remove();
 
 
     var sp2 =
@@ -4361,42 +4457,48 @@ function applyV11(){
             'none',
             'important'
         );
+
+        sp2.style.setProperty(
+            'height',
+            '0',
+            'important'
+        );
     }
 }
 
 
-function scheduleV11(){
+function scheduleV12(){
 
-    clearTimeout(timerV11);
+    clearTimeout(timerV12);
 
-    timerV11 =
+    timerV12 =
         setTimeout(
-            applyV11,
-            50
+            applyV12,
+            40
         );
 }
 
 
-function bootV11(){
+function bootV12(){
 
-    scheduleV11();
+    scheduleV12();
 
-    setTimeout(scheduleV11, 100);
-    setTimeout(scheduleV11, 300);
-    setTimeout(scheduleV11, 700);
-    setTimeout(scheduleV11, 1500);
-    setTimeout(scheduleV11, 2500);
+    setTimeout(scheduleV12, 100);
+    setTimeout(scheduleV12, 300);
+    setTimeout(scheduleV12, 700);
+    setTimeout(scheduleV12, 1500);
+    setTimeout(scheduleV12, 2500);
 }
 
 
 window.addEventListener(
     'resize',
-    scheduleV11
+    scheduleV12
 );
 
 window.addEventListener(
     'orientationchange',
-    scheduleV11
+    scheduleV12
 );
 
 
@@ -4404,47 +4506,46 @@ if(document.readyState === 'loading'){
 
     document.addEventListener(
         'DOMContentLoaded',
-        bootV11
+        bootV12
     );
 
 }else{
 
-    bootV11();
+    bootV12();
 }
 
 
+/*
+ * 橫幅高度若變動，自動重新定位
+ */
 if(typeof ResizeObserver !== 'undefined'){
 
-    var roV11 =
+    var roV12 =
         new ResizeObserver(
-            scheduleV11
+            scheduleV12
         );
 
-    function watchV11(){
+    function watchV12(){
 
         var b =
             document.getElementById(
                 '_orig_pbar'
             );
 
-        var v =
-            document.getElementById(
-                'mobile-vitals'
-            );
+        if(b){
 
-        if(b) roV11.observe(b);
-        if(v) roV11.observe(v);
+            roV12.observe(b);
 
-        if(!b || !v){
+        }else{
 
             setTimeout(
-                watchV11,
+                watchV12,
                 300
             );
         }
     }
 
-    watchV11();
+    watchV12();
 }
 
 })();
