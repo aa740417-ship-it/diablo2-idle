@@ -3592,14 +3592,14 @@ function _origEnforce() {
     bar.id = '_orig_pbar';
     bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:50000;'
       + 'background:linear-gradient(90deg,#0d1f3a,#17408a,#0d1f3a);color:#eef4ff;'
-      + 'font:bold 15px/1.5 "Microsoft JhengHei","Segoe UI",Arial,sans-serif;'
-      + 'padding:11px 16px;text-align:center;letter-spacing:.3px;'
+      + 'font:bold 12px/1.25 "Microsoft JhengHei","Segoe UI",Arial,sans-serif;'
+      + 'padding:5px 8px;text-align:center;letter-spacing:0;'
       + 'box-shadow:0 2px 14px rgba(0,0,0,.45);border-bottom:2px solid #ffcf5a;';
     // ⚠️中性措辭·勿加「盜版/未授權/廣告/惡意」等指控（授權允許非商業轉載→指控合法轉載者有毀謗風險）
-    bar.innerHTML = '📢 這是<span style="color:#ffcf5a">非官方轉載版本</span>，內容可能不是最新。'
-      + '本遊戲<span style="color:#ffcf5a">永久免費</span>，前往<span style="color:#ffcf5a">官方最新版</span>：'
+    bar.innerHTML = '📢 <span style="color:#ffcf5a">非官方轉載</span>｜'
+      + '本遊戲永久免費｜'
       + '<a href="' + url + '" style="color:#ffcf5a;font-weight:bold;text-decoration:underline">'
-      + 'shines871.github.io/idle-lineage-class</a>';
+      + 'shines871 官方最新版</a>';
     document.body.appendChild(bar); var _origSyncBar=function(){document.documentElement.style.setProperty("--orig-pbar-h",Math.ceil(bar.getBoundingClientRect().height)+"px");}; _origSyncBar(); window.addEventListener("resize",_origSyncBar);
   } catch (_) {}
 }
@@ -4962,5 +4962,48 @@ watchCompactV1();
         'resize',
         applyCompactPublicBanner
     );
+
+})();
+
+
+/* === public banner compact v13 === */
+(function(){
+
+    if(window.__publicBannerCompactV13) return;
+    window.__publicBannerCompactV13 = true;
+
+    function compactOrigBanner(){
+
+        var bar = document.getElementById('_orig_pbar');
+        if(!bar) return;
+
+        bar.style.setProperty('font-size','12px','important');
+        bar.style.setProperty('line-height','1.25','important');
+        bar.style.setProperty('padding','5px 8px','important');
+        bar.style.setProperty('letter-spacing','0','important');
+
+        if(!bar.dataset.compactV13){
+            var url =
+                'https://shines871.github.io/idle-lineage-class/';
+
+            bar.innerHTML =
+                '📢 <span style="color:#ffcf5a">非官方轉載</span>｜' +
+                '本遊戲永久免費｜' +
+                '<a href="' + url + '" ' +
+                'style="color:#ffcf5a;font-weight:bold;text-decoration:underline">' +
+                'shines871 官方最新版</a>';
+
+            bar.dataset.compactV13 = '1';
+        }
+    }
+
+    compactOrigBanner();
+
+    var n = 0;
+    var timer = setInterval(function(){
+        compactOrigBanner();
+        n++;
+        if(n >= 30) clearInterval(timer);
+    },200);
 
 })();
