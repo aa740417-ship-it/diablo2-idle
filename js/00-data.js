@@ -4085,3 +4085,266 @@ if(document.readyState === 'loading'){
 
 })();
 
+
+
+/* === mobile banner fixed stage top v5 === */
+(function(){
+
+    if(window.__mobileBannerStageTopV5)
+        return;
+
+    window.__mobileBannerStageTopV5 = true;
+
+
+    function isLocalV5(){
+
+        var h =
+            (location.hostname || '')
+            .toLowerCase();
+
+        return (
+            h === '127.0.0.1' ||
+            h === 'localhost'
+        );
+    }
+
+
+    function applyMobileBannerStageV5(){
+
+        var stage =
+            document.getElementById(
+                'app-stage'
+            );
+
+        if(!stage)
+            return;
+
+
+        /*
+         * 本機沒有非官方橫幅：
+         * 恢復原本全螢幕位置。
+         */
+        if(isLocalV5()){
+
+            stage.style.removeProperty('top');
+            stage.style.removeProperty('bottom');
+            stage.style.removeProperty('height');
+
+            return;
+        }
+
+
+        /*
+         * 桌機維持原本 desktop banner v5，
+         * 這裡只處理手機。
+         */
+        if(window.innerWidth > 768)
+            return;
+
+
+        var bar =
+            document.getElementById(
+                '_orig_pbar'
+            );
+
+        if(!bar)
+            return;
+
+
+        var rect =
+            bar.getBoundingClientRect();
+
+        var h =
+            Math.ceil(rect.height || 0);
+
+        if(h <= 0)
+            return;
+
+
+        /*
+         * 關鍵：
+         * #app-stage 是 position:fixed，
+         * 所以不能再用 margin-top。
+         *
+         * 直接改 fixed 的 top。
+         */
+        stage.style.setProperty(
+            'top',
+            h + 'px',
+            'important'
+        );
+
+        stage.style.setProperty(
+            'bottom',
+            '0',
+            'important'
+        );
+
+        stage.style.setProperty(
+            'height',
+            'auto',
+            'important'
+        );
+
+
+        /*
+         * 清掉之前角色狀態列留下的
+         * fixed / transform / 負 margin。
+         */
+        var status =
+            document.querySelector(
+                '.mobile-top-status-host-v1'
+            );
+
+        if(status){
+
+            status.style.setProperty(
+                'position',
+                'relative',
+                'important'
+            );
+
+            status.style.setProperty(
+                'top',
+                'auto',
+                'important'
+            );
+
+            status.style.setProperty(
+                'left',
+                'auto',
+                'important'
+            );
+
+            status.style.setProperty(
+                'right',
+                'auto',
+                'important'
+            );
+
+            status.style.setProperty(
+                'width',
+                'auto',
+                'important'
+            );
+
+            status.style.setProperty(
+                'margin-top',
+                '0',
+                'important'
+            );
+
+            status.style.setProperty(
+                'transform',
+                'none',
+                'important'
+            );
+        }
+
+
+        var spacer =
+            document.getElementById(
+                'mobile-top-status-spacer-v2'
+            );
+
+        if(spacer){
+
+            spacer.style.setProperty(
+                'display',
+                'none',
+                'important'
+            );
+
+            spacer.style.setProperty(
+                'height',
+                '0',
+                'important'
+            );
+        }
+    }
+
+
+    var timerV5 = 0;
+
+    function scheduleV5(){
+
+        clearTimeout(timerV5);
+
+        timerV5 =
+            setTimeout(
+                applyMobileBannerStageV5,
+                40
+            );
+    }
+
+
+    window.addEventListener(
+        'resize',
+        scheduleV5
+    );
+
+    window.addEventListener(
+        'orientationchange',
+        scheduleV5
+    );
+
+
+    /*
+     * _orig_pbar 是 DOMContentLoaded 後才建立，
+     * 所以持續等它出現。
+     */
+    function bootV5(){
+
+        scheduleV5();
+
+        setTimeout(scheduleV5, 100);
+        setTimeout(scheduleV5, 300);
+        setTimeout(scheduleV5, 800);
+        setTimeout(scheduleV5, 1500);
+    }
+
+
+    if(
+        document.readyState === 'loading'
+    ){
+
+        document.addEventListener(
+            'DOMContentLoaded',
+            bootV5
+        );
+
+    }else{
+
+        bootV5();
+    }
+
+
+    var obV5 =
+        new MutationObserver(
+            scheduleV5
+        );
+
+    function observeV5(){
+
+        if(!document.body){
+
+            setTimeout(
+                observeV5,
+                100
+            );
+
+            return;
+        }
+
+        obV5.observe(
+            document.body,
+            {
+                childList:true,
+                subtree:true
+            }
+        );
+    }
+
+    observeV5();
+
+})();
