@@ -4549,3 +4549,418 @@ if(typeof ResizeObserver !== 'undefined'){
 }
 
 })();
+
+
+/* === mobile function keys compact v1 === */
+(function(){
+
+if(window.__mobileFunctionKeysCompactV1)
+    return;
+
+window.__mobileFunctionKeysCompactV1 = true;
+
+
+/*
+ * 只認這 12 顆功能鍵。
+ * 不碰下面固定的：
+ * 戰鬥 / 隊伍 / 背包 / 日誌 / 登出
+ */
+var KEY_NAMES_V1 = new Set([
+    '能力',
+    '裝備',
+    '技能',
+    '武器',
+    '防具',
+    '道具',
+    '統計/存檔',
+    '收藏',
+    '自動賣出',
+    '停止賣出',
+    '社交',
+    '血盟',
+    '設定'
+]);
+
+
+function cleanTextV1(el){
+
+    return String(
+        el && el.textContent || ''
+    )
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+
+function isFunctionButtonV1(btn){
+
+    if(!btn || btn.tagName !== 'BUTTON')
+        return false;
+
+    return KEY_NAMES_V1.has(
+        cleanTextV1(btn)
+    );
+}
+
+
+function applyCompactV1(){
+
+    if(window.innerWidth > 768)
+        return;
+
+    var game =
+        document.getElementById(
+            'game-screen'
+        );
+
+    if(!game)
+        return;
+
+
+    var buttons =
+        Array.from(
+            game.querySelectorAll('button')
+        )
+        .filter(isFunctionButtonV1);
+
+
+    if(buttons.length < 6)
+        return;
+
+
+    /*
+     * 每顆按鈕：
+     * 接近你第二張圖的手機尺寸。
+     *
+     * 仍保留約 50px 高，
+     * 手指點擊不會太小。
+     */
+    buttons.forEach(function(btn){
+
+        btn.classList.add(
+            'mobile-function-key-compact-v1'
+        );
+
+        btn.style.setProperty(
+            'height',
+            '50px',
+            'important'
+        );
+
+        btn.style.setProperty(
+            'min-height',
+            '50px',
+            'important'
+        );
+
+        btn.style.setProperty(
+            'max-height',
+            '50px',
+            'important'
+        );
+
+        btn.style.setProperty(
+            'padding',
+            '4px 5px',
+            'important'
+        );
+
+        btn.style.setProperty(
+            'font-size',
+            '15px',
+            'important'
+        );
+
+        btn.style.setProperty(
+            'line-height',
+            '1.05',
+            'important'
+        );
+
+        btn.style.setProperty(
+            'margin',
+            '0',
+            'important'
+        );
+    });
+
+
+    /*
+     * 找出包住這些按鈕的最小共同功能區。
+     */
+    var candidates = [];
+
+    buttons.forEach(function(btn){
+
+        var p = btn.parentElement;
+
+        for(var depth = 0; p && depth < 5; depth++){
+
+            var count =
+                Array.from(
+                    p.querySelectorAll('button')
+                )
+                .filter(isFunctionButtonV1)
+                .length;
+
+            if(count >= 9){
+
+                candidates.push({
+                    el:p,
+                    count:count
+                });
+
+                break;
+            }
+
+            p = p.parentElement;
+        }
+    });
+
+
+    var menu = null;
+
+    if(candidates.length){
+
+        candidates.sort(function(a,b){
+
+            var ac =
+                a.el.querySelectorAll('*').length;
+
+            var bc =
+                b.el.querySelectorAll('*').length;
+
+            return ac - bc;
+        });
+
+        menu = candidates[0].el;
+    }
+
+
+    if(menu){
+
+        menu.classList.add(
+            'mobile-function-menu-compact-v1'
+        );
+
+        /*
+         * 原本格子間隔也一起縮，
+         * 把更多高度還給背包。
+         */
+        menu.style.setProperty(
+            'gap',
+            '5px',
+            'important'
+        );
+
+        menu.style.setProperty(
+            'row-gap',
+            '5px',
+            'important'
+        );
+
+        menu.style.setProperty(
+            'column-gap',
+            '5px',
+            'important'
+        );
+
+        menu.style.setProperty(
+            'padding',
+            '6px',
+            'important'
+        );
+
+        menu.style.setProperty(
+            'margin-bottom',
+            '4px',
+            'important'
+        );
+    }
+}
+
+
+var compactTimerV1 = 0;
+
+function scheduleCompactV1(){
+
+    clearTimeout(compactTimerV1);
+
+    compactTimerV1 =
+        setTimeout(
+            applyCompactV1,
+            40
+        );
+}
+
+
+function bootCompactV1(){
+
+    scheduleCompactV1();
+
+    setTimeout(scheduleCompactV1, 100);
+    setTimeout(scheduleCompactV1, 300);
+    setTimeout(scheduleCompactV1, 800);
+    setTimeout(scheduleCompactV1, 1500);
+}
+
+
+window.addEventListener(
+    'resize',
+    scheduleCompactV1
+);
+
+window.addEventListener(
+    'orientationchange',
+    scheduleCompactV1
+);
+
+
+if(document.readyState === 'loading'){
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        bootCompactV1
+    );
+
+}else{
+
+    bootCompactV1();
+}
+
+
+/*
+ * 切背包/裝備/技能分頁後，
+ * 按鈕可能重新渲染，所以自動重新套尺寸。
+ */
+var obsCompactV1 =
+    new MutationObserver(
+        scheduleCompactV1
+    );
+
+
+function watchCompactV1(){
+
+    var game =
+        document.getElementById(
+            'game-screen'
+        );
+
+    if(!game){
+
+        setTimeout(
+            watchCompactV1,
+            300
+        );
+
+        return;
+    }
+
+    obsCompactV1.observe(
+        game,
+        {
+            childList:true,
+            subtree:true
+        }
+    );
+}
+
+watchCompactV1();
+
+})();
+
+
+/* === mobile public banner compact v8 === */
+(function(){
+
+    if(window.__mobilePublicBannerCompactV8) return;
+    window.__mobilePublicBannerCompactV8 = true;
+
+    function applyCompactPublicBanner(){
+
+        if(window.innerWidth > 768) return;
+
+        var bar = document.getElementById('_orig_pbar');
+        if(!bar) return;
+
+        /* 橫幅本身縮矮，但內容與官方連結保留 */
+        bar.style.setProperty('padding', '7px 10px', 'important');
+        bar.style.setProperty('min-height', '0', 'important');
+        bar.style.setProperty('font-size', '13px', 'important');
+        bar.style.setProperty('line-height', '1.28', 'important');
+        bar.style.setProperty('box-sizing', 'border-box', 'important');
+
+        Array.from(bar.querySelectorAll('*')).forEach(function(el){
+            el.style.setProperty('font-size', '13px', 'important');
+            el.style.setProperty('line-height', '1.28', 'important');
+        });
+
+        /* 重新量公開橫幅實際高度 */
+        requestAnimationFrame(function(){
+
+            var h = Math.ceil(
+                bar.getBoundingClientRect().height
+            );
+
+            var stage =
+                document.getElementById('app-stage');
+
+            if(stage){
+                stage.style.setProperty(
+                    'top',
+                    h + 'px',
+                    'important'
+                );
+
+                stage.style.setProperty(
+                    'height',
+                    'calc(100dvh - ' + h + 'px)',
+                    'important'
+                );
+
+                stage.style.setProperty(
+                    'max-height',
+                    'calc(100dvh - ' + h + 'px)',
+                    'important'
+                );
+            }
+        });
+    }
+
+    function start(){
+        applyCompactPublicBanner();
+
+        var tries = 0;
+
+        var timer = setInterval(function(){
+
+            tries++;
+
+            if(document.getElementById('_orig_pbar')){
+                applyCompactPublicBanner();
+
+                if(tries >= 6)
+                    clearInterval(timer);
+            }
+
+            if(tries >= 20)
+                clearInterval(timer);
+
+        },150);
+    }
+
+    if(document.readyState === 'loading'){
+        document.addEventListener(
+            'DOMContentLoaded',
+            start
+        );
+    }else{
+        start();
+    }
+
+    window.addEventListener(
+        'resize',
+        applyCompactPublicBanner
+    );
+
+})();
