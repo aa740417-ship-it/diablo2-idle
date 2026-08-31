@@ -4102,42 +4102,64 @@ if(document.readyState === 'loading'){
 
 
 
-/* === mobile fixed status reserved space v10 === */
+
+
+
+/* === mobile fixed status center offset v11 === */
 (function(){
 
-if(window.__mobileFixedStatusReservedV10) return;
-window.__mobileFixedStatusReservedV10 = true;
+if(window.__mobileFixedStatusCenterV11) return;
+window.__mobileFixedStatusCenterV11 = true;
 
-var timerV10 = 0;
+var timerV11 = 0;
 
-function localV10(){
+function localV11(){
     var h = (location.hostname || '').toLowerCase();
     return h === '127.0.0.1' || h === 'localhost';
 }
 
-function applyV10(){
+function applyV11(){
 
-    if(localV10()) return;
+    if(localV11()) return;
     if(window.innerWidth > 768) return;
 
-    var banner = document.getElementById('_orig_pbar');
-    var stage  = document.getElementById('app-stage');
-    var game   = document.getElementById('game-screen');
-    var vitals = document.getElementById('mobile-vitals');
+    var banner =
+        document.getElementById('_orig_pbar');
 
-    if(!banner || !stage || !game || !vitals) return;
+    var stage =
+        document.getElementById('app-stage');
 
-    /*
-     * 非官方橫幅真正的底部位置
-     */
-    var bannerBottom = Math.ceil(
-        banner.getBoundingClientRect().bottom || 0
-    );
+    var game =
+        document.getElementById('game-screen');
+
+    var vitals =
+        document.getElementById('mobile-vitals');
+
+    var center =
+        document.getElementById('col-center');
+
+    var left =
+        document.getElementById('col-left');
+
+    if(
+        !banner ||
+        !stage ||
+        !game ||
+        !vitals ||
+        !center
+    ) return;
+
+
+    var bannerBottom =
+        Math.ceil(
+            banner.getBoundingClientRect().bottom || 0
+        );
 
     if(bannerBottom <= 0) return;
 
+
     /*
-     * 遊戲舞台從橫幅下面開始
+     * 遊戲舞台避開非官方橫幅
      */
     stage.style.setProperty(
         'top',
@@ -4158,13 +4180,14 @@ function applyV10(){
     );
 
 
-    var sr = stage.getBoundingClientRect();
+    /*
+     * 角色資訊列保持現在的位置
+     */
+    var sr =
+        stage.getBoundingClientRect();
 
     var side = 16;
 
-    /*
-     * 角色資訊列固定在橫幅下面
-     */
     vitals.style.setProperty(
         'position',
         'fixed',
@@ -4217,14 +4240,13 @@ function applyV10(){
     );
 
 
-    /*
-     * 裡面新版狀態列不要另外定位
-     */
-    var host = vitals.querySelector(
-        '.mobile-top-status-host-v1'
-    );
+    var host =
+        vitals.querySelector(
+            '.mobile-top-status-host-v1'
+        );
 
     if(host){
+
         host.style.setProperty(
             'position',
             'relative',
@@ -4258,13 +4280,67 @@ function applyV10(){
 
 
     /*
-     * 關閉之前所有 spacer
+     * 取得資訊列實際高度
      */
-    var sp9 = document.getElementById(
-        'mobile-vitals-fixed-spacer-v9'
+    var vh =
+        Math.ceil(
+            vitals.getBoundingClientRect().height ||
+            vitals.scrollHeight ||
+            0
+        );
+
+    if(vh <= 0)
+        vh = 120;
+
+
+    /*
+     * v10 曾改 game-screen padding，
+     * 現在清掉。
+     */
+    game.style.removeProperty(
+        'padding-top'
     );
 
+
+    /*
+     * ★ 真正修正
+     *
+     * 黑市 / 瞬移 / 出發 / 地圖
+     * 都在 #col-center 裡。
+     *
+     * 直接把整個中間欄往下移。
+     */
+    center.style.setProperty(
+        'margin-top',
+        (vh + 12) + 'px',
+        'important'
+    );
+
+
+    /*
+     * 左欄也同步，
+     * 避免切換畫面時頂端高度不一致。
+     */
+    if(left){
+
+        left.style.setProperty(
+            'margin-top',
+            (vh + 12) + 'px',
+            'important'
+        );
+    }
+
+
+    /*
+     * 關閉舊 spacer
+     */
+    var sp9 =
+        document.getElementById(
+            'mobile-vitals-fixed-spacer-v9'
+        );
+
     if(sp9){
+
         sp9.style.setProperty(
             'display',
             'none',
@@ -4272,115 +4348,103 @@ function applyV10(){
         );
     }
 
-    var sp2 = document.getElementById(
-        'mobile-top-status-spacer-v2'
-    );
+
+    var sp2 =
+        document.getElementById(
+            'mobile-top-status-spacer-v2'
+        );
 
     if(sp2){
+
         sp2.style.setProperty(
             'display',
             'none',
             'important'
         );
     }
-
-
-    /*
-     * 量角色資訊列真正高度
-     */
-    var vh = Math.ceil(
-        vitals.getBoundingClientRect().height ||
-        vitals.scrollHeight ||
-        0
-    );
-
-    if(vh <= 0) vh = 120;
-
-
-    /*
-     * 第一次記住 game-screen 原本 padding-top
-     */
-    if(!game.dataset.mobileBasePaddingTopV10){
-
-        var base = parseFloat(
-            getComputedStyle(game).paddingTop
-        ) || 0;
-
-        game.dataset.mobileBasePaddingTopV10 =
-            String(base);
-    }
-
-    var originalPadding = Number(
-        game.dataset.mobileBasePaddingTopV10 || 0
-    );
-
-
-    /*
-     * ★ 關鍵
-     * 直接在整個主畫面頂部保留狀態列高度。
-     *
-     * 黑市、瞬移、出發、地圖、NPC
-     * 全部一起往下，不會再被蓋。
-     */
-    game.style.setProperty(
-        'padding-top',
-        (originalPadding + vh + 12) + 'px',
-        'important'
-    );
-
-    game.style.setProperty(
-        'box-sizing',
-        'border-box',
-        'important'
-    );
 }
 
 
-function scheduleV10(){
-    clearTimeout(timerV10);
-    timerV10 = setTimeout(applyV10, 50);
+function scheduleV11(){
+
+    clearTimeout(timerV11);
+
+    timerV11 =
+        setTimeout(
+            applyV11,
+            50
+        );
 }
 
-function bootV10(){
 
-    scheduleV10();
+function bootV11(){
 
-    setTimeout(scheduleV10, 100);
-    setTimeout(scheduleV10, 300);
-    setTimeout(scheduleV10, 700);
-    setTimeout(scheduleV10, 1500);
-    setTimeout(scheduleV10, 2500);
+    scheduleV11();
+
+    setTimeout(scheduleV11, 100);
+    setTimeout(scheduleV11, 300);
+    setTimeout(scheduleV11, 700);
+    setTimeout(scheduleV11, 1500);
+    setTimeout(scheduleV11, 2500);
 }
 
-window.addEventListener('resize', scheduleV10);
-window.addEventListener('orientationchange', scheduleV10);
+
+window.addEventListener(
+    'resize',
+    scheduleV11
+);
+
+window.addEventListener(
+    'orientationchange',
+    scheduleV11
+);
+
 
 if(document.readyState === 'loading'){
+
     document.addEventListener(
         'DOMContentLoaded',
-        bootV10
+        bootV11
     );
+
 }else{
-    bootV10();
+
+    bootV11();
 }
+
 
 if(typeof ResizeObserver !== 'undefined'){
 
-    var roV10 = new ResizeObserver(scheduleV10);
+    var roV11 =
+        new ResizeObserver(
+            scheduleV11
+        );
 
-    function watchV10(){
+    function watchV11(){
 
-        var b = document.getElementById('_orig_pbar');
-        var v = document.getElementById('mobile-vitals');
+        var b =
+            document.getElementById(
+                '_orig_pbar'
+            );
 
-        if(b) roV10.observe(b);
-        if(v) roV10.observe(v);
+        var v =
+            document.getElementById(
+                'mobile-vitals'
+            );
 
-        if(!b || !v)
-            setTimeout(watchV10, 300);
+        if(b) roV11.observe(b);
+        if(v) roV11.observe(v);
+
+        if(!b || !v){
+
+            setTimeout(
+                watchV11,
+                300
+            );
+        }
     }
 
-    watchV10();
+    watchV11();
 }
 
 })();
