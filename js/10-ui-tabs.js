@@ -2016,6 +2016,24 @@ function autoSellJunk(manual) {   // manual=true → 玩家按「一鍵賣出」
     if (toSell.length === 0) { if (manual) logSys('<span class="text-slate-400">目前沒有標記為廢品的物品可賣出（請先在 武器／防具／道具 分頁用「🗑️ 快速廢品」標記）。</span>'); return; }   // 無廢品→自動靜默、手動給提示
     let totalGold = 0, totalCount = 0;
     toSell.forEach(i => { let q = Math.min(i.cnt, i._autoSellQty || i.cnt); totalGold += getSellPrice(i) * q; totalCount += q; });
+
+    /* 掛機詳細結算：只記錄系統自動販賣，手動賣出不算 */
+    if (
+        !manual &&
+        typeof state !== 'undefined' &&
+        state.ff &&
+        typeof _ffAcc !== 'undefined' &&
+        _ffAcc
+    ) {
+        _ffAcc.autoSoldCount =
+            Number(_ffAcc.autoSoldCount || 0) +
+            Number(totalCount || 0);
+
+        _ffAcc.autoSoldGold =
+            Number(_ffAcc.autoSoldGold || 0) +
+            Number(totalGold || 0);
+    }
+
     let _grantSold = toSell.some(i => DB.items[i.id] && DB.items[i.id].grantSkills);
     // ⚠️ uid 精準移除：舊寫法 player.inv.filter(i => i.cnt > 0) 會把「cnt 為 undefined 的舊存檔物品」
     //    連同鎖定件、noSell 任務道具一併靜默刪除，而本函式每 10 秒由 gameLoop 自動跑一次＝無人看管的資料流失。
@@ -5476,3 +5494,209 @@ window.useSkillBookFromModal = function(uid){
     }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* === mobile equipment scroll ancestors v4 === */
+(function(){
+
+if(window.__mobileEquipScrollAncestorsV4) return;
+window.__mobileEquipScrollAncestorsV4 = true;
+
+
+/* 保留手機裝備欄順滑捲動 */
+var style = document.createElement('style');
+
+style.textContent = `
+@media (max-width:768px){
+
+    #tab-equip{
+        min-height:0 !important;
+        overflow:visible !important;
+    }
+
+    #tab-equip .classic-inventory-shell{
+        height:58dvh !important;
+        min-height:360px !important;
+        max-height:560px !important;
+        overflow:hidden !important;
+    }
+
+    #tab-equip .classic-inventory-viewport{
+        height:100% !important;
+        max-height:100% !important;
+
+        overflow-y:auto !important;
+        overflow-x:hidden !important;
+
+        -webkit-overflow-scrolling:touch !important;
+        touch-action:pan-y !important;
+        overscroll-behavior:contain !important;
+    }
+}
+`;
+
+document.head.appendChild(style);
+
+
+function equipTopV4(){
+
+    if(window.innerWidth > 768) return;
+
+    var tab =
+        document.getElementById('tab-equip');
+
+    if(
+        !tab ||
+        tab.classList.contains('hidden')
+    ) return;
+
+
+    /* 先把裝備自己的清單回頂 */
+    var vp =
+        tab.querySelector(
+            '.classic-inventory-viewport'
+        );
+
+    if(vp){
+        vp.scrollTop = 0;
+    }
+
+
+    /*
+     * 找出所有外層可捲動容器。
+     * 這才是之前一直停在「頭盔 / 耳環」的真正原因。
+     */
+    var node = tab.parentElement;
+
+    while(
+        node &&
+        node !== document.body &&
+        node !== document.documentElement
+    ){
+
+        try{
+
+            var cs =
+                getComputedStyle(node);
+
+            var oy =
+                cs.overflowY;
+
+            var canScroll =
+                (
+                    oy === 'auto' ||
+                    oy === 'scroll' ||
+                    oy === 'overlay'
+                ) &&
+                node.scrollHeight >
+                node.clientHeight + 2;
+
+            if(canScroll){
+
+                var tabRect =
+                    tab.getBoundingClientRect();
+
+                var nodeRect =
+                    node.getBoundingClientRect();
+
+                node.scrollTop +=
+                    tabRect.top -
+                    nodeRect.top;
+
+            }
+
+        }catch(e){}
+
+        node = node.parentElement;
+    }
+
+
+    /*
+     * 最後再處理整個瀏覽器頁面。
+     */
+    try{
+
+        var banner =
+            document.getElementById(
+                '_orig_pbar'
+            );
+
+        var gap =
+            (
+                banner
+                    ? banner.getBoundingClientRect().height
+                    : 0
+            ) + 8;
+
+        var rect =
+            tab.getBoundingClientRect();
+
+        var scroller =
+            document.scrollingElement ||
+            document.documentElement;
+
+        scroller.scrollTop +=
+            rect.top - gap;
+
+    }catch(e){}
+
+
+    /* 再保證內層仍是第一格 */
+    if(vp){
+        vp.scrollTop = 0;
+    }
+}
+
+
+/*
+ * 直接監聽背包分頁按鈕點擊。
+ * 不再包 switchTab，也不跟遊戲原本重繪互相搶。
+ */
+document.addEventListener(
+    'click',
+    function(ev){
+
+        var btn =
+            ev.target &&
+            ev.target.closest
+                ? ev.target.closest('button')
+                : null;
+
+        if(!btn) return;
+
+        var code =
+            btn.getAttribute('onclick') || '';
+
+        if(
+            code.indexOf("switchTab('equip'") < 0 &&
+            code.indexOf('switchTab("equip"') < 0
+        ){
+            return;
+        }
+
+        [30,120,300].forEach(function(ms){
+
+            setTimeout(
+                equipTopV4,
+                ms
+            );
+
+        });
+
+    },
+    true
+);
+
+})();

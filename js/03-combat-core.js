@@ -198,8 +198,11 @@ function gameLoop() {
     if (!state.running || player.dead) {
         _ffCancelScheduledLoop();
         _tickDebt = 0;
-        if (_ffAcc && !_hidden) _ffFinishCatchup();
-        else {
+        if (player.dead && _ffAcc) _ffAcc.died = true;
+
+        if (_ffAcc && !_hidden) {
+            _ffFinishCatchup();
+        } else if (!(_ffAcc && player.dead && _hidden)) {
             _ffAcc = null;
             if (typeof resetCatchupGainItemIndex === 'function') resetCatchupGainItemIndex();
             if (typeof discardCatchupAutoSort === 'function') discardCatchupAutoSort();
@@ -234,7 +237,19 @@ function gameLoop() {
     //    state.ff＝全域補跑閘（VFX/動畫/音效/日誌/逐次重繪與存檔全部受抑制）；ffSmall 保留相容但固定 false。
     if (!_ffAcc) {
         if (typeof resetCatchupGainItemIndex === 'function') resetCatchupGainItemIndex();
-        _ffAcc = { t0: Date.now(), ticks: 0, gold: (player.gold || 0), invStart: _ffInventoryCounts() };   // ⏩ 整段補跑只在起點與終點各掃一次背包
+        /* === catchup detailed report v1 === */
+        _ffAcc = {
+            t0: Date.now(),
+            ticks: 0,
+            gold: (player.gold || 0),
+            expStart: (typeof _ffExpProgress === 'function') ? _ffExpProgress() : 0,
+            invStart: _ffInventoryCounts(),
+            kills: 0,
+            dropCount: 0,
+            autoSoldCount: 0,
+            autoSoldGold: 0,
+            died: false
+        };   // ⏩ 整段補跑只在起點與終點各掃一次背包
         try { if (typeof _vfxClearAll === 'function') _vfxClearAll(); } catch (e) {}   // 補跑只保留最終收益，立即釋放尚未播完的戰鬥特效
     }
     // 長補跑先讓瀏覽器畫出進度提示再開始重運算；只做一次，不增加每批額外等待。
@@ -269,7 +284,10 @@ function gameLoop() {
                 try { console.error('[catchup] tick failed', tickError); } catch (e) {}
                 break;
             }
-            if (player.dead) break;   // 真實補跑戰敗即停止；死亡後的背景時間不得繼續產生收益
+            if (player.dead) {
+                if (_ffAcc) _ffAcc.died = true;
+                break;
+            }   // 真實補跑戰敗即停止；死亡後的背景時間不得繼續產生收益
             _ffErrorStreak = 0;
             if ((ran & 3) === 0) {
                 let t = (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -317,7 +335,99 @@ function _ffFinishCatchup() {
             let _gd = (player.gold || 0) - _acc.gold;
             let _sec = Math.round(_acc.ticks / 10);
             let _dur = _sec >= 60 ? Math.floor(_sec / 60) + ' 分 ' + (_sec % 60) + ' 秒' : _sec + ' 秒';
-            logSys('<span class="text-cyan-300 font-bold">⏩ 掛機補跑完成：</span>已補上 ' + _dur + ' 的進度' + (_gd > 0 ? ('，金幣 +' + _gd.toLocaleString()) : '') + '。');
+            let _expNow =
+                (typeof _ffExpProgress === 'function')
+                    ? _ffExpProgress()
+                    : 0;
+
+            let _expGain =
+                Math.max(
+                    0,
+                    Math.floor(
+                        _expNow -
+                        Number(_acc.expStart || 0)
+                    )
+                );
+
+            let _kills =
+                Math.max(
+                    0,
+                    Math.floor(
+                        Number(_acc.kills || 0)
+                    )
+                );
+
+            let _drops =
+                Math.max(
+                    0,
+                    Math.floor(
+                        Number(_acc.dropCount || 0)
+                    )
+                );
+
+            let _sold =
+                Math.max(
+                    0,
+                    Math.floor(
+                        Number(_acc.autoSoldCount || 0)
+                    )
+                );
+
+            let _soldGold =
+                Math.max(
+                    0,
+                    Math.floor(
+                        Number(_acc.autoSoldGold || 0)
+                    )
+                );
+
+            let _goldTxt =
+                _gd > 0
+                    ? '金幣淨增 +' + _gd.toLocaleString()
+                    : (
+                        _gd < 0
+                            ? '金幣淨減 ' + Math.abs(_gd).toLocaleString()
+                            : '金幣淨變化 0'
+                    );
+
+            logSys(
+                '<span class="text-cyan-300 font-bold">' +
+                '⏩ 掛機補跑完成：</span>' +
+                '已補上 ' + _dur + ' 的進度。'
+            );
+
+            logSys(
+                '<span class="text-emerald-300 font-bold">' +
+                '📊 掛機戰果：</span>' +
+                '擊殺 ' + _kills.toLocaleString() + ' 隻' +
+                '，經驗 +' + _expGain.toLocaleString() +
+                '，物品掉落 ' + _drops.toLocaleString() + ' 個' +
+                '，' + _goldTxt + '。'
+            );
+
+            if (_sold > 0) {
+                logSys(
+                    '<span class="text-amber-300 font-bold">' +
+                    '🗑️ 自動賣出：</span>' +
+                    _sold.toLocaleString() + ' 個物品' +
+                    '，獲得 ' +
+                    _soldGold.toLocaleString() +
+                    ' 金幣。'
+                );
+            }
+
+            if (_acc.died || player.dead) {
+                logSys(
+                    '<span class="text-red-400 font-bold">' +
+                    '☠ 掛機途中角色死亡：</span>' +
+                    '已在死亡時停止補跑，死亡後的時間沒有產生收益。'
+                );
+            } else {
+                logSys(
+                    '<span class="text-green-300 font-bold">' +
+                    '✅ 掛機結束時角色存活。</span>'
+                );
+            }
             // 🎁 v3.6.86 前舊格式（用戶指示恢復）：補跑期間獲得物品彙整輸出（物品名依稀有度上色·頓號串接·只列淨正值）
             let _gains = [];
             let _invAfter = _ffInventoryCounts();
@@ -326,7 +436,7 @@ function _ffFinishCatchup() {
                 if (n > 0 && DB.items[id]) _gains.push({ id: id, n: n });
             });
             if (_gains.length) {
-                logSys(`<span class="sys-item-gain">掛機期間獲得：` + _gains
+                logSys(`<span class="sys-item-gain">目前背包淨增加：` + _gains
                     .map(g => `<span class="${getItemColor({ id: g.id, en: 0 })} font-bold">${DB.items[g.id].n} ×${g.n}</span>`)
                     .join('、') + `</span>`);
             }

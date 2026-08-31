@@ -193,6 +193,21 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false, de
         d = DB.items[id];
     }
 
+    /* 掛機詳細結算：記錄怪物實際掉出的物品數量 */
+    if (
+        typeof state !== 'undefined' &&
+        state.ff &&
+        typeof _vfxLootCtx !== 'undefined' &&
+        _vfxLootCtx &&
+        typeof _ffAcc !== 'undefined' &&
+        _ffAcc
+    ) {
+        _ffAcc.dropCount =
+            Number(_ffAcc.dropCount || 0) +
+            Math.max(0, Number(cnt) || 0);
+    }
+
+
     // 🗡️ 裝備收集冊：獲得任何武器/防具/飾品(非箭矢)即登錄圖鑑（永久·只增不減）
     if (typeof registerEquipObtained === 'function') registerEquipObtained(id);
     // 🧰 道具收集冊：獲得任何可分類道具即登錄（藥水/卷軸/技能書/材料/其他）

@@ -350,6 +350,17 @@ function killMob(idx) {
         }
     }
     mob._dead = true;
+
+    if (
+        typeof state !== 'undefined' &&
+        state.ff &&
+        typeof _ffAcc !== 'undefined' &&
+        _ffAcc
+    ) {
+        _ffAcc.kills =
+            Number(_ffAcc.kills || 0) + 1;
+    }
+
     try { vfxKill(mob); } catch(e){}   // ✨ VFX：擊殺粒子爆裂（趁格子 DOM 仍在、重繪前）
     try { playMobKill(mob); } catch(e){}   // 🔊 音效：怪物死亡（依怪名對應專屬死亡音，查無→通用擊殺音）
     if (mob.curHp > 0) mob.curHp = 0;     // 待清算期間不可被當成活目標
