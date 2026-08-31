@@ -3781,3 +3781,178 @@ button.classic-skill-cell { cursor:pointer; }
     }
 }
 
+
+
+
+
+
+/* === mobile equipment inner scroll v3 === */
+@media (max-width:768px){
+
+    /*
+     * 裝備頁不再替整個遊戲增加 520px 空白。
+     * 直接讓裝備內框自己上下滑。
+     */
+    #tab-content-panel.equipment-panel-host{
+        margin-bottom:110px !important;
+        scroll-margin-bottom:110px !important;
+    }
+
+    #equipment-window:not(.hidden){
+        overflow:visible !important;
+    }
+
+    #equipment-window-frame{
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+
+        -webkit-overflow-scrolling:touch !important;
+        touch-action:pan-y !important;
+        overscroll-behavior-y:contain !important;
+
+        height:calc(100dvh - 175px) !important;
+        min-height:480px !important;
+        max-height:680px !important;
+
+        padding-bottom:115px !important;
+        box-sizing:border-box !important;
+    }
+
+    /*
+     * 裝備內容不能再自己把下面的戒指裁掉
+     */
+    #equipment-window-slots{
+        overflow:visible !important;
+        min-height:max-content !important;
+        padding-bottom:100px !important;
+        box-sizing:border-box !important;
+    }
+}
+
+
+/* === mobile equipment real scroll v6 === */
+@media (max-width:768px){
+
+    /* 不再額外塞 520px 黑色空間 */
+    #tab-content-panel.equipment-panel-host{
+        margin-bottom:0 !important;
+        min-height:0 !important;
+        height:var(--equipment-panel-height) !important;
+    }
+
+    #game-screen:has(#equipment-window:not(.hidden)){
+        scroll-padding-bottom:90px !important;
+    }
+
+    #equipment-window,
+    #equipment-window-frame{
+        overflow:hidden !important;
+    }
+
+    #equipment-window-frame{
+        max-height:100% !important;
+    }
+
+    /* 真正負責捲動的內框 */
+    #equipment-window-slots{
+        position:absolute !important;
+
+        left:0 !important;
+        right:0 !important;
+        top:0 !important;
+        bottom:0 !important;
+
+        width:100% !important;
+        height:100% !important;
+
+        display:flex !important;
+        flex-direction:column !important;
+        align-items:stretch !important;
+
+        gap:4px !important;
+
+        padding:
+            6px
+            8px
+            90px
+            8px !important;
+
+        overflow-y:auto !important;
+        overflow-x:hidden !important;
+
+        -webkit-overflow-scrolling:touch !important;
+        touch-action:pan-y !important;
+        overscroll-behavior-y:contain !important;
+
+        box-sizing:border-box !important;
+        z-index:5 !important;
+    }
+
+    #equipment-window-slots > .equipment-visual-slot{
+        position:relative !important;
+
+        left:auto !important;
+        right:auto !important;
+        top:auto !important;
+        bottom:auto !important;
+        inset:auto !important;
+
+        transform:none !important;
+
+        width:100% !important;
+
+        height:52px !important;
+        min-height:52px !important;
+        max-height:52px !important;
+
+        flex:0 0 52px !important;
+
+        margin:0 !important;
+
+        box-sizing:border-box !important;
+    }
+}
+
+
+/* === desktop equipment inner scroll v1 === */
+@media (min-width:769px){
+
+    /*
+     * 電腦版裝備框：
+     * 19-equipment-window.js 原本是 overflow:hidden，
+     * 改成裝備框自己可以上下滑。
+     */
+    html body #game-screen #equipment-window-frame{
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+
+        max-height:calc(100vh - 120px) !important;
+
+        overscroll-behavior-y:contain !important;
+        scrollbar-gutter:stable;
+    }
+
+    /*
+     * 裝備列表本身保持完整高度，
+     * 不裁掉最下面的戒指／脛甲／鞋子等欄位。
+     */
+    html body #game-screen #equipment-window-slots{
+        position:relative !important;
+
+        left:auto !important;
+        right:auto !important;
+        top:auto !important;
+        bottom:auto !important;
+        inset:auto !important;
+
+        width:100% !important;
+        height:auto !important;
+        min-height:max-content !important;
+
+        overflow:visible !important;
+
+        padding-bottom:24px !important;
+        box-sizing:border-box !important;
+    }
+
+}
