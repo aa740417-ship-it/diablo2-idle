@@ -1570,6 +1570,7 @@ function _updateUIImpl() {
     document.getElementById('st-ac').innerText = player.d.ac;
     document.getElementById('st-mr').innerText = player.d.mr;
     document.getElementById('st-gold').innerText = player.gold.toLocaleString();
+    try { syncMobileCompactTopStatusV1(); } catch(e) {}
     
     document.getElementById('txt-hp').innerText = `${Math.floor(player.hp)}/${Math.floor(player.mhp)}`;
     document.getElementById('bar-hp').style.width = `${Math.max(0, (player.hp/player.mhp)*100)}%`;
@@ -1984,4 +1985,804 @@ try {
     window.enhanceProtectCount = enhanceProtectCount;
     window.consumeEnhanceProtectScroll = consumeEnhanceProtectScroll;
 } catch(e) {}
+
+
+
+/* === mobile compact top status v1 === */
+
+function _mobileTopCommonParentV1(a, b){
+
+    if(!a || !b) return null;
+
+    var p = a;
+
+    while(
+        p &&
+        p !== document.body &&
+        p !== document.documentElement
+    ){
+        if(p.contains(b))
+            return p;
+
+        p = p.parentElement;
+    }
+
+    return null;
+}
+
+
+function _ensureMobileCompactTopStatusV1(){
+
+    if(
+        typeof window !== 'undefined' &&
+        window.innerWidth > 768
+    ){
+        return null;
+    }
+
+    var hp =
+        document.getElementById('mv-hp-fill');
+
+    var mp =
+        document.getElementById('mv-mp-fill');
+
+    if(!hp || !mp)
+        return null;
+
+
+    /*
+     * 如果已經重建過，
+     * 直接回傳，不重複製造 DOM。
+     */
+    var ready =
+        document.getElementById(
+            'mobile-top-info-v1'
+        );
+
+    if(ready)
+        return ready;
+
+
+    /*
+     * 找出原本手機 HP / MP 的共同容器。
+     * 直接沿用這個容器，
+     * 所以原本 sticky / 固定位置都會保留。
+     */
+    var wrap =
+        _mobileTopCommonParentV1(
+            hp,
+            mp
+        );
+
+    if(
+        !wrap ||
+        wrap === document.body ||
+        wrap === document.documentElement
+    ){
+        return null;
+    }
+
+
+    wrap.classList.add(
+        'mobile-top-status-host-v1'
+    );
+
+
+    /*
+     * 保留原本四個 ID：
+     * mv-hp-fill
+     * mv-hp-txt
+     * mv-mp-fill
+     * mv-mp-txt
+     *
+     * 因此遊戲原本 HP / MP 更新邏輯
+     * 完全不用重寫。
+     */
+    wrap.innerHTML = `
+
+        <div
+            id="mobile-top-info-v1"
+            class="mobile-top-info-row-v1"
+        >
+
+            <span
+                id="mobile-info-name-v1"
+                class="mobile-info-name-v1"
+            >
+                未命名
+            </span>
+
+            <span class="mobile-info-item-v1">
+                Lv
+                <b id="mobile-info-lv-v1">1</b>
+            </span>
+
+            <span class="mobile-info-item-v1">
+                防
+                <b id="mobile-info-ac-v1">0</b>
+            </span>
+
+            <span class="mobile-info-item-v1">
+                魔防
+                <b id="mobile-info-mr-v1">0</b>
+            </span>
+
+            <span class="mobile-info-gold-v1">
+                💰
+                <b id="mobile-info-gold-v1">0</b>
+            </span>
+
+        </div>
+
+
+        <div class="mobile-top-vitals-row-v1">
+
+            <div class="mobile-top-vital-v1">
+
+                <span class="mobile-vital-label-v1 hp">
+                    HP
+                </span>
+
+                <div class="mobile-vital-track-v1">
+
+                    <div
+                        id="mv-hp-fill"
+                        class="mobile-vital-fill-v1 hp"
+                    ></div>
+
+                    <div
+                        id="mv-hp-txt"
+                        class="mobile-vital-text-v1"
+                    >
+                        0/0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="mobile-top-vital-v1">
+
+                <span class="mobile-vital-label-v1 mp">
+                    MP
+                </span>
+
+                <div class="mobile-vital-track-v1">
+
+                    <div
+                        id="mv-mp-fill"
+                        class="mobile-vital-fill-v1 mp"
+                    ></div>
+
+                    <div
+                        id="mv-mp-txt"
+                        class="mobile-vital-text-v1"
+                    >
+                        0/0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="mobile-sherine-stage-v1"
+                class="mobile-sherine-stage-v1 off"
+            >
+                <span class="mobile-sherine-small-v1">
+                    席琳
+                </span>
+
+                <b id="mobile-sherine-stage-text-v1">
+                    未開
+                </b>
+            </div>
+
+        </div>
+
+    `;
+
+
+    /*
+     * CSS 只裝一次
+     */
+    if(
+        !document.getElementById(
+            'mobile-top-status-style-v1'
+        )
+    ){
+
+        var style =
+            document.createElement('style');
+
+        style.id =
+            'mobile-top-status-style-v1';
+
+        style.textContent = `
+
+@media (max-width:768px){
+
+    .mobile-top-status-host-v1{
+
+        display:block !important;
+
+        padding:10px 12px !important;
+
+        background:
+            linear-gradient(
+                180deg,
+                rgba(35,32,35,.97),
+                rgba(18,20,26,.97)
+            ) !important;
+
+        border:
+            1px solid rgba(151,104,63,.85) !important;
+
+        border-radius:6px !important;
+
+        box-sizing:border-box !important;
+
+        min-height:0 !important;
+    }
+
+
+    .mobile-top-info-row-v1{
+
+        display:flex;
+
+        align-items:center;
+
+        gap:11px;
+
+        width:100%;
+
+        min-width:0;
+
+        padding-bottom:8px;
+
+        white-space:nowrap;
+
+        font-size:13px;
+
+        line-height:1.1;
+
+        color:#cbd5e1;
+
+        overflow:hidden;
+    }
+
+
+    .mobile-info-name-v1{
+
+        flex:0 1 auto;
+
+        min-width:38px;
+
+        max-width:120px;
+
+        overflow:hidden;
+
+        text-overflow:ellipsis;
+
+        font-size:16px;
+
+        font-weight:900;
+
+        color:#f8fafc;
+    }
+
+
+    .mobile-info-item-v1{
+
+        flex:0 0 auto;
+
+        color:#aeb6c2;
+    }
+
+
+    .mobile-info-item-v1 b{
+
+        color:#f1f5f9;
+
+        font-weight:800;
+    }
+
+
+    .mobile-info-gold-v1{
+
+        margin-left:auto;
+
+        min-width:0;
+
+        overflow:hidden;
+
+        text-overflow:ellipsis;
+
+        color:#facc15;
+
+        font-size:14px;
+
+        font-weight:900;
+    }
+
+
+    .mobile-top-vitals-row-v1{
+
+        display:grid !important;
+
+        grid-template-columns:
+            minmax(0,1fr)
+            minmax(0,1fr)
+            minmax(74px,.48fr);
+
+        gap:8px;
+
+        align-items:center;
+
+        width:100%;
+    }
+
+
+    .mobile-top-vital-v1{
+
+        min-width:0;
+
+        display:flex;
+
+        align-items:center;
+
+        gap:6px;
+    }
+
+
+    .mobile-vital-label-v1{
+
+        flex:0 0 auto;
+
+        width:24px;
+
+        font-size:12px;
+
+        font-weight:900;
+    }
+
+
+    .mobile-vital-label-v1.hp{
+        color:#fb7185;
+    }
+
+
+    .mobile-vital-label-v1.mp{
+        color:#60a5fa;
+    }
+
+
+    .mobile-vital-track-v1{
+
+        position:relative;
+
+        flex:1 1 auto;
+
+        min-width:0;
+
+        height:25px;
+
+        overflow:hidden;
+
+        border:
+
+            1px solid rgba(
+                148,163,184,.55
+            );
+
+        background:#111827;
+
+        box-shadow:
+            inset 0 0 4px rgba(0,0,0,.8);
+    }
+
+
+    .mobile-vital-fill-v1{
+
+        position:absolute;
+
+        left:0;
+
+        top:0;
+
+        bottom:0;
+
+        width:100%;
+    }
+
+
+    .mobile-vital-fill-v1.hp{
+
+        background:
+            linear-gradient(
+                180deg,
+                #ef4444,
+                #dc2626
+            );
+    }
+
+
+    .mobile-vital-fill-v1.mp{
+
+        background:
+            linear-gradient(
+                180deg,
+                #3b82f6,
+                #2563eb
+            );
+    }
+
+
+    .mobile-vital-text-v1{
+
+        position:absolute;
+
+        inset:0;
+
+        display:flex;
+
+        align-items:center;
+
+        justify-content:center;
+
+        z-index:2;
+
+        color:white;
+
+        font-size:13px;
+
+        font-weight:900;
+
+        text-shadow:
+            0 1px 2px #000,
+            0 0 3px #000;
+    }
+
+
+    .mobile-sherine-stage-v1{
+
+        height:27px;
+
+        min-width:0;
+
+        padding:2px 5px;
+
+        display:flex;
+
+        flex-direction:column;
+
+        justify-content:center;
+
+        align-items:center;
+
+        border-radius:5px;
+
+        border:1px solid #475569;
+
+        background:#1e293b;
+
+        line-height:1.05;
+
+        overflow:hidden;
+    }
+
+
+    .mobile-sherine-small-v1{
+
+        font-size:9px;
+
+        font-weight:700;
+
+        color:#94a3b8;
+    }
+
+
+    .mobile-sherine-stage-v1 b{
+
+        max-width:100%;
+
+        overflow:hidden;
+
+        text-overflow:ellipsis;
+
+        white-space:nowrap;
+
+        font-size:11px;
+
+        font-weight:900;
+    }
+
+
+    .mobile-sherine-stage-v1.off{
+
+        border-color:#475569;
+
+        background:#1e293b;
+
+        color:#cbd5e1;
+    }
+
+
+    .mobile-sherine-stage-v1.normal{
+
+        border-color:#16a34a;
+
+        background:
+            linear-gradient(
+                180deg,
+                #14532d,
+                #052e16
+            );
+
+        color:#bbf7d0;
+
+        box-shadow:
+            0 0 6px rgba(34,197,94,.35);
+    }
+
+
+    .mobile-sherine-stage-v1.mad{
+
+        border-color:#e11d48;
+
+        background:
+            linear-gradient(
+                180deg,
+                #881337,
+                #4c0519
+            );
+
+        color:#fecdd3;
+
+        box-shadow:
+            0 0 7px rgba(244,63,94,.45);
+    }
+
+}
+
+
+@media (max-width:430px){
+
+    .mobile-top-info-row-v1{
+
+        gap:7px;
+
+        font-size:11px;
+    }
+
+
+    .mobile-info-name-v1{
+
+        max-width:78px;
+
+        font-size:14px;
+    }
+
+
+    .mobile-info-gold-v1{
+
+        font-size:11px;
+    }
+
+
+    .mobile-top-vitals-row-v1{
+
+        grid-template-columns:
+            minmax(0,1fr)
+            minmax(0,1fr)
+            67px;
+
+        gap:5px;
+    }
+
+
+    .mobile-vital-label-v1{
+
+        width:20px;
+
+        font-size:10px;
+    }
+
+
+    .mobile-vital-track-v1{
+
+        height:23px;
+    }
+
+
+    .mobile-vital-text-v1{
+
+        font-size:11px;
+    }
+
+}
+
+        `;
+
+        document.head.appendChild(style);
+    }
+
+
+    return document.getElementById(
+        'mobile-top-info-v1'
+    );
+}
+
+
+
+function syncMobileCompactTopStatusV1(){
+
+    if(
+        typeof player === 'undefined' ||
+        !player
+    ){
+        return;
+    }
+
+    var box =
+        _ensureMobileCompactTopStatusV1();
+
+    if(!box)
+        return;
+
+
+    var nameEl =
+        document.getElementById(
+            'mobile-info-name-v1'
+        );
+
+    var lvEl =
+        document.getElementById(
+            'mobile-info-lv-v1'
+        );
+
+    var acEl =
+        document.getElementById(
+            'mobile-info-ac-v1'
+        );
+
+    var mrEl =
+        document.getElementById(
+            'mobile-info-mr-v1'
+        );
+
+    var goldEl =
+        document.getElementById(
+            'mobile-info-gold-v1'
+        );
+
+
+    if(nameEl){
+
+        var classNameV1 = {
+            knight: '騎士',
+            mage: '法師',
+            elf: '妖精',
+            dark: '黑暗妖精',
+            illusion: '幻術士',
+            dragon: '龍騎士',
+            warrior: '戰士',
+            royal: '王族'
+        }[player.cls] || '冒險者';
+
+        nameEl.textContent =
+            (player.name && String(player.name).trim())
+                ? player.name
+                : classNameV1;
+
+        try{
+
+            if(
+                typeof pvpAlignmentColor
+                === 'function'
+            ){
+                nameEl.style.color =
+                    pvpAlignmentColor(
+                        player.alignmentValue
+                    );
+            }
+
+        }catch(e){}
+    }
+
+
+    if(lvEl)
+        lvEl.textContent =
+            Math.floor(
+                Number(player.lv) || 1
+            );
+
+
+    if(acEl)
+        acEl.textContent =
+            player.d
+                ? Number(player.d.ac || 0)
+                : 0;
+
+
+    if(mrEl)
+        mrEl.textContent =
+            player.d
+                ? Number(player.d.mr || 0)
+                : 0;
+
+
+    if(goldEl)
+        goldEl.textContent =
+            Math.floor(
+                Number(player.gold) || 0
+            ).toLocaleString();
+
+
+    /*
+     * 席琳目前階段：
+     *
+     * 未開 = 一般世界
+     * 一般 = 席琳的世界
+     * 瘋狂 = 瘋狂的席琳世界
+     */
+    var sherine =
+        document.getElementById(
+            'mobile-sherine-stage-v1'
+        );
+
+    var sherineText =
+        document.getElementById(
+            'mobile-sherine-stage-text-v1'
+        );
+
+    if(sherine && sherineText){
+
+        sherine.classList.remove(
+            'off',
+            'normal',
+            'mad'
+        );
+
+
+        if(player.sherineMad){
+
+            sherine.classList.add('mad');
+
+            sherineText.textContent =
+                '瘋狂';
+
+        }else if(player.sherineWorld){
+
+            sherine.classList.add(
+                'normal'
+            );
+
+            sherineText.textContent =
+                '一般';
+
+        }else{
+
+            sherine.classList.add('off');
+
+            sherineText.textContent =
+                '未開';
+        }
+    }
+}
+
+
+/*
+ * 首次載入時先建立一次。
+ * 後續由 _updateUIImpl 每次同步。
+ */
+setTimeout(function(){
+
+    try{
+        syncMobileCompactTopStatusV1();
+    }catch(e){}
+
+}, 300);
 
