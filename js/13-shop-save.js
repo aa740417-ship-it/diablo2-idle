@@ -2045,7 +2045,7 @@ var OFFLINE_V2_MIN_MS =
     10 * 1000;               // 少於 10 秒不補
 
 var OFFLINE_V2_MAX_MS =
-    5 * 60 * 1000;    // 離線補跑上限 5 分鐘
+    12 * 60 * 60 * 1000;   // 離線掛機最多計算 12 小時
 
 
 function offlineV2Key(slot){
