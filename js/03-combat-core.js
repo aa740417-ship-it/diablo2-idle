@@ -249,7 +249,8 @@ function gameLoop() {
             autoSoldCount: 0,
             autoSoldGold: 0,
             died: false
-        };   // ⏩ 整段補跑只在起點與終點各掃一次背包
+        };
+        _ffHybridInit(_ffAcc);   // ⏩ 整段補跑只在起點與終點各掃一次背包
         try { if (typeof _vfxClearAll === 'function') _vfxClearAll(); } catch (e) {}   // 補跑只保留最終收益，立即釋放尚未播完的戰鬥特效
     }
     // 長補跑先讓瀏覽器畫出進度提示再開始重運算；只做一次，不增加每批額外等待。
@@ -265,6 +266,74 @@ function gameLoop() {
     state.ffSmall = false;   // 真實補跑一律略過動畫；小補跑也只保留最終畫面與收益
     let ran = 0, budget0 = now;
     let _burstMax = owed;
+
+    /* hybrid sample burst cap v2 */
+    /*
+     * 長補跑啟用混合模式時，
+     * 不允許單一計算批次一次衝過取樣時間。
+     *
+     * 15分鐘以上：
+     *   第一次最多跑到 5分鐘取樣點。
+     *   若樣本不足，helper 會把目標延長至10分鐘。
+     */
+    try {
+
+        if (
+            _ffAcc &&
+            _ffAcc.hybEligible &&
+            !_ffAcc.hybUsed &&
+            !_ffAcc.hybDisabled
+        ) {
+
+            let _hybDone =
+                Math.max(
+                    0,
+                    Number(_ffAcc.ticks) || 0
+                );
+
+            let _hybTotal =
+                _hybDone +
+                Math.max(
+                    0,
+                    Number(owed) || 0
+                );
+
+            let _hybTarget =
+                Math.max(
+                    1,
+                    Number(
+                        _ffAcc.hybTargetTicks
+                    ) || 3000
+                );
+
+            /*
+             * 15分鐘 = 9000 ticks
+             * 只有真正長補跑才限制取樣批次。
+             */
+            if (_hybTotal >= 9000) {
+
+                let _hybNeed =
+                    _hybTarget -
+                    _hybDone;
+
+                /*
+                 * 最多跑到取樣點。
+                 * 若剛好已到取樣點，只允許1 tick，
+                 * 讓後面的 Hybrid 檢查立即接手，
+                 * 避免形成 0-tick 無限排程。
+                 */
+                _burstMax =
+                    Math.min(
+                        _burstMax,
+                        Math.max(
+                            1,
+                            _hybNeed
+                        )
+                    );
+            }
+        }
+
+    } catch (e) {}
     try {
         while (ran < _burstMax && ran < FF_HARD_CAP) {
             let tickError = null;
@@ -304,6 +373,7 @@ function gameLoop() {
         state.ff = false;
         state.ffSmall = false;
     }
+    if (!player.dead) _ffHybridMaybeSettle();
     if (player.dead) _tickDebt = 0;   // 進入下方統一收尾與最終重繪，不留下死亡後的補跑債務
     if (!_hidden) _ffProgressUpdate(_ffAcc, _tickDebt);
     if (_tickDebt < TICK_MS) {   // 補跑完畢
@@ -445,7 +515,16 @@ function _ffFinishCatchup() {
     if (_acc.aborted && typeof logSys === 'function') {
         logSys('<span class="text-red-400 font-bold">補跑連續發生錯誤，已停止剩餘補跑，避免進度卡在重複補跑；請重新整理後確認。</span>');
     }
-    _ffAcc = null;
+    
+    if (_acc && _acc.hybUsed && _acc.hybSummary) {
+        try {
+            logSys(
+                '<span class="text-cyan-300 font-bold">⚡ 混合式快速結算：</span>' +
+                _acc.hybSummary + '。'
+            );
+        } catch (e) {}
+    }
+_ffAcc = null;
     if (typeof resetCatchupGainItemIndex === 'function') resetCatchupGainItemIndex();
     _ffErrorStreak = 0;
     _ffProgressHide();
@@ -3105,3 +3184,786 @@ function qiguWeaponProc(target, wpn) {
     logCombat(`<span class="font-bold" style="color:#a78bfa;text-shadow:0 0 6px #7c3aed;">【${label}】</span>對 <span class="${getMobColor(target.lv)}">${target.n}</span> 造成 ${dmg} 點傷害！`, cls);
     if (target.curHp <= 0) killMob(mapState.targetIdx); else renderMobs();
 }
+
+
+/* === hybrid catchup settlement v1 === */
+(function(){
+
+/*
+ * 15分鐘以上：
+ *   先真實取樣 5 分鐘
+ *   若擊殺 < 2，再取樣到 10 分鐘
+ *   之後只按實際擊殺效率跑「生成怪物＋擊殺獎勵」
+ *
+ * 特殊副本/PVP/攻城/Boss房不啟用。
+ */
+
+const HYB_THRESHOLD_TICKS = 15 * 60 * 10;
+const HYB_SAMPLE_TICKS    = 5  * 60 * 10;
+const HYB_SAMPLE_MAX      = 10 * 60 * 10;
+const HYB_MIN_KILLS       = 2;
+const HYB_MAX_KILLS       = 100000;
+
+
+function _hybAuditKills(){
+
+    try{
+        if(
+            typeof _audit !== 'undefined' &&
+            _audit &&
+            Number.isFinite(Number(_audit.kills))
+        ){
+            return Number(_audit.kills) || 0;
+        }
+    }catch(e){}
+
+    return null;
+}
+
+
+function _hybEligible(){
+
+    try{
+
+        if(
+            !player ||
+            player.dead ||
+            !mapState ||
+            !mapState.current
+        ){
+            return false;
+        }
+
+        let cur = String(mapState.current);
+
+        if(cur.indexOf('town_') === 0)
+            return false;
+
+        if(
+            typeof DB === 'undefined' ||
+            !DB.maps ||
+            !Array.isArray(DB.maps[cur])
+        ){
+            return false;
+        }
+
+        if(
+            typeof KING_ROOMS !== 'undefined' &&
+            KING_ROOMS &&
+            KING_ROOMS[cur]
+        ){
+            return false;
+        }
+
+        if(
+            typeof PURE_BOSS_MAPS !== 'undefined' &&
+            Array.isArray(PURE_BOSS_MAPS) &&
+            PURE_BOSS_MAPS.includes(cur)
+        ){
+            return false;
+        }
+
+        if(
+            typeof isSiegeArea === 'function' &&
+            isSiegeArea(cur)
+        ){
+            return false;
+        }
+
+        if(
+            state.riftRun ||
+            state.prideClimb ||
+            state.prideRanked ||
+            state.antharas ||
+            state.oblivion
+        ){
+            return false;
+        }
+
+        if(
+            mapState.npcClanBattle ||
+            mapState.wcMassTauntBattle
+        ){
+            return false;
+        }
+
+        if(player.pvpOn)
+            return false;
+
+        return true;
+
+    }catch(e){
+
+        return false;
+    }
+}
+
+
+function _ffHybridInit(acc){
+
+    if(!acc || acc.hybInit)
+        return;
+
+    acc.hybInit = true;
+
+    acc.hybEligible =
+        _hybEligible();
+
+    acc.hybUsed = false;
+    acc.hybDisabled = false;
+
+    acc.hybTargetTicks =
+        HYB_SAMPLE_TICKS;
+
+    acc.hybKill0 =
+        _hybAuditKills();
+
+    acc.hybGold0 =
+        Number(player.gold) || 0;
+
+    acc.hybInv0 =
+        (typeof _ffInventoryCounts === 'function')
+            ? _ffInventoryCounts()
+            : {};
+}
+
+
+function _hybSampleKills(acc){
+
+    let now =
+        _hybAuditKills();
+
+    if(
+        now == null ||
+        acc.hybKill0 == null
+    ){
+        return 0;
+    }
+
+    return Math.max(
+        0,
+        Math.floor(
+            now - acc.hybKill0
+        )
+    );
+}
+
+
+function _hybIsSupply(id){
+
+    try{
+
+        let d =
+            DB.items &&
+            DB.items[id];
+
+        if(!d)
+            return false;
+
+        if(d.type === 'pot')
+            return true;
+
+        if(
+            /arrow|箭|bolt|矢/i.test(
+                String(id) + ' ' + String(d.n || '')
+            )
+        ){
+            return true;
+        }
+
+    }catch(e){}
+
+    return false;
+}
+
+
+function _hybRemoveItem(id, count){
+
+    count =
+        Math.max(
+            0,
+            Math.floor(Number(count) || 0)
+        );
+
+    if(!count)
+        return true;
+
+    let inv =
+        player.inv || [];
+
+    for(
+        let i = inv.length - 1;
+        i >= 0 && count > 0;
+        i--
+    ){
+
+        let it = inv[i];
+
+        if(!it || it.id !== id)
+            continue;
+
+        let n =
+            Math.max(
+                1,
+                Number(it.cnt) || 1
+            );
+
+        let take =
+            Math.min(n, count);
+
+        n -= take;
+        count -= take;
+
+        if(n <= 0){
+
+            inv.splice(i,1);
+
+        }else{
+
+            it.cnt = n;
+        }
+    }
+
+    return count <= 0;
+}
+
+
+function _hybSaveBattle(){
+
+    return {
+        mobs: mapState.mobs,
+        spawnAt: mapState.spawnAt,
+        targetIdx: mapState.targetIdx,
+
+        forceBoss: mapState.forceBoss,
+        suppressSiegeBoss:
+            mapState.suppressSiegeBoss,
+
+        trollSpawn:
+            mapState._trollSpawn,
+
+        npcClanBattle:
+            mapState.npcClanBattle,
+
+        wcMassTauntBattle:
+            mapState.wcMassTauntBattle
+    };
+}
+
+
+function _hybRestoreBattle(x){
+
+    if(!x) return;
+
+    mapState.mobs =
+        x.mobs;
+
+    mapState.spawnAt =
+        x.spawnAt;
+
+    mapState.targetIdx =
+        x.targetIdx;
+
+    mapState.forceBoss =
+        x.forceBoss;
+
+    mapState.suppressSiegeBoss =
+        x.suppressSiegeBoss;
+
+    mapState._trollSpawn =
+        x.trollSpawn;
+
+    mapState.npcClanBattle =
+        x.npcClanBattle;
+
+    mapState.wcMassTauntBattle =
+        x.wcMassTauntBattle;
+}
+
+
+/*
+ * 快速部分只跑擊殺獎勵。
+ * 比數十萬個戰鬥 tick 快非常多。
+ */
+function _hybRewardKills(count){
+
+    count =
+        Math.max(
+            0,
+            Math.floor(Number(count) || 0)
+        );
+
+    if(!count)
+        return 0;
+
+    let saved =
+        _hybSaveBattle();
+
+    let oldFF =
+        state.ff;
+
+    let oldSmall =
+        state.ffSmall;
+
+    let oldTick =
+        state.inTick;
+
+    let actual = 0;
+    let attempts = 0;
+
+    let maxAttempts =
+        count * 8 + 100;
+
+    state.ff = true;
+    state.ffSmall = false;
+    state.inTick = true;
+
+    try{
+
+        while(
+            actual < count &&
+            attempts < maxAttempts
+        ){
+
+            attempts++;
+
+            mapState.mobs =
+                [null,null,null,null,null];
+
+            mapState.spawnAt =
+                [null,null,null,null,null];
+
+            mapState.targetIdx = -1;
+            mapState.forceBoss = false;
+
+            mapState.npcClanBattle = null;
+            mapState.wcMassTauntBattle = null;
+
+            try{
+                delete mapState._trollSpawn;
+            }catch(e){
+                mapState._trollSpawn = null;
+            }
+
+            spawnMob(0);
+
+            let mob =
+                mapState.mobs[0];
+
+            /*
+             * 特殊玩家/建築/攻城怪跳過。
+             */
+            if(
+                !mob ||
+                mob.trollPlayer ||
+                mob.siegeEnemy ||
+                mob.race === '建築' ||
+                mob.noAutoTeleport
+            ){
+                continue;
+            }
+
+            mob.curHp = 0;
+
+            killMob(0);
+
+            actual++;
+        }
+
+    }finally{
+
+        _hybRestoreBattle(saved);
+
+        state.ff = oldFF;
+        state.ffSmall = oldSmall;
+        state.inTick = oldTick;
+    }
+
+    return actual;
+}
+
+
+function _hybApplyAutoSell(){
+
+    try{
+
+        if(
+            typeof applyAutoSellRules === 'function'
+        ){
+            applyAutoSellRules();
+        }
+
+        if(
+            player.autoSellOn !== false &&
+            typeof autoSellJunk === 'function'
+        ){
+
+            let now = Date.now();
+
+            (player.inv || [])
+                .forEach(function(it){
+
+                    if(
+                        !it ||
+                        !it.junk
+                    ){
+                        return;
+                    }
+
+                    it.junkSince =
+                        Math.min(
+                            Number(it.junkSince) || now,
+                            now - 600000
+                        );
+                });
+
+            autoSellJunk();
+        }
+
+    }catch(e){}
+}
+
+
+function _ffHybridMaybeSettle(){
+
+    let acc = _ffAcc;
+
+    if(
+        !acc ||
+        !acc.hybInit ||
+        !acc.hybEligible ||
+        acc.hybDisabled ||
+        acc.hybUsed ||
+        player.dead
+    ){
+        return false;
+    }
+
+
+    let remainTicks =
+        Math.floor(
+            Math.max(0,_tickDebt) /
+            TICK_MS
+        );
+
+    let totalTicks =
+        Math.max(
+            0,
+            Number(acc.ticks) || 0
+        ) +
+        remainTicks;
+
+
+    /*
+     * 15分鐘內完全不碰。
+     */
+    if(
+        totalTicks <
+        HYB_THRESHOLD_TICKS
+    ){
+        return false;
+    }
+
+
+    let sampleTicks =
+        Math.max(
+            0,
+            Number(acc.ticks) || 0
+        );
+
+
+    if(
+        sampleTicks <
+        acc.hybTargetTicks
+    ){
+        return false;
+    }
+
+
+    let sampleKills =
+        _hybSampleKills(acc);
+
+
+    /*
+     * 5分鐘樣本太少，再跑到10分鐘。
+     */
+    if(
+        sampleKills <
+        HYB_MIN_KILLS &&
+        acc.hybTargetTicks <
+        HYB_SAMPLE_MAX
+    ){
+
+        acc.hybTargetTicks =
+            HYB_SAMPLE_MAX;
+
+        return false;
+    }
+
+
+    /*
+     * 10分鐘仍然一隻都沒殺：
+     * 不亂估，回精確模式。
+     */
+    if(sampleKills <= 0){
+
+        acc.hybDisabled = true;
+
+        return false;
+    }
+
+
+    remainTicks =
+        Math.floor(
+            Math.max(0,_tickDebt) /
+            TICK_MS
+        );
+
+    if(remainTicks <= 0)
+        return false;
+
+
+    let projectedKills =
+        Math.max(
+            0,
+            Math.round(
+                sampleKills *
+                remainTicks /
+                Math.max(1,sampleTicks)
+            )
+        );
+
+
+    /*
+     * 極端情況安全網。
+     */
+    if(
+        projectedKills >
+        HYB_MAX_KILLS
+    ){
+
+        acc.hybDisabled = true;
+
+        try{
+            logSys(
+                '<span class="text-amber-300">' +
+                '⚠ 預估快速擊殺超過 100,000 隻，' +
+                '本次為避免瀏覽器一次負荷過大，改回精確補跑。' +
+                '</span>'
+            );
+        }catch(e){}
+
+        return false;
+    }
+
+
+    /*
+     * 金幣依真實取樣的「淨變化」推算。
+     * 已包含：掉金、自動買補給、自動販賣。
+     */
+    let goldNow =
+        Number(player.gold) || 0;
+
+    let sampleGoldDelta =
+        goldNow -
+        (Number(acc.hybGold0) || 0);
+
+    let projectedGold =
+        goldNow +
+        Math.round(
+            sampleGoldDelta *
+            remainTicks /
+            Math.max(1,sampleTicks)
+        );
+
+
+    /*
+     * 預測會沒錢 → 退回精算。
+     */
+    if(projectedGold < 0){
+
+        acc.hybDisabled = true;
+
+        return false;
+    }
+
+
+    /*
+     * 檢查藥水/箭矢等補給。
+     * 若照目前消耗速度會用光，也退回精算。
+     */
+    let invNow =
+        (typeof _ffInventoryCounts === 'function')
+            ? _ffInventoryCounts()
+            : {};
+
+    let supplyLoss = {};
+
+    Object.keys(acc.hybInv0 || {})
+        .forEach(function(id){
+
+            if(!_hybIsSupply(id))
+                return;
+
+            let before =
+                Number(
+                    (acc.hybInv0 || {})[id]
+                ) || 0;
+
+            let now =
+                Number(invNow[id]) || 0;
+
+            let delta =
+                now - before;
+
+            if(delta >= 0)
+                return;
+
+            let extraLoss =
+                Math.max(
+                    0,
+                    Math.round(
+                        (-delta) *
+                        remainTicks /
+                        Math.max(1,sampleTicks)
+                    )
+                );
+
+            if(extraLoss > now){
+
+                acc.hybDisabled = true;
+
+                return;
+            }
+
+            supplyLoss[id] =
+                extraLoss;
+        });
+
+
+    if(acc.hybDisabled)
+        return false;
+
+
+    /*
+     * 標記已使用，防任何重入。
+     */
+    acc.hybUsed = true;
+
+    acc.hybSampleTicks =
+        sampleTicks;
+
+    acc.hybSampleKills =
+        sampleKills;
+
+    acc.hybProjectedKills =
+        projectedKills;
+
+    acc.hybSkippedTicks =
+        remainTicks;
+
+
+    /*
+     * 真正用原本 killMob 抽剩餘怪物獎勵。
+     */
+    let actual =
+        _hybRewardKills(
+            projectedKills
+        );
+
+    acc.hybRewardKills =
+        actual;
+
+
+    /*
+     * 補給扣除。
+     */
+    Object.keys(supplyLoss)
+        .forEach(function(id){
+
+            _hybRemoveItem(
+                id,
+                supplyLoss[id]
+            );
+        });
+
+
+    /*
+     * 清理本應自動賣掉的垃圾。
+     * 之後金幣覆蓋為「取樣淨值推算」，
+     * 不會重複計算販賣收入。
+     */
+    _hybApplyAutoSell();
+
+    player.gold =
+        Math.max(
+            0,
+            Math.floor(projectedGold)
+        );
+
+
+    /*
+     * 跳過剩餘戰鬥時間。
+     */
+    state.ticks +=
+        remainTicks;
+
+    acc.ticks +=
+        remainTicks;
+
+    _tickDebt =
+        Math.max(
+            0,
+            _tickDebt -
+            remainTicks * TICK_MS
+        );
+
+
+    try{
+
+        let mins =
+            Math.round(
+                remainTicks *
+                TICK_MS /
+                60000
+            );
+
+        acc.hybSummary =
+            '取樣 ' +
+            Math.round(
+                sampleTicks *
+                TICK_MS /
+                60000
+            ) +
+            ' 分鐘擊殺 ' +
+            sampleKills +
+            ' 隻，剩餘約 ' +
+            mins +
+            ' 分鐘快速結算 ' +
+            actual +
+            ' 隻';
+
+    }catch(e){}
+
+    return true;
+}
+
+
+/*
+ * 掛到 window，讓 gameLoop 裡注入的呼叫可直接使用。
+ */
+window._ffHybridInit =
+    _ffHybridInit;
+
+window._ffHybridMaybeSettle =
+    _ffHybridMaybeSettle;
+
+try{
+    _ffHybridInit =
+        window._ffHybridInit;
+
+    _ffHybridMaybeSettle =
+        window._ffHybridMaybeSettle;
+}catch(e){}
+
+})();
