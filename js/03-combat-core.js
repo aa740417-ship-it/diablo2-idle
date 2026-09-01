@@ -289,7 +289,7 @@ function gameLoop() {
                 break;
             }   // 真實補跑戰敗即停止；死亡後的背景時間不得繼續產生收益
             _ffErrorStreak = 0;
-            if ((ran & 3) === 0) {
+            if ((ran & 63) === 0) {
                 let t = (typeof performance !== 'undefined' ? performance.now() : Date.now());
                 if (t - budget0 >= FF_BUDGET_MS) break;
             }
@@ -451,9 +451,9 @@ function _ffFinishCatchup() {
     _ffProgressHide();
 }
 // ⏩ 補跑專用快速排程：每批最多運算 80ms、讓出 8ms 後續跑；仍逐 tick 真實結算。
-const FF_BUDGET_MS = 80;
-const FF_YIELD_MS = 8;
-const FF_HARD_CAP = 6000;
+const FF_BUDGET_MS = 1200;
+const FF_YIELD_MS = 1;
+const FF_HARD_CAP = 50000;
 const FF_MAX_ELAPSED_MS = 300000;
 const FF_ERROR_STREAK_MAX = 3;
 const FF_PROGRESS_MIN_MS = 3000;
