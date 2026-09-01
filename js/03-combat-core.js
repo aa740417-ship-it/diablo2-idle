@@ -187,11 +187,16 @@ function gameLoop() {
     if (_loopLast == null) {
         _loopLast = now;
         _tickDebt = 0;
+
         return;
     }
     let elapsed = now - _loopLast;
     _loopLast = now;
     let _hidden = typeof document !== 'undefined' && document.hidden;
+if (_hidden) {
+    _loopLast = now - elapsed;
+    return;
+}
 
     // 🔀 背景分頁能跑多少先跑多少：Chrome 即使降低 setInterval 頻率，每次喚醒仍逐 tick 償還已經過的時間。
     //    瀏覽器完全凍結的尾段由 visibilitychange 只補「距離最後一次 gameLoop」的差額，不會重複入帳。

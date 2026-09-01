@@ -1338,7 +1338,7 @@ function queueCatchupMs(ms) {
 
 // 背景分頁回前景：把整段時間排入真實 tick 補跑；分批執行以維持畫面可操作。
 function settleBackgroundMs(ms, reason) {
-    ms = Math.max(0, Number(ms) || 0);
+    ms = Math.min(300000,Math.max(0, Number(ms) || 0));
     if (ms < TICK_MS) return true;
     if (queueCatchupMs(ms)) return true;
     if (typeof logSys === 'function') {
