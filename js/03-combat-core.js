@@ -3287,8 +3287,26 @@ function _hybEligible(){
             return false;
         }
 
-        if(player.pvpOn)
+        /*
+         * Hybrid v3：
+         * PvP 玩家只有在「野外」才停用快速結算。
+         *
+         * 真正的隨機玩家遭遇本來就只會在
+         * MAP_CATEGORIES.wild 發生；
+         * 地監／洞穴／塔內即使 pvpOn=true，
+         * 也不應因此整段退回慢速逐 tick 補跑。
+         */
+        if(
+            player.pvpOn &&
+            typeof MAP_CATEGORIES !== 'undefined' &&
+            MAP_CATEGORIES &&
+            Array.isArray(MAP_CATEGORIES.wild) &&
+            MAP_CATEGORIES.wild.some(function(m){
+                return m && m.v === cur;
+            })
+        ){
             return false;
+        }
 
         return true;
 
