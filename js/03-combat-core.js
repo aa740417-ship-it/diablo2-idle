@@ -3854,10 +3854,104 @@ function _ffHybridMaybeSettle(){
 
             if(extraLoss > now){
 
-                acc.hybDisabled = true;
+    let canAutoRestock = false;
 
-                return;
+    try{
+        let d = DB.items && DB.items[id];
+
+        /*
+         * 治療藥水：
+         * 有選這瓶，而且有開自動購買。
+         */
+        if(d && d.type === 'pot'){
+            let potSel =
+                document.getElementById('set-pot');
+
+            let potBuy =
+                document.getElementById('set-auto-buy-pot');
+
+            if(
+                potSel &&
+                potBuy &&
+                potBuy.checked &&
+                String(potSel.value) === String(id)
+            ){
+                canAutoRestock = true;
             }
+
+            /*
+             * 自動使用型藥水。
+             * 缺貨時原本遊戲就會自動買一瓶再使用。
+             */
+            let autoUseByItem = {
+                potion_haste: 'set-haste',
+                potion_brave: 'set-brave',
+                potion_blue: 'set-blue',
+                new_item_140: 'set-cautious',
+                new_item_139: 'set-elfcookie'
+            };
+
+            let autoUseId =
+                autoUseByItem[id];
+
+            let autoUseEl =
+                autoUseId
+                    ? document.getElementById(autoUseId)
+                    : null;
+
+            if(
+                autoUseEl &&
+                autoUseEl.checked
+            ){
+                canAutoRestock = true;
+            }
+        }
+
+        /*
+         * 箭矢：
+         * 有開自動購買就允許快速結算。
+         */
+        if(
+            d &&
+            /arrow|箭|bolt|矢/i.test(
+                String(id) +
+                ' ' +
+                String(d.n || '')
+            )
+        ){
+            let arrowBuy =
+                document.getElementById(
+                    'set-auto-buy-arrow'
+                );
+
+            if(
+                arrowBuy &&
+                arrowBuy.checked
+            ){
+                canAutoRestock = true;
+            }
+        }
+
+    }catch(e){}
+
+    /*
+     * 有自動補給時：
+     * 真實取樣期間的金幣淨變化
+     * 已經包含自動購買成本。
+     *
+     * 所以不能再因為「目前庫存不夠
+     * 撐完整段離線時間」而切回逐 tick。
+     */
+    if(canAutoRestock){
+        return;
+    }
+
+    /*
+     * 沒有自動補給才維持原本安全網。
+     */
+    acc.hybDisabled = true;
+    return;
+}
 
             supplyLoss[id] =
                 extraLoss;
