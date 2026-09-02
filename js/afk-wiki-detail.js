@@ -32,6 +32,29 @@ function render(){ensure();const body=document.getElementById('awk-body'),tabs=d
 function ensure(){let o=document.getElementById('awk-overlay');if(o)return o;const st=document.createElement('style');st.textContent=`#awk-overlay{position:fixed;inset:0;z-index:99999;background:#020617ee;color:#e2e8f0;font-family:system-ui,sans-serif}#awk-overlay.hidden{display:none}.awk-shell{max-width:1050px;height:100%;margin:auto;background:#0f172a;display:flex;flex-direction:column}.awk-head{padding:9px;background:#111827;border-bottom:1px solid #334155}.awk-top{display:flex;gap:7px;align-items:center}.awk-top b{color:#fde68a;white-space:nowrap}.awk-top input{flex:1;min-width:80px;background:#020617;border:1px solid #475569;border-radius:6px;color:#fff;padding:7px}.awk-top button,.awk-back{background:#1e293b;border:1px solid #64748b;border-radius:6px;color:#fff;padding:6px 9px}.awk-tabs{display:flex;gap:5px;overflow:auto;margin-top:7px}.awk-tabs button{white-space:nowrap;background:#1e293b;border:1px solid #475569;color:#cbd5e1;border-radius:6px;padding:5px 8px}.awk-tabs .on{background:#78350f;border-color:#f59e0b;color:#fef3c7}.awk-body{flex:1;overflow:auto;padding:10px}.awk-hero,section{background:#111827;border:1px solid #334155;border-radius:9px;padding:11px;margin-bottom:9px}.awk-hero h2,h2{color:#fde68a;margin:0 0 7px}.awk-hero p,section p{color:#cbd5e1;line-height:1.65;margin:4px 0}section h3{color:#fcd34d;margin:0 0 7px;font-size:14px}.awk-count{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px}.awk-count button{background:#172033;border:1px solid #334155;border-radius:8px;color:#fff;padding:8px}.awk-count b{display:block;color:#fbbf24;font-size:18px}.awk-count span{font-size:11px;color:#94a3b8}.awk-list{display:flex;flex-direction:column;gap:5px}.awk-card{width:100%;display:flex;align-items:center;gap:7px;text-align:left;background:#111827;border:1px solid #334155;border-radius:8px;padding:8px;color:#e2e8f0}.awk-card>div{flex:1;min-width:0}.awk-card b{display:block}.awk-card span{display:block;color:#94a3b8;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.awk-card em{font-style:normal;color:#fbbf24;font-size:11px}.awk-card i{font-style:normal;font-size:20px}.awk-note{font-size:11px;color:#fde68a;background:#422006;border:1px solid #854d0e;border-radius:6px;padding:6px;margin-bottom:7px}.awk-empty{text-align:center;padding:30px;color:#94a3b8}.awk-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}.awk-tags span{border:1px solid #475569;background:#1e293b;border-radius:999px;padding:2px 6px;font-size:10px}.awk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.awk-grid div{background:#0b1220;border:1px solid #26364c;border-radius:5px;padding:6px;font-size:12px}.awk-row,.awk-link{display:flex;width:100%;justify-content:space-between;gap:8px;padding:6px 2px;border:0;border-bottom:1px solid #26364c;background:none;color:#e2e8f0;text-align:left}.awk-row em,.awk-link em{color:#fbbf24;font-style:normal}.awk-desc{line-height:1.6;color:#cbd5e1}.awk-back{margin-bottom:8px;color:#bae6fd}@media(max-width:600px){.awk-count{grid-template-columns:repeat(2,1fr)}.awk-grid{grid-template-columns:repeat(2,1fr)}.awk-top b{font-size:0}.awk-top b:after{content:'📖';font-size:18px}}`;
 document.head.appendChild(st);o=document.createElement('div');o.id='awk-overlay';o.className='hidden';o.innerHTML=`<div class="awk-shell"><div class="awk-head"><div class="awk-top"><b>📖 詳細百科</b><input id="awk-search" placeholder="搜尋裝備、技能、怪物、地圖…"><button onclick="AFKWiki.close()">✕</button></div><div id="awk-tabs" class="awk-tabs"></div></div><main id="awk-body" class="awk-body"></main></div>`;document.body.appendChild(o);document.getElementById('awk-search').addEventListener('input',e=>{S.q=e.target.value;S.detail=null;render();});return o;}
 function entry(){if(document.querySelector('.awk-entry'))return true;const a=[...document.querySelectorAll('button')].find(b=>(b.getAttribute('onclick')||'').includes('openCollectionPanel'))||[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='收藏');if(!a)return false;const b=document.createElement('button');b.className=(a.className||'')+' awk-entry';b.textContent='百科';b.onclick=()=>AFKWiki.open();a.insertAdjacentElement('afterend',b);return true;}
+entry=function(){
+    document.querySelectorAll('.awk-entry').forEach(function(el){
+        if(!el.closest('#collection-panel')) el.remove();
+    });
+
+    if(document.querySelector('#collection-panel .awk-entry')) return true;
+
+    const host=document.querySelector('#collection-panel .flex.flex-col.gap-3.p-5');
+    if(!host) return false;
+
+    const b=document.createElement('button');
+    b.className='btn py-5 text-xl font-bold awk-entry';
+    b.style.cssText='background:linear-gradient(135deg,#4a2f0c,#b3850e);color:#fde68a;border-color:#d4a017;';
+    b.textContent='📖 詳細百科';
+
+    b.onclick=function(){
+        if(typeof closeCollectionPanel==='function') closeCollectionPanel();
+        AFKWiki.open();
+    };
+
+    host.appendChild(b);
+    return true;
+};
 window.AFKWiki={open(){ensure().classList.remove('hidden');render();},close(){const o=document.getElementById('awk-overlay');if(o)o.classList.add('hidden');},tab(t){S.tab=t;S.detail=null;render();},detail(k,id){S.detail={k,id};render();},back(){S.detail=null;render();}};
 const start=()=>{entry();let n=0,t=setInterval(()=>{if(entry()||++n>30)clearInterval(t)},500);};document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start):start();
 })();
