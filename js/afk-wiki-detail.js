@@ -1225,6 +1225,167 @@ qList=function(){
 
 
 /* 特殊攻略詳細內容 */
+    /* ===== 🔗 攻略內物品／怪物可直接點擊 ===== */
+
+let _qGuideLinkIndex=null;
+
+function qGuideNormName(s){
+    return String(s||'')
+        .replace(/（/g,'(')
+        .replace(/）/g,')')
+        .trim();
+}
+
+function qGuideLinkIndex(){
+
+    if(_qGuideLinkIndex) return _qGuideLinkIndex;
+
+    const out=[];
+
+    /* 物品名稱 */
+    try{
+        Object.keys(DB.items||{}).forEach(function(id){
+
+            const d=DB.items[id];
+
+            if(!d || !d.n) return;
+
+            out.push({
+                kind:'item',
+                id:id,
+                name:String(d.n),
+                norm:qGuideNormName(d.n)
+            });
+        });
+    }catch(e){}
+
+    /* 怪物名稱 */
+    try{
+        Object.keys(DB.mobs||{}).forEach(function(id){
+
+            const d=DB.mobs[id];
+
+            if(!d || !d.n) return;
+
+            out.push({
+                kind:'mob',
+                id:id,
+                name:String(d.n),
+                norm:qGuideNormName(d.n)
+            });
+        });
+    }catch(e){}
+
+    /* 長名稱優先，避免短名稱搶先配對 */
+    out.sort(function(a,b){
+        return b.norm.length-a.norm.length;
+    });
+
+    _qGuideLinkIndex=out;
+
+    return out;
+}
+
+
+function qGuideLinkButton(kind,id,label){
+
+    const color=
+        kind==='mob'
+        ? '#fbbf24'
+        : '#7dd3fc';
+
+    return `
+        <button
+            type="button"
+            style="
+                display:inline;
+                padding:0;
+                border:0;
+                background:none;
+                color:${color};
+                font:inherit;
+                font-weight:800;
+                text-decoration:underline;
+                text-decoration-style:dotted;
+                text-underline-offset:3px;
+                cursor:pointer;
+            "
+            onclick="AFKWiki.detail('${kind}','${id}')"
+        >${esc(label)}</button>
+    `;
+}
+
+
+function qGuideLinkify(html){
+
+    const box=document.createElement('div');
+
+    box.innerHTML=String(html||'');
+
+    const names=qGuideLinkIndex();
+
+    box.querySelectorAll('b').forEach(function(b){
+
+        if(b.querySelector('button')) return;
+
+        const raw=String(b.textContent||'').trim();
+
+        if(!raw) return;
+
+        const norm=qGuideNormName(raw);
+
+        let hit=null;
+        let pos=-1;
+
+        for(let i=0;i<names.length;i++){
+
+            const x=names[i];
+
+            const p=norm.indexOf(x.norm);
+
+            if(p<0) continue;
+
+            /*
+             * 短名稱如「炎魔」只有整段文字完全相同才連結，
+             * 避免把「炎魔友好度」錯當成怪物。
+             */
+            if(
+                x.norm.length<4 &&
+                norm!==x.norm
+            ){
+                continue;
+            }
+
+            hit=x;
+            pos=p;
+            break;
+        }
+
+        if(!hit) return;
+
+        const before=raw.slice(0,pos);
+
+        const label=raw.slice(
+            pos,
+            pos+hit.norm.length
+        );
+
+        const after=raw.slice(
+            pos+hit.norm.length
+        );
+
+        b.innerHTML=
+            esc(before)+
+            qGuideLinkButton(
+                hit.kind,
+                hit.id,
+                label
+            )+
+            esc(after);
+    });
+
+    return box.innerHTML;
+}
 qDetail=function(id){
 
   if(id.indexOf('guide:')===0){
@@ -1261,7 +1422,7 @@ qDetail=function(id){
         </div>
       </section>
 
-      ${g.html}
+      ${qGuideLinkify（g.html)}
     `;
   }
 
