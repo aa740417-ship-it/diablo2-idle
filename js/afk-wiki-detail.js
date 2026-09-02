@@ -55,6 +55,543 @@ entry=function(){
     host.appendChild(b);
     return true;
 };
+/* ===== 📜 詳細百科：任務資料＋移除舊百科入口 ===== */
+(function(){
+
+  /* ---- 隱藏右下角舊百科 ---- */
+  const _qStyle=document.createElement('style');
+  _qStyle.textContent='.game-wiki-entry{display:none!important}';
+  document.head.appendChild(_qStyle);
+
+  function hideLegacyWiki(){
+    document.querySelectorAll('.game-wiki-entry').forEach(function(e){
+      e.style.setProperty('display','none','important');
+    });
+
+    document.querySelectorAll('button').forEach(function(b){
+      if(
+        String(b.textContent||'').trim()==='百科' &&
+        !b.closest('#collection-panel')
+      ){
+        b.style.setProperty('display','none','important');
+      }
+    });
+  }
+
+  hideLegacyWiki();
+  setInterval(hideLegacyWiki,1000);
+
+
+  /* ---- 保留原百科函式 ---- */
+  const _baseList=list;
+  const _baseDetail=detail;
+  const _baseRender=render;
+
+
+  function qItemName(id){
+    return (DB.items && DB.items[id] && DB.items[id].n) || id;
+  }
+
+  function qHave(id){
+    try{
+      return typeof questCountId==='function'
+        ? questCountId(id)
+        : 0;
+    }catch(e){
+      return 0;
+    }
+  }
+
+  function qSource(id){
+    try{
+      if(typeof _wcItemSourceAnswers==='function'){
+        const a=_wcItemSourceAnswers(id);
+        if(Array.isArray(a) && a.length){
+          return a.slice(0,2).join(' ');
+        }
+      }
+    }catch(e){}
+
+    try{
+      const a=(knowledge().itemDrops[id]||[]).slice(0,4);
+      if(a.length){
+        return a.map(function(r){
+          return r.mob+(r.rate!=null ? ' '+r.rate+'%' : '');
+        }).join('、');
+      }
+    }catch(e){}
+
+    return '接取任務後依任務指定怪物／區域取得。';
+  }
+
+
+  /* ---- 建立全部試煉清單 ---- */
+  function qRows(){
+    const out=[];
+
+    /* 15 / 30 / 45 級 */
+    try{
+      if(typeof TRIAL_Q!=='undefined'){
+        Object.keys(TRIAL_Q).forEach(function(k){
+          const c=TRIAL_Q[k];
+          if(!c) return;
+
+          const req=(c.reqs||[]).map(function(p){
+            return qItemName(p[0])+'×'+p[1];
+          });
+
+          const rew=(c.rewards||[]).map(qItemName);
+
+          const hay=[
+            cls[c.cls]||c.cls,
+            c.lv,
+            c.npc
+          ].concat(req,rew).join(' ');
+
+          if(match(hay)){
+            out.push({
+              id:'normal:'+k,
+              kind:'normal',
+              key:k,
+              cls:c.cls,
+              lv:c.lv,
+              npc:c.npc,
+              req:req,
+              rew:rew
+            });
+          }
+        });
+      }
+    }catch(e){}
+
+
+    /* 50 級 */
+    try{
+      if(typeof TRIAL_50_CFG!=='undefined'){
+        Object.keys(TRIAL_50_CFG).forEach(function(k){
+          const c=TRIAL_50_CFG[k];
+          if(!c) return;
+
+          const req=(c.stages||[]).map(function(x){
+            return x.nm+'×'+(x.cnt||1);
+          }).concat([
+            c.exMatNm+'×'+(c.exMatCnt||1)
+          ]);
+
+          const rew=(c.rewards||[]).map(function(x){
+            return x.nm||qItemName(x.id);
+          });
+
+          const hay=[
+            cls[k]||k,
+            50,
+            c.npc
+          ].concat(req,rew).join(' ');
+
+          if(match(hay)){
+            out.push({
+              id:'lv50:'+k,
+              kind:'lv50',
+              key:k,
+              cls:k,
+              lv:50,
+              npc:c.npc,
+              req:req,
+              rew:rew
+            });
+          }
+        });
+      }
+    }catch(e){}
+
+    return out.sort(function(a,b){
+      return (a.cls||'').localeCompare(b.cls||'') ||
+             a.lv-b.lv;
+    });
+  }
+
+
+  /* ---- 顯示目前角色任務狀態 ---- */
+  function qStatus(r){
+    if(!player || player.cls!==r.cls){
+      return cls[r.cls]||r.cls;
+    }
+
+    if(r.kind==='normal'){
+      const st=(player.trialQ && player.trialQ[r.key]) || 0;
+
+      if(st===2) return '✅ 已完成';
+      if(st===1) return '🟡 進行中';
+
+      return (player.lv||1)>=r.lv
+        ? '可接取'
+        : 'Lv.'+r.lv+' 開放';
+    }
+
+    const c=TRIAL_50_CFG[r.key];
+    const st=Number(player.trialStage||0);
+    const n=(c.stages||[]).length;
+
+    if(st>=n+2) return '✅ 已完成';
+
+    if(st===0){
+      return (player.lv||1)>=50
+        ? '可接取'
+        : 'Lv.50 開放';
+    }
+
+    if(st<=n){
+      return '🟡 第 '+st+'/'+n+' 階段';
+    }
+
+    return '🟠 最終兌換';
+  }
+
+
+  /* ---- 任務列表 ---- */
+  function qList(){
+    const rows=qRows();
+
+    return `
+      <div class="awk-note">
+        職業試煉完整收錄：
+        15／30／45 級與 50 級多階段試煉。
+        可搜尋 NPC、任務道具或獎勵名稱。
+      </div>
+
+      <div class="awk-list">
+        ${
+          rows.map(function(r){
+            return card(
+              'quest',
+              r.id,
+              (cls[r.cls]||r.cls)+' '+r.lv+'級試煉',
+              r.npc+
+              '・需求 '+r.req.join('、')+
+              '・獎勵 '+r.rew.join('＋'),
+              qStatus(r)
+            );
+          }).join('')
+          ||
+          '<div class="awk-empty">沒有符合的任務。</div>'
+        }
+      </div>
+    `;
+  }
+
+
+  function qItemRow(id,need,hint,showHave){
+    const have=showHave ? qHave(id) : 0;
+
+    const prog=showHave
+      ? '持有 '+Math.min(have,need)+'/'+need
+      : '需要 ×'+need;
+
+    return `
+      <div class="awk-row">
+
+        <button
+          class="awk-link"
+          style="border:0;padding:0"
+          onclick="AFKWiki.detail('item','${esc(id)}')">
+
+          <span>
+            <b>${esc(qItemName(id))}</b><br>
+            <small style="color:#94a3b8">
+              ${esc(hint||qSource(id))}
+            </small>
+          </span>
+
+        </button>
+
+        <em>${esc(prog)}</em>
+
+      </div>
+    `;
+  }
+
+
+  /* ---- 任務詳細資料 ---- */
+  function qDetail(id){
+
+    /* 15 / 30 / 45 級 */
+    if(id.indexOf('normal:')===0){
+
+      const key=id.slice(7);
+      const c=TRIAL_Q[key];
+
+      if(!c) return '找不到任務資料';
+
+      const same=player && player.cls===c.cls;
+
+      const st=same
+        ? ((player.trialQ && player.trialQ[key]) || 0)
+        : 0;
+
+      let status='';
+
+      if(!same){
+        status='其他職業';
+      }else if(st===2){
+        status='✅ 已完成';
+      }else if(st===1){
+        status='🟡 進行中';
+      }else if((player.lv||1)>=c.lv){
+        status='尚未接取（可接）';
+      }else{
+        status='尚未開放';
+      }
+
+      return `
+
+        <h2>
+          ⚔️ ${esc(cls[c.cls]||c.cls)}
+          ${c.lv}級試煉
+        </h2>
+
+        <div class="awk-tags">
+          <span>NPC ${esc(c.npc)}</span>
+          <span>${esc(status)}</span>
+        </div>
+
+        <section>
+          <h3>📌 接取條件</h3>
+
+          <p>
+            ${esc(cls[c.cls]||c.cls)}
+            ・等級 ${c.lv} 以上
+            ・找 ${esc(c.npc)} 接取。
+            接取後指定試煉道具才開始掉落，
+            達需求數量即停止。
+          </p>
+        </section>
+
+        <section>
+          <h3>🎯 任務需求</h3>
+
+          ${
+            (c.reqs||[]).map(function(p){
+              return qItemRow(
+                p[0],
+                p[1],
+                '接取後擊殺指定怪物 100% 掉落；點物品可繼續查來源。',
+                same && st===1
+              );
+            }).join('')
+          }
+
+        </section>
+
+        <section>
+          <h3>🎁 完成獎勵</h3>
+
+          ${
+            (c.rewards||[]).map(function(x){
+              return `
+                <button
+                  class="awk-link"
+                  onclick="AFKWiki.detail('item','${esc(x)}')">
+
+                  <span>${esc(qItemName(x))}</span>
+                  <em>查看</em>
+
+                </button>
+              `;
+            }).join('')
+          }
+
+        </section>
+      `;
+    }
+
+
+    /* 50 級 */
+    const key=id.slice(5);
+    const c=TRIAL_50_CFG[key];
+
+    if(!c) return '找不到任務資料';
+
+    const same=player && player.cls===key;
+    const st=same ? Number(player.trialStage||0) : 0;
+    const n=(c.stages||[]).length;
+
+    let status='';
+
+    if(!same){
+      status='其他職業';
+    }else if(st===0){
+      status=(player.lv||1)>=50
+        ? '尚未接取（可接）'
+        : '尚未開放';
+    }else if(st<=n){
+      status='第 '+st+'/'+n+' 階段';
+    }else if(st===n+1){
+      status='最終兌換';
+    }else{
+      status='✅ 已完成';
+    }
+
+
+    let stages=(c.stages||[]).map(function(x,i){
+
+      return `
+
+        <div>
+
+          <div class="awk-note">
+            階段 ${i+1}
+            ${same && st===i+1 ? '・目前進行中' : ''}
+          </div>
+
+          ${
+            qItemRow(
+              x.id,
+              x.cnt||1,
+              x.hint,
+              same && st===i+1
+            )
+          }
+
+        </div>
+      `;
+
+    }).join('');
+
+
+    stages+=`
+
+      <div>
+
+        <div class="awk-note">
+          最終試煉
+          ${same && st===n+1 ? '・目前進行中' : ''}
+        </div>
+
+        ${
+          qItemRow(
+            c.exMat,
+            c.exMatCnt||1,
+            '完成前置階段、開放魔族神殿後取得。',
+            same && st===n+1
+          )
+        }
+
+      </div>
+    `;
+
+
+    return `
+
+      <h2>
+        ⚔️ ${esc(cls[key]||key)} 50級試煉
+      </h2>
+
+      <div class="awk-tags">
+        <span>NPC ${esc(c.npc)}</span>
+        <span>${esc(status)}</span>
+      </div>
+
+      <section>
+        <h3>📌 任務流程</h3>
+
+        <p>
+          50級後找 ${esc(c.npc)} 接取。
+          依序完成各收集階段，
+          完成後開放魔族神殿，
+          再完成最終材料兌換。
+          每個角色只能完成一次。
+        </p>
+      </section>
+
+      <section>
+        <h3>🧭 分階段需求</h3>
+        ${stages}
+      </section>
+
+      <section>
+        <h3>🎁 最終獎勵（全部獲得）</h3>
+
+        ${
+          (c.rewards||[]).map(function(x){
+            return `
+
+              <button
+                class="awk-link"
+                onclick="AFKWiki.detail('item','${esc(x.id)}')">
+
+                <span>
+                  ${esc(x.nm||qItemName(x.id))}
+                </span>
+
+                <em>查看</em>
+
+              </button>
+            `;
+          }).join('')
+        }
+
+      </section>
+    `;
+  }
+
+
+  /* ---- 接進現有百科 ---- */
+  list=function(){
+    return S.tab==='quests'
+      ? qList()
+      : _baseList();
+  };
+
+  detail=function(){
+    return S.detail && S.detail.k==='quest'
+      ? qDetail(S.detail.id)
+      : _baseDetail();
+  };
+
+
+  render=function(){
+
+    _baseRender();
+
+    hideLegacyWiki();
+
+    const tabs=document.getElementById('awk-tabs');
+    if(!tabs) return;
+
+    let b=tabs.querySelector('[data-awk-quests]');
+
+    if(!b){
+
+      b=document.createElement('button');
+
+      b.setAttribute(
+        'data-awk-quests',
+        '1'
+      );
+
+      b.textContent='任務';
+
+      b.onclick=function(){
+        AFKWiki.tab('quests');
+      };
+
+      const sys=[...tabs.children].find(function(x){
+        return x.textContent==='系統規則';
+      });
+
+      tabs.insertBefore(
+        b,
+        sys||null
+      );
+    }
+
+    b.classList.toggle(
+      'on',
+      S.tab==='quests'
+    );
+  };
+
+})();    
 window.AFKWiki={open(){ensure().classList.remove('hidden');render();},close(){const o=document.getElementById('awk-overlay');if(o)o.classList.add('hidden');},tab(t){S.tab=t;S.detail=null;render();},detail(k,id){S.detail={k,id};render();},back(){S.detail=null;render();}};
 const start=()=>{entry();let n=0,t=setInterval(()=>{if(entry()||++n>30)clearInterval(t)},500);};document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start):start();
 })();
