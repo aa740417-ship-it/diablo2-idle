@@ -1294,6 +1294,10 @@ function qGuideLinkButton(kind,id,label){
         ? '#fbbf24'
         : '#7dd3fc';
 
+const haveText=
+    kind==='item'
+    ? ` <small style="color:#94a3b8;font-weight:600;">（持有 ${qHave(id)}）</small>`
+    : '';
     return `
         <button
             type="button"
@@ -1311,7 +1315,7 @@ function qGuideLinkButton(kind,id,label){
                 cursor:pointer;
             "
             onclick="AFKWiki.detail('${kind}','${id}')"
-        >${esc(label)}</button>
+        >${esc(label)}${haveText}</button>
     `;
 }
 
