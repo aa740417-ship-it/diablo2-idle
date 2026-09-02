@@ -575,7 +575,369 @@ new MutationObserver(function(){
     `;
   }
 
+/* ===== 🧭 特殊任務／副本百科 ===== */
 
+const SPECIAL_QUEST_GUIDES = [
+  {
+    key:'rift',
+    icon:'🌀',
+    title:'時空裂痕',
+    npc:'時空裂痕入口／巴特爾',
+    place:'時空裂痕入口、希培利亞村莊',
+    req:'龜裂之核 ×1',
+    reward:'停留時間排名＋離場獎勵',
+    search:'時空裂痕 裂痕 龜裂之核 時空裂痕碎片 巴特爾 四大龍',
+    html:`
+      <section>
+        <h3>📍 怎麼進去</h3>
+        <p>
+          進入時空裂痕需要 <b>龜裂之核 ×1</b>。
+          龜裂之核可以到 <b>希培利亞村莊</b> 找
+          <b>巴特爾</b>，使用
+          <b>時空裂痕碎片 ×100</b> 製作。
+        </p>
+      </section>
+
+      <section>
+        <h3>⚔️ 副本規則</h3>
+        <p>
+          進入後禁止傳送。<br>
+          進場約 <b>5 分鐘</b>後會出現第一隻強制頭目。<br>
+          停留時間越久，會逐漸進入更後段的怪物池。
+        </p>
+      </section>
+
+      <section>
+        <h3>🐲 四大龍</h3>
+        <p>
+          在時空裂痕中撐過約 <b>30 分鐘</b>後，
+          四大龍才會開始加入可出現的怪物池。
+        </p>
+      </section>
+
+      <section>
+        <h3>🎁 獎勵流程</h3>
+        <p>
+          離開裂痕時依停留時間記錄排名並產生待領獎勵。
+          回到 <b>時空裂痕入口</b>領取獎勵後，
+          才能開始下一次挑戰。
+        </p>
+      </section>
+    `
+  },
+
+  {
+    key:'antharas',
+    icon:'🐉',
+    title:'侵蝕的安塔瑞斯巢穴',
+    npc:'多魯嘉貝爾',
+    place:'威頓村',
+    req:'每日角色通關限制',
+    reward:'安塔瑞斯素材／積分／製作材料',
+    search:'安塔瑞斯 多魯嘉貝爾 威頓 萊利 輔佐官 地龍 魔眼 副本',
+    html:`
+      <section>
+        <h3>📍 入口</h3>
+        <p>
+          到 <b>威頓村</b>找
+          <b>多魯嘉貝爾</b>進入
+          「侵蝕的安塔瑞斯巢穴」。
+        </p>
+      </section>
+
+      <section>
+        <h3>👥 隊伍／助戰</h3>
+        <p>
+          可設定最多 <b>4 位助戰者</b>提供增益。
+          角色也可以用主戰或傭兵身分參與。
+        </p>
+      </section>
+
+      <section>
+        <h3>⏰ 每日限制</h3>
+        <p>
+          每個角色每日只能以主戰或傭兵身分
+          <b>成功通關 1 次</b>。<br>
+          通關成功時，所有實際出戰角色都會消耗當日次數。
+          每日依 UTC+8 凌晨重置。
+        </p>
+      </section>
+
+      <section>
+        <h3>🚫 副本限制</h3>
+        <p>
+          安塔瑞斯副本內禁止傳送，
+          必須依正常副本流程推進。
+        </p>
+      </section>
+
+      <section>
+        <h3>🎁 安塔瑞斯素材</h3>
+        <p>
+          龍鱗、龍骨、龍爪、龍血、龍肉、龍牙、龍眼等素材，
+          可拿到威頓村找
+          <b>萊利的輔佐官</b>兌換積分。
+        </p>
+        <p>
+          同一模式角色共用積分，
+          每滿 <b>10 積分</b>可開啟一次
+          「多魯嘉7世傳家之寶」。
+        </p>
+      </section>
+
+      <section>
+        <h3>❤️ 安塔瑞斯之心</h3>
+        <p>
+          安塔瑞斯之心不是積分兌換素材，
+          主要用於後續安塔瑞斯系列裝備製作。
+        </p>
+      </section>
+    `
+  },
+
+  {
+    key:'sherine',
+    icon:'🔮',
+    title:'席琳的世界／席琳遺骸',
+    npc:'席琳／伊奧',
+    place:'席琳神殿',
+    req:'Lv.40 以上可開啟席琳的世界',
+    reward:'席琳結晶／席琳遺骸',
+    search:'席琳 席琳世界 席琳的世界 席琳結晶 遺骸 伊奧 席琳神殿',
+    html:`
+      <section>
+        <h3>📍 席琳神殿</h3>
+        <p>
+          到 <b>席琳神殿</b>可以找到
+          <b>席琳</b>與<b>伊奧</b>。
+        </p>
+      </section>
+
+      <section>
+        <h3>🔮 席琳的世界</h3>
+        <p>
+          角色達到 <b>Lv.40</b>後，
+          可以向席琳祈禱，
+          開啟或關閉「席琳的世界」。
+        </p>
+      </section>
+
+      <section>
+        <h3>💎 席琳結晶</h3>
+        <p>
+          席琳世界中的怪物可取得席琳結晶。
+          怪物等級、是否為頭目等條件會影響取得機制。
+        </p>
+      </section>
+
+      <section>
+        <h3>🦴 伊奧遺骸兌換</h3>
+        <p>
+          找 <b>伊奧</b>可以使用
+          <b>席琳結晶 ×1</b>
+          兌換一件指定部位的席琳遺骸。
+        </p>
+        <p>
+          可選：
+          之爪、之眼、之血、之肉、
+          之心、之骨、之牙、之鱗。
+        </p>
+      </section>
+
+      <section>
+        <h3>⭐ 遺骸效果</h3>
+        <p>
+          兌換出的遺骸會隨機附帶一種席琳套裝詞綴。
+          將相同套裝名稱的遺骸裝入專屬遺骸欄，
+          達到指定件數即可啟動套裝效果。
+        </p>
+      </section>
+    `
+  },
+
+  {
+    key:'pride',
+    icon:'🗼',
+    title:'傲慢之塔攻略',
+    npc:'巴姆特',
+    place:'傲慢之塔入口',
+    req:'逐層攀登',
+    reward:'支配符／製作素材／塔內掉落',
+    search:'傲慢之塔 傲塔 巴姆特 支配符 潔尼斯女王 四屬性斗篷',
+    html:`
+      <section>
+        <h3>🗼 基本流程</h3>
+        <p>
+          傲慢之塔不是選樓層後直接空降，
+          初期需要從入口開始逐層往上攻略。
+        </p>
+      </section>
+
+      <section>
+        <h3>👑 10樓解鎖</h3>
+        <p>
+          首次擊敗 <b>10樓 潔尼斯女王</b>後，
+          傲慢之塔入口會開放較低樓層的快速挑戰功能。
+        </p>
+      </section>
+
+      <section>
+        <h3>⬆️ 11樓以上</h3>
+        <p>
+          11樓以上主要依靠正常攀登、
+          移動卷軸或對應樓層的支配符前進。
+        </p>
+      </section>
+
+      <section>
+        <h3>📜 支配符</h3>
+        <p>
+          持有對應樓層的支配符，
+          可以提升該樓層行動與傳送便利性。
+          排名挑戰期間則會封鎖傳送功能。
+        </p>
+      </section>
+
+      <section>
+        <h3>🔨 巴姆特</h3>
+        <p>
+          傲慢之塔入口的 <b>巴姆特</b>
+          可以利用奇美拉之皮製作詛咒的皮革，
+          並進一步打造
+          地、水、風、火四種屬性斗篷。
+        </p>
+      </section>
+    `
+  }
+];
+
+
+/* 保存原本職業試煉函式 */
+const _trialRowsOnly=qRows;
+const _trialDetailOnly=qDetail;
+
+
+/* 職業試煉 + 特殊攻略 */
+qRows=function(){
+
+  const out=_trialRowsOnly();
+
+  SPECIAL_QUEST_GUIDES.forEach(function(g){
+
+    if(!match(
+      g.title,
+      g.npc,
+      g.place,
+      g.req,
+      g.reward,
+      g.search
+    )) return;
+
+    out.push({
+      id:'guide:'+g.key,
+      kind:'guide',
+      guide:g
+    });
+
+  });
+
+  return out;
+};
+
+
+/* 任務列表加入特殊攻略 */
+qList=function(){
+
+  const rows=qRows();
+
+  return `
+    <div class="awk-note">
+      完整收錄職業 15／30／45／50 級試煉，
+      並加入特殊任務、兌換與副本攻略。
+      可搜尋 NPC、材料、獎勵或副本名稱。
+    </div>
+
+    <div class="awk-list">
+
+      ${
+        rows.map(function(r){
+
+          if(r.kind==='guide'){
+
+            const g=r.guide;
+
+            return card(
+              'quest',
+              r.id,
+              g.icon+' '+g.title,
+              g.place+'・'+g.npc+'・'+g.req,
+              '特殊攻略'
+            );
+          }
+
+          return card(
+            'quest',
+            r.id,
+            (cls[r.cls]||r.cls)+' '+r.lv+'級試煉',
+            r.npc+
+            '・需求 '+r.req.join('、')+
+            '・獎勵 '+r.rew.join('＋'),
+            qStatus(r)
+          );
+
+        }).join('')
+        ||
+        '<div class="awk-empty">沒有符合的任務。</div>'
+      }
+
+    </div>
+  `;
+};
+
+
+/* 特殊攻略詳細內容 */
+qDetail=function(id){
+
+  if(id.indexOf('guide:')===0){
+
+    const key=id.slice(6);
+
+    const g=SPECIAL_QUEST_GUIDES.find(function(x){
+      return x.key===key;
+    });
+
+    if(!g) return '找不到攻略資料';
+
+    return `
+      <h2>${g.icon} ${esc(g.title)}</h2>
+
+      <div class="awk-tags">
+        <span>${esc(g.place)}</span>
+        <span>${esc(g.npc)}</span>
+      </div>
+
+      <section>
+        <h3>📌 重點</h3>
+
+        <div class="awk-grid">
+          <div>
+            條件<br>
+            <b>${esc(g.req)}</b>
+          </div>
+
+          <div>
+            主要內容<br>
+            <b>${esc(g.reward)}</b>
+          </div>
+        </div>
+      </section>
+
+      ${g.html}
+    `;
+  }
+
+  return _trialDetailOnly(id);
+};
   /* ---- 接進現有百科 ---- */
   list=function(){
     return S.tab==='quests'
