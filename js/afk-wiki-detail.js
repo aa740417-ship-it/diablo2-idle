@@ -1422,7 +1422,7 @@ qDetail=function(id){
         </div>
       </section>
 
-      ${qGuideLinkify（g.html)}
+      ${qGuideLinkify(g.html)}
     `;
   }
 
