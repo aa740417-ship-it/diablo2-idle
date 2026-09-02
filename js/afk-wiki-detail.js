@@ -1314,7 +1314,7 @@ const haveText=
                 text-underline-offset:3px;
                 cursor:pointer;
             "
-            onclick="AFKWiki.detail('${kind}','${id}')"
+            onclick="AFKWiki.guideDetail('${kind}','${id}')"
         >${esc(label)}${haveText}</button>
     `;
 }
@@ -1440,9 +1440,33 @@ qDetail=function(id){
   };
 
   detail=function(){
-    return S.detail && S.detail.k==='quest'
-      ? qDetail(S.detail.id)
-      : _baseDetail();
+    if(S.detail && S.detail.k==='quest'){
+      return qDetail(S.detail.id);
+    }
+
+    const html=_baseDetail();
+
+    if(S.guideBack && S.detail){
+      return `
+        <button
+          type="button"
+          onclick="AFKWiki.backGuide()"
+          style="
+            margin:0 0 14px 0;
+            padding:10px 14px;
+            border:1px solid #475569;
+            border-radius:10px;
+            background:#172033;
+            color:#bfdbfe;
+            font-weight:800;
+            font-size:15px;
+          "
+        >← 返回攻略</button>
+        ${html}
+      `;
+    }
+
+    return html;
   };
 
 
@@ -1489,6 +1513,6 @@ qDetail=function(id){
   };
 
 })();    
-window.AFKWiki={open(){ensure().classList.remove('hidden');render();},close(){const o=document.getElementById('awk-overlay');if(o)o.classList.add('hidden');},tab(t){S.tab=t;S.detail=null;render();},detail(k,id){S.detail={k,id};render();},back(){S.detail=null;render();}};
+window.AFKWiki={open(){ensure().classList.remove('hidden');render();},close(){const o=document.getElementById('awk-overlay');if(o)o.classList.add('hidden');},tab(t){S.tab=t;S.detail=null;S.guideBack=null;render();},detail(k,id){S.detail={k,id};render();},guideDetail(k,id){if(S.detail&&S.detail.k==='quest'&&String(S.detail.id||'').indexOf('guide:')===0)S.guideBack=S.detail.id;S.detail={k,id};render();},backGuide(){if(!S.guideBack)return;const id=S.guideBack;S.guideBack=null;S.tab='quests';S.detail={k:'quest',id};render();},back(){S.detail=null;S.guideBack=null;render();}};
 const start=()=>{entry();let n=0,t=setInterval(()=>{if(entry()||++n>30)clearInterval(t)},500);};document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start):start();
 })();
