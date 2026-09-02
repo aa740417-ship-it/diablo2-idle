@@ -80,7 +80,48 @@ entry=function(){
 
   hideLegacyWiki();
   setInterval(hideLegacyWiki,1000);
+/* 強制移除右下角舊百科浮動按鈕 */
+function removeOldWikiFab(){
 
+    document.querySelectorAll('body *').forEach(function(el){
+
+        if(el.closest('#awk-overlay')) return;
+        if(el.closest('#collection-panel')) return;
+
+        let t=String(el.textContent||'')
+            .replace(/\s+/g,'')
+            .trim();
+
+        let oc='';
+        try{
+            oc=String(el.getAttribute('onclick')||'');
+        }catch(e){}
+
+        let oldWiki =
+            t==='百科' ||
+            t==='📖百科' ||
+            el.classList.contains('game-wiki-entry') ||
+            /openGameWiki|openWiki|openEncyclopedia/i.test(oc);
+
+        if(!oldWiki) return;
+
+        /* 詳細百科內自己的文字不能刪 */
+        if(t==='詳細百科' || t==='📖詳細百科') return;
+
+        el.style.setProperty('display','none','important');
+        el.style.setProperty('visibility','hidden','important');
+        el.style.setProperty('pointer-events','none','important');
+    });
+}
+
+removeOldWikiFab();
+
+new MutationObserver(function(){
+    removeOldWikiFab();
+}).observe(document.body,{
+    childList:true,
+    subtree:true
+});
 
   /* ---- 保留原百科函式 ---- */
   const _baseList=list;
