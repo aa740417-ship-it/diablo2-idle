@@ -1721,10 +1721,296 @@ function qCraftDetail(id){
 }
 
 
+
+/* ===== 🗡️ 裝備圖鑑 ===== */
+
+function qEquipDexCatLabel(c){
+    if(!c) return '';
+
+    const alias={
+        sword1:'單手劍',
+        sword2:'雙手劍',
+        katana:'武士刀',
+        blunt1:'單手鈍器／斧',
+        blunt2:'雙手鈍器／巨斧',
+        spear:'矛',
+        bow:'弓',
+        xbow:'十字弓',
+        wand:'魔杖／法杖',
+        dagger:'匕首',
+        claw:'鋼爪',
+        dual:'雙刀',
+        chainsword:'鎖鏈劍',
+        qigu:'奇古獸'
+    };
+
+    return alias[c.key]||c.name||c.key;
+}
+
+function qEquipDexCats(group){
+    try{
+        return (EQUIP_CATEGORIES||[]).filter(function(c){
+            return c &&
+                   c.group===group &&
+                   Array.isArray(EQUIP_CAT_ITEMS[c.key]) &&
+                   EQUIP_CAT_ITEMS[c.key].length>0;
+        });
+    }catch(e){
+        return [];
+    }
+}
+
+function qEquipDexHave(id){
+    try{
+        return Number(qHave(id)||0);
+    }catch(e){
+        return 0;
+    }
+}
+
+function qEquipDexTotal(){
+    let n=0;
+
+    try{
+        (EQUIP_CATEGORIES||[]).forEach(function(c){
+            n+=(EQUIP_CAT_ITEMS[c.key]||[]).length;
+        });
+    }catch(e){}
+
+    return n;
+}
+
+window.AFKEqDexGroup=function(group){
+    S.equipGroup=group;
+    S.equipCat=null;
+    S.detail=null;
+    render();
+};
+
+window.AFKEqDexCat=function(key){
+    S.equipCat=key;
+
+    try{
+        const c=(EQUIP_CATEGORIES||[]).find(function(x){
+            return x.key===key;
+        });
+
+        if(c) S.equipGroup=c.group;
+    }catch(e){}
+
+    S.detail=null;
+    render();
+};
+
+function qEquipDexList(){
+
+    const groups=['武器','防具','飾品'];
+
+    let group=groups.indexOf(S.equipGroup)>=0
+        ? S.equipGroup
+        : '武器';
+
+    S.equipGroup=group;
+
+    const cats=qEquipDexCats(group);
+
+    let cat=cats.find(function(c){
+        return c.key===S.equipCat;
+    });
+
+    if(!cat) cat=cats[0]||null;
+
+    if(cat) S.equipCat=cat.key;
+
+    const groupButtons=groups.map(function(g){
+
+        const on=g===group;
+
+        return `
+            <button
+                type="button"
+                onclick="AFKEqDexGroup('${g}')"
+                style="
+                    flex:0 0 auto;
+                    padding:10px 16px;
+                    border:1px solid ${on?'#d97706':'#475569'};
+                    border-radius:10px;
+                    background:${on?'#78350f':'#172033'};
+                    color:${on?'#fbbf24':'#cbd5e1'};
+                    font-size:16px;
+                    font-weight:800;
+                "
+            >
+                ${g}
+            </button>
+        `;
+    }).join('');
+
+    const catButtons=cats.map(function(c){
+
+        const on=cat && c.key===cat.key;
+
+        return `
+            <button
+                type="button"
+                onclick="AFKEqDexCat('${c.key}')"
+                style="
+                    flex:0 0 auto;
+                    padding:8px 13px;
+                    border:1px solid ${on?'#d97706':'#475569'};
+                    border-radius:9px;
+                    background:${on?'#78350f':'#172033'};
+                    color:${on?'#fbbf24':'#cbd5e1'};
+                    font-size:14px;
+                    font-weight:700;
+                "
+            >
+                ${esc(qEquipDexCatLabel(c))}
+                <small style="opacity:.75;">
+                    ${(EQUIP_CAT_ITEMS[c.key]||[]).length}
+                </small>
+            </button>
+        `;
+    }).join('');
+
+    let ids=cat
+        ? (EQUIP_CAT_ITEMS[cat.key]||[]).slice()
+        : [];
+
+    ids=ids.filter(function(id){
+
+        const d=DB.items&&DB.items[id];
+
+        if(!d) return false;
+
+        let summary='';
+
+        try{
+            summary=itemSummary(d);
+        }catch(e){}
+
+        return match(
+            d.n,
+            summary,
+            cat ? qEquipDexCatLabel(cat) : '',
+            group
+        );
+    });
+
+    const rows=ids.map(function(id){
+
+        const d=DB.items[id];
+
+        let summary='';
+
+        try{
+            summary=itemSummary(d);
+        }catch(e){}
+
+        const have=qEquipDexHave(id);
+
+        const sub=[
+            summary,
+            have>0
+                ? `持有 ${have}`
+                : '未持有'
+        ].filter(Boolean).join(' · ');
+
+        return card(
+            'item',
+            id,
+            d.n||id,
+            sub||'點擊查看完整素質',
+            cat ? qEquipDexCatLabel(cat) : group
+        );
+    }).join('');
+
+    return `
+        <section style="
+            border:1px solid #334155;
+            border-radius:12px;
+            padding:14px;
+            margin-bottom:14px;
+            background:#111c30;
+        ">
+            <div style="
+                color:#fbbf24;
+                font-size:19px;
+                font-weight:900;
+                margin-bottom:6px;
+            ">
+                🗡️ 裝備圖鑑
+            </div>
+
+            <div style="
+                color:#94a3b8;
+                line-height:1.6;
+            ">
+                共 ${qEquipDexTotal()} 件裝備。
+                未取得過的裝備也可以查詢基本能力、完整素質與掉落來源。
+            </div>
+        </section>
+
+        <div style="
+            display:flex;
+            gap:8px;
+            overflow-x:auto;
+            padding-bottom:9px;
+            margin-bottom:6px;
+        ">
+            ${groupButtons}
+        </div>
+
+        <div style="
+            display:flex;
+            gap:7px;
+            overflow-x:auto;
+            padding:4px 0 12px 0;
+            margin-bottom:6px;
+        ">
+            ${catButtons}
+        </div>
+
+        ${cat
+            ? `
+                <div style="
+                    color:#fbbf24;
+                    font-weight:800;
+                    font-size:17px;
+                    margin:8px 0 12px 2px;
+                ">
+                    ${esc(qEquipDexCatLabel(cat))}
+                    <span style="
+                        color:#94a3b8;
+                        font-size:14px;
+                        font-weight:600;
+                    ">
+                        · ${ids.length} 件
+                    </span>
+                </div>
+              `
+            : ''
+        }
+
+        ${rows || `
+            <section style="
+                border:1px solid #334155;
+                border-radius:12px;
+                padding:16px;
+                color:#94a3b8;
+            ">
+                找不到符合的裝備。
+            </section>
+        `}
+    `;
+}
+
+
 /* ---- 接進現有百科 ---- */
   list=function(){
     if(S.tab==='quests') return qList();
     if(S.tab==='craftnpc') return qCraftList();
+    if(S.tab==='equipdex') return qEquipDexList();
     return _baseList();
 };
 
@@ -1831,6 +2117,31 @@ function qCraftDetail(id){
         cb.classList.toggle(
             'on',
             S.tab==='craftnpc'
+        );
+
+        let eb=[...tabs.children].find(function(x){
+            return x.textContent==='裝備圖鑑';
+        });
+
+        if(!eb){
+            eb=document.createElement('button');
+            eb.className=b.className;
+            eb.classList.remove('on');
+            eb.textContent='裝備圖鑑';
+
+            eb.onclick=function(){
+                AFKWiki.tab('equipdex');
+            };
+
+            tabs.insertBefore(
+                eb,
+                cb||null
+            );
+        }
+
+        eb.classList.toggle(
+            'on',
+            S.tab==='equipdex'
         );
   };
 
