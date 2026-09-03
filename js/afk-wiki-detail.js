@@ -1815,6 +1815,54 @@ window.AFKEqDexSort=function(v){
     render();
 };
 
+
+function qEquipDexCatCount(c){
+    if(!c) return 0;
+
+    let ids=[];
+
+    try{
+        ids=(EQUIP_CAT_ITEMS[c.key]||[]).slice();
+    }catch(e){
+        return 0;
+    }
+
+    const selectedCls=S.equipCls||'all';
+
+    if(selectedCls==='all'){
+        return ids.length;
+    }
+
+    let clsKey=selectedCls;
+
+    if(selectedCls==='mine'){
+        clsKey=
+            typeof player!=='undefined' &&
+            player &&
+            player.cls
+                ? player.cls
+                : '';
+    }
+
+    if(!clsKey){
+        return ids.length;
+    }
+
+    return ids.filter(function(id){
+        const d=DB.items&&DB.items[id];
+
+        if(!d) return false;
+
+        try{
+            return typeof reqAllowsClass!=='function'
+                ? true
+                : !!reqAllowsClass(d,clsKey);
+        }catch(e){
+            return true;
+        }
+    }).length;
+}
+
 function qEquipDexList(){
 
     const groups=['武器','防具','飾品'];
@@ -1880,7 +1928,7 @@ function qEquipDexList(){
             >
                 ${esc(qEquipDexCatLabel(c))}
                 <small style="opacity:.75;">
-                    ${(EQUIP_CAT_ITEMS[c.key]||[]).length}
+                    ${qEquipDexCatCount(c)}
                 </small>
             </button>
         `;
