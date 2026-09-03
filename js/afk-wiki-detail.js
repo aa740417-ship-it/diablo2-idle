@@ -822,6 +822,305 @@ function skillDeepInfo(id,d){
         );
     }
 
+
+    /* ===== 技能百科公式批次5 ===== */
+
+    if(id==='sk_warrior_dualaxe'){
+        effect.push(
+            '學會後，戰士可以使用符合條件的副手鈍器進行追擊。'
+        );
+
+        formula.push(
+            '主手一般攻擊後，副手會再進行 1 次完整、獨立的普通攻擊。'
+        );
+
+        formula.push(
+            '副手有自己的命中判定、武器傷害骰、爆擊／重擊與強化倍率，因此副手也可能單獨未命中。'
+        );
+
+        condition.push(
+            '一般情況主手必須是可雙持的單手鈍器。'
+        );
+
+        note.push(
+            '具有「巨斧精通」時，雙手鈍器也可以視為可雙持武器。'
+        );
+
+        note.push(
+            '副手追擊可以觸發「狂暴」，但不會把主手的出血／弱點等效果再重複觸發一次。'
+        );
+    }
+
+    if(id==='sk_warrior_crush'){
+        effect.push(
+            '被動提高近距離傷害。'
+        );
+
+        formula.push(
+            '近距離傷害增加＝2＋MAX(0，角色等級－44)。'
+        );
+
+        formula.push(
+            '例如：Lv.30＝+2、Lv.45＝+3、Lv.50＝+8、Lv.60＝+18、Lv.80＝+38。'
+        );
+
+        note.push(
+            'Lv.45 開始，每升 1 級再增加 1 點近距離傷害。'
+        );
+    }
+
+    if(id==='sk_warrior_armorbody'){
+        effect.push(
+            '依照最終 AC 額外增加固定傷害減免 DR。'
+        );
+
+        formula.push(
+            '一般公式：DR增加＝FLOOR((10－最終AC) ÷10)。'
+        );
+
+        formula.push(
+            '例如最終 AC＝-20：FLOOR((10－(-20))÷10)＝DR +3。'
+        );
+
+        formula.push(
+            '具有「堅韌精通」時，公式改為 FLOOR((10－最終AC) ÷5)；同樣 AC -20 時變成 DR +6。'
+        );
+
+        note.push(
+            '這是固定 DR，不是百分比減傷；AC 越好，護甲身軀提供的固定減傷通常越高。'
+        );
+    }
+
+    if(id==='sk_warrior_berserk'){
+        formula.push(
+            '近距離一般攻擊每次有 5% 機率發動狂暴。'
+        );
+
+        formula.push(
+            '成功發動時，該次傷害 ×2。'
+        );
+
+        condition.push(
+            '只作用於近距離一般攻擊。'
+        );
+
+        note.push(
+            '迅猛雙斧的副手追擊也屬於一般攻擊，因此副手也能獨立觸發狂暴。'
+        );
+    }
+
+    if(id==='sk_warrior_titan_rock'){
+        condition.push(
+            '一般情況必須低於最大 HP 的 40% 才會啟動。'
+        );
+
+        condition.push(
+            '具有「反彈精通」時，啟動門檻提高為最大 HP 的 80% 以下。'
+        );
+
+        formula.push(
+            '受到敵人的一般物理攻擊後，反射基礎傷害＝本次實際承受的 HP 傷害。'
+        );
+
+        formula.push(
+            '若攻擊者身上有脆弱／破壞盔甲等受傷增加效果，反射傷害還會再乘上攻擊者目前的受傷倍率。'
+        );
+
+        note.push(
+            '條件成立時為 100% 發動，不需要另外再擲反射機率。'
+        );
+
+        note.push(
+            '反彈精通觸發泰坦效果後，還會追加一次普通攻擊。'
+        );
+    }
+
+    if(id==='sk_warrior_titan_magic'){
+        condition.push(
+            '一般情況必須低於最大 HP 的 40% 才會啟動。'
+        );
+
+        condition.push(
+            '具有「反彈精通」時，啟動門檻提高為最大 HP 的 80% 以下。'
+        );
+
+        formula.push(
+            '受到直接魔法／技能傷害時，反射基礎傷害＝本次實際承受的 HP 傷害。'
+        );
+
+        formula.push(
+            '攻擊者若有脆弱／破壞盔甲等受傷增加效果，反射出去的傷害會再乘上攻擊者的受傷倍率。'
+        );
+
+        note.push(
+            '條件成立時為 100% 發動。'
+        );
+
+        note.push(
+            '反彈精通觸發泰坦效果後，還會追加一次普通攻擊。'
+        );
+    }
+
+    if(id==='sk_warrior_titan_bullet'){
+        condition.push(
+            '一般情況必須低於最大 HP 的 40% 才會啟動。'
+        );
+
+        condition.push(
+            '具有「反彈精通」時，啟動門檻提高為最大 HP 的 80% 以下。'
+        );
+
+        formula.push(
+            '啟動期間，在遠距離迴避判定中額外獲得 ER +50。'
+        );
+
+        note.push(
+            'ER +50 是加入迴避判定的能力值，不等於固定多 50% 最終迴避率。'
+        );
+    }
+
+    if(id==='sk_warrior_throwaxe'){
+        condition.push(
+            '必須使用符合條件的鈍器才能施放。'
+        );
+
+        formula.push(
+            '持續 64 秒；期間每次近距離一般攻擊命中，都會對目標附加 1 層出血。'
+        );
+
+        formula.push(
+            '一般最多累積 5 層出血。'
+        );
+
+        note.push(
+            '效果不會在第一次命中後消失，而是整個 64 秒期間持續生效。'
+        );
+
+        note.push(
+            '具有「雙斧精通」時，每層出血的傷害再提高 10%，而且施放戰斧投擲不消耗 MP。'
+        );
+    }
+
+    if(id==='sk_warrior_roar'){
+        formula.push(
+            '對全體敵人的基礎固定傷害＝50＋MAX(0，角色等級－30)。'
+        );
+
+        formula.push(
+            '例如：Lv.30＝50、Lv.50＝70、Lv.60＝80、Lv.80＝100。'
+        );
+
+        formula.push(
+            '咆哮不計算目標 MR、物理 DR 與元素抗性。'
+        );
+
+        note.push(
+            '目標若有脆弱／破壞盔甲等「受到傷害增加」狀態，最後仍可被這類受傷倍率放大。'
+        );
+    }
+
+    if(id==='sk_warrior_endurance'){
+        effect.push(
+            '提高最大 HP。'
+        );
+
+        formula.push(
+            '最大 HP 倍率＝1＋角色等級÷200。'
+        );
+
+        formula.push(
+            '也就是最大 HP 增加「角色等級÷2」%。'
+        );
+
+        formula.push(
+            '例如：Lv.50＝+25%、Lv.60＝+30%、Lv.80＝+40%。'
+        );
+    }
+
+    if(id==='sk_warrior_outlaw'){
+        formula.push(
+            '持續期間，把一般攻擊的最低命中率提高到 50%。'
+        );
+
+        formula.push(
+            '原本命中能力再低，命中判定的最低門檻也會被拉到 50%。'
+        );
+
+        note.push(
+            '它不是直接變成必中；當原本命中率已高於 50% 時，也不會因此額外增加到更高。'
+        );
+    }
+
+    if(id==='sk_royal_callally'){
+        effect.push(
+            '施放後，所有目前存活的傭兵立即各進行 1 次額外普通攻擊。'
+        );
+
+        formula.push(
+            '每名傭兵的這次追加攻擊仍使用自己的武器、能力與一般攻擊傷害公式。'
+        );
+
+        note.push(
+            '這次追加攻擊是純普通攻擊，不會再次觸發「呼喚盟友」造成遞迴。'
+        );
+
+        note.push(
+            '具有「血盟精通」時，呼喚盟友的技能 MP 成本再減半。'
+        );
+    }
+
+    if(id==='sk_royal_burnweapon'){
+        effect.push(
+            '全隊額外傷害 +5、額外命中 +5。'
+        );
+
+        note.push(
+            '屬於全隊光環；同一種灼熱武器效果不會因多人施放而重複疊加。'
+        );
+    }
+
+    if(id==='sk_royal_bravewill'){
+        formula.push(
+            '一般攻擊每次有 10% 機率發動，成功時該次傷害 ×1.5。'
+        );
+
+        formula.push(
+            '具有「劍術精通」時，發動率由 10% 提高為 20%。'
+        );
+
+        note.push(
+            '提高的是觸發機率；成功後的傷害倍率仍為 ×1.5。'
+        );
+    }
+
+    if(id==='sk_royal_shield'){
+        effect.push(
+            '全隊 AC 改善 8。'
+        );
+
+        note.push(
+            '屬於全隊光環；同一種閃亮之盾效果不會因多人施放而重複疊加。'
+        );
+    }
+
+    if(id==='sk_royal_kingguard'){
+        effect.push(
+            '魔法防禦 MR +10。'
+        );
+
+        effect.push(
+            '暈眩抵抗 +20%。'
+        );
+
+        formula.push(
+            '暈眩抵抗會和裝備的暈眩抵抗、通用異常抵抗相加，最後最高以 100% 計算。'
+        );
+
+        note.push(
+            '王者加護的 +20% 是額外暈眩抵抗，不代表直接免疫暈眩。'
+        );
+    }
+
 function uniq(a){
         return a.filter(function(x,i){
             return x && a.indexOf(x)===i;
