@@ -1432,16 +1432,309 @@ qDetail=function(id){
 
   return _trialDetailOnly(id);
 };
-  /* ---- 接進現有百科 ---- */
+
+/* ===== 🔨 NPC／製作百科 ===== */
+
+function qCraftNpcs(){
+    const homes={};
+    const out=[];
+
+    try{
+        Object.keys(DB.towns||{}).forEach(function(tid){
+            const tw=DB.towns[tid]||{};
+
+            (tw.npcs||[]).forEach(function(np){
+                if(!np || !np.id || homes[np.id]) return;
+
+                homes[np.id]={
+                    id:np.id,
+                    n:np.n||np.id,
+                    town:tw.n||tid,
+                    d:np.d||''
+                };
+            });
+        });
+
+        Object.keys(CRAFT_RECIPES||{}).forEach(function(id){
+            const recipes=CRAFT_RECIPES[id];
+
+            if(!Array.isArray(recipes) || !recipes.length) return;
+
+            const h=homes[id]||{
+                id:id,
+                n:id,
+                town:'未知地點',
+                d:''
+            };
+
+            out.push({
+                id:id,
+                n:h.n,
+                town:h.town,
+                d:h.d,
+                recipes:recipes
+            });
+        });
+    }catch(e){}
+
+    out.sort(function(a,b){
+        return String(a.town).localeCompare(String(b.town)) ||
+               String(a.n).localeCompare(String(b.n));
+    });
+
+    return out;
+}
+
+function qCraftItemName(id){
+    if(id==='gold') return '金幣';
+
+    try{
+        const d=DB.items&&DB.items[id];
+        return d&&d.n ? d.n : id;
+    }catch(e){
+        return id;
+    }
+}
+
+function qCraftHave(id){
+    if(id==='gold'){
+        try{
+            return Math.max(0,Number(player.gold||0));
+        }catch(e){
+            return 0;
+        }
+    }
+
+    try{
+        return Number(qHave(id)||0);
+    }catch(e){
+        return 0;
+    }
+}
+
+function qCraftItemLink(id,label){
+    const have=qCraftHave(id);
+
+    if(id==='gold'){
+        return `
+            <span style="font-weight:800;color:#fbbf24;">
+                💰 ${esc(label)}
+                <small style="color:#94a3b8;font-weight:600;">
+                    （持有 ${have.toLocaleString()}）
+                </small>
+            </span>
+        `;
+    }
+
+    return `
+        <button
+            type="button"
+            onclick="AFKWiki.detail('item','${id}')"
+            style="
+                padding:0;
+                border:0;
+                background:none;
+                color:#7dd3fc;
+                font:inherit;
+                font-weight:800;
+                text-align:left;
+                text-decoration:underline;
+                text-decoration-style:dotted;
+                text-underline-offset:3px;
+                cursor:pointer;
+            "
+        >
+            ${esc(label)}
+            <small style="color:#94a3b8;font-weight:600;">
+                （持有 ${have.toLocaleString()}）
+            </small>
+        </button>
+    `;
+}
+
+function qCraftList(){
+    const rows=qCraftNpcs().filter(function(n){
+        const keys=[n.n,n.town,n.d];
+
+        n.recipes.forEach(function(r){
+            keys.push(qCraftItemName(r.result));
+
+            (r.req||[]).forEach(function(m){
+                keys.push(qCraftItemName(m.id));
+            });
+        });
+
+        return match.apply(null,keys);
+    });
+
+    if(!rows.length){
+        return `
+            <section style="
+                border:1px solid #334155;
+                border-radius:12px;
+                padding:16px;
+                color:#94a3b8;
+            ">
+                找不到符合的製作 NPC 或配方。
+            </section>
+        `;
+    }
+
+    return rows.map(function(n){
+        const products=n.recipes
+            .slice(0,3)
+            .map(function(r){
+                return qCraftItemName(r.result);
+            })
+            .join('、');
+
+        const more=n.recipes.length>3
+            ? ` 等 ${n.recipes.length} 項`
+            : '';
+
+        return card(
+            'craftnpc',
+            n.id,
+            '🔨 '+n.n,
+            `${n.town} · ${products}${more}`,
+            '製作'
+        );
+    }).join('');
+}
+
+function qCraftDetail(id){
+    const n=qCraftNpcs().find(function(x){
+        return x.id===id;
+    });
+
+    if(!n){
+        return `
+            <button class="awk-back" onclick="AFKWiki.back()">
+                ← 返回列表
+            </button>
+            <p>找不到這名製作 NPC。</p>
+        `;
+    }
+
+    const recipes=n.recipes.map(function(r,idx){
+        const resultName=qCraftItemName(r.result);
+        const outCnt=Math.max(1,Number(r.yield||1));
+
+        const req=(r.req||[]).map(function(m){
+            const need=Math.max(0,Number(m.cnt||1));
+            const have=qCraftHave(m.id);
+            const enough=have>=need;
+
+            return `
+                <div style="
+                    padding:9px 0;
+                    border-bottom:1px solid #243247;
+                    line-height:1.55;
+                ">
+                    ${qCraftItemLink(
+                        m.id,
+                        qCraftItemName(m.id)
+                    )}
+
+                    <span style="
+                        color:${enough?'#86efac':'#fca5a5'};
+                        font-weight:800;
+                        margin-left:6px;
+                    ">
+                        ×${need.toLocaleString()}
+                    </span>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <section style="
+                margin-top:14px;
+                border:1px solid #334155;
+                border-radius:12px;
+                padding:14px;
+                background:#111c30;
+            ">
+                <div style="
+                    color:#fbbf24;
+                    font-weight:800;
+                    margin-bottom:10px;
+                ">
+                    配方 ${idx+1}
+                </div>
+
+                <div style="
+                    font-size:18px;
+                    margin-bottom:12px;
+                ">
+                    ${qCraftItemLink(r.result,resultName)}
+
+                    ${outCnt>1
+                        ? `<span style="color:#facc15;font-weight:800;"> ×${outCnt}</span>`
+                        : ''
+                    }
+                </div>
+
+                <div style="
+                    color:#94a3b8;
+                    font-size:14px;
+                    margin-bottom:4px;
+                ">
+                    🧰 所需材料
+                </div>
+
+                ${req || '<div style="color:#94a3b8;">無材料資料</div>'}
+            </section>
+        `;
+    }).join('');
+
+    return `
+        <button class="awk-back" onclick="AFKWiki.back()">
+            ← 返回列表
+        </button>
+
+        <h2>🔨 ${esc(n.n)}</h2>
+
+        <div class="awk-tags">
+            <span>${esc(n.town)}</span>
+            <span>製作 NPC</span>
+            <span>${n.recipes.length} 項配方</span>
+        </div>
+
+        ${n.d
+            ? `<section style="
+                    margin-top:14px;
+                    border:1px solid #334155;
+                    border-radius:12px;
+                    padding:14px;
+                    line-height:1.7;
+                ">
+                    📜 ${esc(n.d)}
+               </section>`
+            : ''
+        }
+
+        <h3 style="margin-top:18px;">⚒️ 製作清單</h3>
+
+        ${recipes}
+    `;
+}
+
+
+/* ---- 接進現有百科 ---- */
   list=function(){
-    return S.tab==='quests'
-      ? qList()
-      : _baseList();
-  };
+    if(S.tab==='quests') return qList();
+    if(S.tab==='craftnpc') return qCraftList();
+    return _baseList();
+};
 
   detail=function(){
     if(S.detail && S.detail.k==='quest'){
       return qDetail(S.detail.id);
+    }
+
+    if(S.detail && S.detail.k==='craftnpc'){
+        return qCraftDetail(S.detail.id);
     }
 
     const html=_baseDetail();
@@ -1510,9 +1803,38 @@ qDetail=function(id){
       'on',
       S.tab==='quests'
     );
+
+        let cb=[...tabs.children].find(function(x){
+            return x.textContent==='NPC／製作';
+        });
+
+        if(!cb){
+            cb=document.createElement('button');
+            cb.className=b.className;
+            cb.classList.remove('on');
+            cb.textContent='NPC／製作';
+
+            cb.onclick=function(){
+                AFKWiki.tab('craftnpc');
+            };
+
+            const craftSys=[...tabs.children].find(function(x){
+                return x.textContent==='系統規則';
+            });
+
+            tabs.insertBefore(
+                cb,
+                craftSys||null
+            );
+        }
+
+        cb.classList.toggle(
+            'on',
+            S.tab==='craftnpc'
+        );
   };
 
-})();    
+})();
 window.AFKWiki={open(){ensure().classList.remove('hidden');render();},close(){const o=document.getElementById('awk-overlay');if(o)o.classList.add('hidden');},tab(t){S.tab=t;S.detail=null;S.guideBack=null;render();},detail(k,id){S.detail={k,id};render();},guideDetail(k,id){if(S.detail&&S.detail.k==='quest'&&String(S.detail.id||'').indexOf('guide:')===0){S.guideBack=S.detail.id;const body=document.getElementById('awk-body');S.guideScroll=body?body.scrollTop:0;}S.detail={k,id};render();},backGuide(){if(!S.guideBack)return;const id=S.guideBack;const y=Number(S.guideScroll||0);S.guideBack=null;S.guideScroll=0;S.tab='quests';S.detail={k:'quest',id};render();requestAnimationFrame(()=>{const body=document.getElementById('awk-body');if(body)body.scrollTop=y;});},back(){S.detail=null;S.guideBack=null;render();}};
 const start=()=>{entry();let n=0,t=setInterval(()=>{if(entry()||++n>30)clearInterval(t)},500);};document.readyState==='loading'?document.addEventListener('DOMContentLoaded',start):start();
 })();
