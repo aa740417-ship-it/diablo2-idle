@@ -1802,6 +1802,19 @@ window.AFKEqDexCat=function(key){
     render();
 };
 
+
+window.AFKEqDexFilterClass=function(v){
+    S.equipCls=v||'all';
+    S.detail=null;
+    render();
+};
+
+window.AFKEqDexSort=function(v){
+    S.equipSort=v||'default';
+    S.detail=null;
+    render();
+};
+
 function qEquipDexList(){
 
     const groups=['武器','防具','飾品'];
@@ -1897,6 +1910,220 @@ function qEquipDexList(){
         );
     });
 
+
+    /* ===== 職業篩選 ===== */
+    const equipClsList=[
+        ['royal','王族'],
+        ['knight','騎士'],
+        ['elf','妖精'],
+        ['mage','法師'],
+        ['dark','黑暗妖精'],
+        ['dragon','龍騎士'],
+        ['illusion','幻術士'],
+        ['warrior','戰士']
+    ];
+
+    const selectedCls=S.equipCls||'all';
+    const selectedSort=S.equipSort||'default';
+
+    if(selectedCls!=='all'){
+        const clsKey=
+            selectedCls==='mine'
+                ? (
+                    typeof player!=='undefined' &&
+                    player &&
+                    player.cls
+                        ? player.cls
+                        : ''
+                  )
+                : selectedCls;
+
+        if(clsKey){
+            ids=ids.filter(function(id){
+                const d=DB.items&&DB.items[id];
+                if(!d) return false;
+
+                try{
+                    return typeof reqAllowsClass!=='function'
+                        ? true
+                        : !!reqAllowsClass(d,clsKey);
+                }catch(e){
+                    return true;
+                }
+            });
+        }
+    }
+
+    /* ===== 排序 ===== */
+    if(selectedSort==='damage' && group==='武器'){
+        ids.sort(function(a,b){
+            const da=DB.items[a]||{};
+            const db=DB.items[b]||{};
+
+            const va=
+                (Number(da.dmgS)||0)+
+                (Number(da.dmgL)||0);
+
+            const vb=
+                (Number(db.dmgS)||0)+
+                (Number(db.dmgL)||0);
+
+            return vb-va ||
+                   String(da.n||a).localeCompare(
+                       String(db.n||b)
+                   );
+        });
+    }
+
+    if(selectedSort==='name'){
+        ids.sort(function(a,b){
+            const da=DB.items[a]||{};
+            const db=DB.items[b]||{};
+
+            return String(da.n||a).localeCompare(
+                String(db.n||b)
+            );
+        });
+    }
+
+    if(selectedSort==='owned'){
+        ids.sort(function(a,b){
+            const ha=qEquipDexHave(a);
+            const hb=qEquipDexHave(b);
+
+            if((hb>0)!==(ha>0)){
+                return hb>0 ? 1 : -1;
+            }
+
+            if(hb!==ha) return hb-ha;
+
+            const da=DB.items[a]||{};
+            const db=DB.items[b]||{};
+
+            return String(da.n||a).localeCompare(
+                String(db.n||b)
+            );
+        });
+    }
+
+    const myCls=
+        typeof player!=='undefined' &&
+        player &&
+        player.cls
+            ? player.cls
+            : '';
+
+    const myClsName=
+        equipClsList.find(function(x){
+            return x[0]===myCls;
+        });
+
+    const classOptions=
+        [
+            ['all','全部職業'],
+            [
+                'mine',
+                '目前職業'+
+                (
+                    myClsName
+                        ? '（'+myClsName[1]+'）'
+                        : ''
+                )
+            ]
+        ]
+        .concat(equipClsList)
+        .map(function(x){
+            return `
+                <option
+                    value="${x[0]}"
+                    ${selectedCls===x[0]?'selected':''}
+                >
+                    ${x[1]}
+                </option>
+            `;
+        })
+        .join('');
+
+    const sortList=[
+        ['default','預設'],
+        ...(group==='武器'
+            ? [['damage','傷害高→低']]
+            : []
+        ),
+        ['name','名稱'],
+        ['owned','已持有優先']
+    ];
+
+    const sortOptions=
+        sortList.map(function(x){
+            return `
+                <option
+                    value="${x[0]}"
+                    ${selectedSort===x[0]?'selected':''}
+                >
+                    ${x[1]}
+                </option>
+            `;
+        }).join('');
+
+    const filterControls=`
+        <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:8px;
+            margin:4px 0 14px 0;
+        ">
+            <label style="
+                min-width:0;
+                color:#94a3b8;
+                font-size:13px;
+            ">
+                職業
+                <select
+                    onchange="AFKEqDexFilterClass(this.value)"
+                    style="
+                        width:100%;
+                        margin-top:5px;
+                        padding:9px 7px;
+                        border:1px solid #475569;
+                        border-radius:9px;
+                        background:#172033;
+                        color:#e2e8f0;
+                        font-size:14px;
+                        font-weight:700;
+                    "
+                >
+                    ${classOptions}
+                </select>
+            </label>
+
+            <label style="
+                min-width:0;
+                color:#94a3b8;
+                font-size:13px;
+            ">
+                排序
+                <select
+                    onchange="AFKEqDexSort(this.value)"
+                    style="
+                        width:100%;
+                        margin-top:5px;
+                        padding:9px 7px;
+                        border:1px solid #475569;
+                        border-radius:9px;
+                        background:#172033;
+                        color:#e2e8f0;
+                        font-size:14px;
+                        font-weight:700;
+                    "
+                >
+                    ${sortOptions}
+                </select>
+            </label>
+        </div>
+    `;
+
+
     const rows=ids.map(function(id){
 
         const d=DB.items[id];
@@ -1970,6 +2197,8 @@ function qEquipDexList(){
         ">
             ${catButtons}
         </div>
+
+        ${filterControls}
 
         ${cat
             ? `
