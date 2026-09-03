@@ -1121,6 +1121,311 @@ function skillDeepInfo(id,d){
         );
     }
 
+
+    /* ===== 技能百科公式批次6 ===== */
+
+    /* ===== 騎士 ===== */
+
+    if(id==='sk_solid_shield'){
+        effect.push(
+            '遠距離迴避 ER +15。'
+        );
+
+        condition.push(
+            '必須裝備盾牌才能施放。'
+        );
+
+        note.push(
+            'ER 會進入遠距離物理攻擊的迴避判定，不等於直接固定增加 15% 最終迴避率。'
+        );
+    }
+
+    if(id==='sk_shock_stun'){
+        condition.push(
+            '必須裝備雙手、而且不是弓的武器。'
+        );
+
+        formula.push(
+            '首先進行 1 次正常的近距離物理攻擊判定；這次攻擊本身必須先命中。'
+        );
+
+        formula.push(
+            '命中後，該次物理傷害額外固定 +10。'
+        );
+
+        formula.push(
+            '接著有 10% 機率進入「暈眩判定」。'
+        );
+
+        formula.push(
+            '通過 10% 發動門檻後，還要再進行一次異常魔法命中判定；成功才真正暈眩 6 秒。'
+        );
+
+        formula.push(
+            '因此實際暈眩率＝物理命中成功 ×10% ×異常魔法命中成功率。'
+        );
+
+        note.push(
+            '頭目免疫暈眩，所以即使前面的判定成功，也不會被衝擊之暈控制。'
+        );
+
+        note.push(
+            '部分特殊武器可以額外提高衝擊之暈的異常命中值。'
+        );
+    }
+
+    /* ===== 龍騎士 ===== */
+
+    if(id==='sk_dragon_armor'){
+        effect.push(
+            '固定傷害減免 DR +5。'
+        );
+
+        note.push(
+            '這是固定減傷，不是受到傷害 -5%。'
+        );
+    }
+
+    if(id==='sk_dragon_flameslash'){
+        condition.push(
+            '必須裝備近距離武器才能施放。'
+        );
+
+        formula.push(
+            '效果存在時，下一次近距離一般攻擊的最終傷害額外固定 +7。'
+        );
+
+        formula.push(
+            '同一擊會被標記為火屬性攻擊。'
+        );
+
+        note.push(
+            '效果只強化下一次近距離一般攻擊；成功觸發後立即消耗，不會持續強化後續每一擊。'
+        );
+
+        note.push(
+            '遠距離攻擊不會消耗燃燒擊砍。'
+        );
+    }
+
+    if(id==='sk_dragon_guardbreak'){
+        formula.push(
+            '每次施放固定有 10% 機率成功，不進行一般 MR／異常魔法命中計算。'
+        );
+
+        formula.push(
+            '成功後持續 32 秒，使目標的有效 AC +10，也就是防禦惡化、物理攻擊更容易命中。'
+        );
+
+        note.push(
+            '目標已經處於護衛毀滅時，不會重複施放，因此不會再次消耗 HP 或攻擊技能冷卻。'
+        );
+
+        note.push(
+            '目前這個固定狀態分支沒有套用一般頭目控制免疫，因此頭目也能受到護衛毀滅。'
+        );
+    }
+
+    if(id==='sk_dragon_lavaspit'){
+        formula.push(
+            '對場上所有敵人造成 5D7 火屬性魔法基礎傷害。'
+        );
+
+        formula.push(
+            '之後仍會套用目前的魔法傷害係數、火屬性抗性與 MR 等魔法傷害計算。'
+        );
+
+        note.push(
+            '屬於全體傷害技能。'
+        );
+    }
+
+    if(id==='sk_dragon_awaken_antares'){
+        effect.push(
+            'AC 改善 8。'
+        );
+
+        effect.push(
+            '最大 HP +（角色等級 ×2）。'
+        );
+
+        effect.push(
+            '免疫中毒、猛毒與麻痺。'
+        );
+
+        formula.push(
+            '例如 Lv.50：最大 HP 額外 +100；Lv.80：最大 HP 額外 +160。'
+        );
+
+        formula.push(
+            '任何一種覺醒生效時，攻擊速度提高 20%。'
+        );
+
+        formula.push(
+            '具有「覺醒精通」時，覺醒的攻擊速度提升改為 50%。'
+        );
+
+        note.push(
+            '沒有覺醒精通時，安塔瑞斯、法利昂、巴拉卡斯三種覺醒互斥，同時間只能維持一種。'
+        );
+
+        note.push(
+            '具有覺醒精通時三種覺醒可以同時存在，但攻速效果只算一次，不會三重相乘。'
+        );
+    }
+
+    if(id==='sk_dragon_bloodlust'){
+        formula.push(
+            '持續期間攻擊速度提高 15%。'
+        );
+
+        formula.push(
+            '血之渴望會與加速、覺醒、變身等攻速來源乘算疊加。'
+        );
+
+        note.push(
+            '提高的是攻擊速度，不是直接增加 15% 傷害。'
+        );
+    }
+
+    if(id==='sk_dragon_terror'){
+        formula.push(
+            '每次施放固定有 10% 機率成功，不讀取目標 MR。'
+        );
+
+        formula.push(
+            '成功後持續 16 秒；恐懼中的敵人每次進行一般攻擊時，有 90% 機率直接攻擊落空。'
+        );
+
+        note.push(
+            '這個 90% 判定發生在正常物理命中骰之前。'
+        );
+
+        note.push(
+            '目標已經處於恐懼無助時，不會再次施放或重複消耗 HP。'
+        );
+    }
+
+    if(id==='sk_dragon_lavabolt'){
+        formula.push(
+            '對單一目標造成 10D8 火屬性魔法基礎傷害。'
+        );
+
+        formula.push(
+            '之後再套用魔法傷害係數、火屬性抗性與 MR 等正常魔法傷害公式。'
+        );
+    }
+
+    if(id==='sk_dragon_awaken_falion'){
+        effect.push(
+            '火、水、地、風四屬性抗性各 +15。'
+        );
+
+        formula.push(
+            '最終 MR 再 ×1.15，結果向下取整。'
+        );
+
+        formula.push(
+            '任何一種覺醒生效時，攻擊速度提高 20%；具有覺醒精通時改為 50%。'
+        );
+
+        note.push(
+            '沒有覺醒精通時三種覺醒互斥；具有覺醒精通時可以三種同時維持。'
+        );
+
+        note.push(
+            '即使三種覺醒同時存在，覺醒帶來的攻速提升仍只計算一次。'
+        );
+    }
+
+    if(id==='sk_dragon_deadlybody'){
+        formula.push(
+            '受到直接物理或直接魔法傷害時，每次有 23% 機率觸發反射。'
+        );
+
+        formula.push(
+            '反射基礎傷害＝本次實際承受的傷害。'
+        );
+
+        formula.push(
+            '如果攻擊者身上有脆弱、破壞盔甲等受傷增加狀態，反射傷害還會再乘上攻擊者目前的受傷倍率。'
+        );
+
+        note.push(
+            '致命身軀不是固定每次都反射，而是每次受擊各自進行 23% 判定。'
+        );
+    }
+
+    if(id==='sk_dragon_deathlightning'){
+        formula.push(
+            '對場上所有敵人造成 8D8 風屬性魔法基礎傷害。'
+        );
+
+        formula.push(
+            '傷害結算後，對存活目標嘗試施加 6 秒暈眩。'
+        );
+
+        formula.push(
+            '暈眩使用一般異常魔法命中公式，因此成功率會受到角色等級、魔法命中、怪物等級與怪物 MR 影響。'
+        );
+
+        note.push(
+            '頭目免疫暈眩，但仍會受到奪命之雷本身的風屬性魔法傷害。'
+        );
+    }
+
+    if(id==='sk_dragon_reaper'){
+        formula.push(
+            '每次施放固定有 50% 機率成功，不讀取目標 MR。'
+        );
+
+        formula.push(
+            '成功後持續 32 秒。'
+        );
+
+        formula.push(
+            '死神狀態會使敵人的一般攻擊傷害計算固定 -20。'
+        );
+
+        formula.push(
+            '敵人的一般傷害技能也會固定 -20，最後仍保留至少 1 點傷害。'
+        );
+
+        note.push(
+            '這是固定減少 20 點，不是敵人傷害 -20%。'
+        );
+
+        note.push(
+            '目標已經處於驚悚死神狀態時，不會重複施放。'
+        );
+    }
+
+    if(id==='sk_dragon_awaken_baraka'){
+        effect.push(
+            'STR +3、CON +3、DEX +3、INT +3、WIS +3。'
+        );
+
+        effect.push(
+            '額外命中 +5。'
+        );
+
+        formula.push(
+            '五項能力提升後，會重新計算其相關的攻擊、命中、防禦、HP／MP 等衍生能力。'
+        );
+
+        formula.push(
+            '任何一種覺醒生效時，攻擊速度提高 20%；具有覺醒精通時改為 50%。'
+        );
+
+        note.push(
+            '沒有覺醒精通時三種覺醒互斥；具有覺醒精通時可以三種同時維持。'
+        );
+
+        note.push(
+            '多種覺醒同時存在時，覺醒攻速效果仍只計算一次。'
+        );
+    }
+
 function uniq(a){
         return a.filter(function(x,i){
             return x && a.indexOf(x)===i;
