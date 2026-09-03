@@ -275,7 +275,168 @@ function skillDeepInfo(id,d){
         );
     }
 
-    function uniq(a){
+
+    /* ===== 技能百科公式批次2 ===== */
+
+    if(id==='sk_dark_burn'){
+        formula.push(
+            '一般攻擊每次有 30% 機率觸發燃燒鬥志；成功時該次最終傷害 ×1.5。'
+        );
+
+        note.push(
+            '燃燒鬥志可以和雙重破壞同一擊一起觸發；若兩者同時成功，會依序套用各自的傷害倍率。'
+        );
+    }
+
+    if(id==='sk_dark_double'){
+        condition.push(
+            '只有裝備「雙刀」或「鋼爪」時才會進行雙重破壞判定。'
+        );
+
+        formula.push(
+            '發動率＝10%＋FLOOR((角色等級－45) ÷5)%。'
+        );
+
+        formula.push(
+            '例如：Lv.45＝10%、Lv.50＝11%、Lv.60＝13%、Lv.80＝17%。'
+        );
+
+        formula.push(
+            '成功發動時，該次一般攻擊傷害 ×2。'
+        );
+
+        note.push(
+            '可以與燃燒鬥志同時觸發。'
+        );
+    }
+
+    if(id==='sk_elf_triple'){
+        condition.push(
+            '必須裝備弓並具有可使用的箭矢。'
+        );
+
+        formula.push(
+            '施放後立即進行 3 次獨立的遠距離物理攻擊。'
+        );
+
+        formula.push(
+            '三箭各自獨立計算命中、武器／箭矢傷害、重擊、爆擊與目標防禦，因此可能出現部分命中、部分未命中的情況。'
+        );
+
+        note.push(
+            '三重矢不是把一次攻擊傷害直接 ×3，而是真正進行三次攻擊判定。'
+        );
+    }
+
+    if(id==='sk_reduction_armor'){
+        effect.push(
+            '提高固定傷害減免（DR）。'
+        );
+
+        formula.push(
+            '固定 DR 增加量＝FLOOR(角色等級 ÷10)。'
+        );
+
+        formula.push(
+            '例如：Lv.30＝DR +3、Lv.50＝DR +5、Lv.80＝DR +8。'
+        );
+
+        note.push(
+            '這是固定減免，不是百分比減傷。'
+        );
+    }
+
+    if(id==='sk_spike_armor'){
+        formula.push(
+            '持續期間近距離命中 +5。'
+        );
+
+        note.push(
+            '目前本遊戲的「尖刺盔甲」沒有反射傷害效果；實際效果是近距離命中提升。'
+        );
+    }
+
+    if(id==='sk_elf_preciseshot'){
+        formula.push(
+            '正常物理命中判定中，1D20 擲出 1 原本屬於必定未命中；精準射擊期間，骰出 1 改為必定命中。'
+        );
+
+        formula.push(
+            '因此命中率上限可以由通常的 95% 提高到 100%。'
+        );
+
+        note.push(
+            '精準射擊不是直接增加固定命中數值，而是修改命中骰的特殊規則。'
+        );
+    }
+
+    if(id==='sk_elf_attrfire'){
+        formula.push(
+            '一般攻擊每次有 30% 機率觸發；成功時該次傷害 ×1.5。'
+        );
+
+        note.push(
+            '效果與燃燒鬥志使用獨立判定；若兩個效果同時存在並同時發動，兩個 ×1.5 會依序套用。'
+        );
+    }
+
+    if(id==='sk_elf_muddywater'){
+        effect.push(
+            '使頭目的自然 HP 回復量減半。'
+        );
+
+        condition.push(
+            '只能對 BOSS／頭目施放。'
+        );
+
+        formula.push(
+            '此技能屬於必中異常效果，不進行一般魔法命中判定。'
+        );
+
+        formula.push(
+            '持續 32 秒；期間頭目原本的自然 HP 回復量 ×0.5。'
+        );
+
+        note.push(
+            '污濁之水本身不造成直接傷害。'
+        );
+    }
+
+    if(id==='sk_dragon_slaughter'){
+        condition.push(
+            '必須使用近距離武器；弓與其他遠距離武器不能施放。'
+        );
+
+        formula.push(
+            '基本效果：立即進行 3 次獨立的近距離一般物理攻擊，每一擊各自判定命中與傷害。'
+        );
+
+        formula.push(
+            '目標每有 1 層「弱點曝光」，屠宰者每一擊命中額外 +10 固定傷害。'
+        );
+
+        formula.push(
+            '例如目標有 3 層弱點曝光，三次命中的每一擊都會各自 +30 傷害。'
+        );
+
+        note.push(
+            '一般情況下，只要屠宰者成功利用到弱點曝光，施放結束後會消耗弱點曝光層數。'
+        );
+
+        note.push(
+            '具有「弱點精通」時，屠宰者不會消耗弱點曝光。'
+        );
+
+        note.push(
+            '具有「鎖刃精通」時，每層弱點曝光另外使最終傷害 +10%，而且弱點曝光上限由 3 層提高到 5 層。'
+        );
+
+        note.push(
+            '龍血精通會使技能 HP 消耗減半，因此屠宰者基本 HP16 會降為 HP8。'
+        );
+    }
+
+function uniq(a){
         return a.filter(function(x,i){
             return x && a.indexOf(x)===i;
         });
