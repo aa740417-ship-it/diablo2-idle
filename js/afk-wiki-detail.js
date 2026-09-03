@@ -22,7 +22,429 @@ function card(kind,id,title,sub,badge){return `<button class="awk-card" onclick=
 function list(){let rows=[];if(S.tab==='items')rows=items().slice(0,180).map(x=>card('item',x.id,x.d.n,itemSummary(x.d),type[x.d.type]||x.d.type));if(S.tab==='skills')rows=skills().slice(0,180).map(x=>card('skill',x.id,x.d.n,skillReq(x.d),x.d.tier?`${x.d.tier}階`:'技能'));if(S.tab==='mobs')rows=mobs().slice(0,180).map(x=>card('mob',x.id,x.d.n,`${x.d.race||'-'}・${x.d.beh||'-'}`,`Lv.${x.d.lv||0}`));if(S.tab==='maps')rows=maps().filter(x=>match(x.n,x.id,x.r)).slice(0,180).map(x=>card('map',x.id,x.n,x.r,`${(DB.maps&&DB.maps[x.id]||[]).length}怪`));return `<div class="awk-note">顯示前 180 筆；直接用上方搜尋可以快速縮小範圍。</div><div class="awk-list">${rows.join('')||'<div class="awk-empty">沒有符合的資料。</div>'}</div>`;}
 function drops(id){const a=knowledge().itemDrops[id]||[];return a.length?`<section><h3>🎁 掉落來源</h3>${a.sort((x,y)=>(y.rate||0)-(x.rate||0)).slice(0,60).map(r=>`<div class="awk-row"><b>${esc(r.mob)}</b><em>${r.rate!=null?esc(r.rate+'%'):'特殊'}</em></div>`).join('')}</section>`:'';}
 function itemDetail(id){const d=DB.items[id];if(!d)return'找不到資料';let desc='';try{if(typeof buildItemDescHTML==='function')desc=buildItemDescHTML({id,uid:'wiki_'+id,en:0,cnt:1});}catch(e){}if(!desc)desc=`<p>${esc(d.d||'無額外說明')}</p><p>適用職業：${esc(req(d))}</p><p>安定值：${d.noEnhance?'無法強化':esc(d.safe||0)}</p>`;let p=[];try{if(typeof weaponPurposeLabels==='function')p=p.concat(weaponPurposeLabels(d)||[])}catch(e){}try{if(typeof relicPurposeLabels==='function')p=p.concat(relicPurposeLabels(d)||[])}catch(e){}return `<h2>${esc(d.n)}</h2><div class="awk-tags"><span>${esc(type[d.type]||d.type||'物品')}</span><span>${esc(req(d))}</span>${d.legend?'<span>傳說</span>':''}${d.relic?'<span>遺物</span>':''}</div>${p.length?`<section><h3>⭐ 核心特色</h3><p>${p.map(esc).join('<br>')}</p></section>`:''}<section><h3>📋 完整能力</h3><div class="awk-desc">${desc}</div></section>${drops(id)}`;}
-function skillDetail(id){const d=DB.skills[id];if(!d)return'找不到資料';const a=[];if(d.tier)a.push(`階級：${d.tier}`);if(d.mp!=null)a.push(`MP：${d.mp}`);if(d.hpCost!=null)a.push(`HP 消耗：${d.hpCost}`);if(d.reqEle)a.push(`屬性：${ele[d.reqEle]||d.reqEle}`);let books=[];Object.keys(DB.items||{}).forEach(i=>{const x=DB.items[i];if(x&&x.type==='skillbk'&&x.sk===id)books.push({i,x});});return `<h2>${esc(d.n)}</h2><div class="awk-tags"><span>${esc(skillReq(d))}</span>${d.tier?`<span>${d.tier}階</span>`:''}</div><section><h3>🎓 可學職業／等級</h3><p>${esc(skillReq(d))}</p></section><section><h3>📊 技能資料</h3><p>${a.map(esc).join('<br>')||'沒有額外數值欄位。'}</p></section>${d.desc||d.msg?`<section><h3>✨ 效果說明</h3><p>${esc(d.desc||d.msg)}</p></section>`:''}${books.length?`<section><h3>📘 學習書／水晶</h3>${books.map(b=>`<div class="awk-row"><b>${esc(b.x.n)}</b><em>${(knowledge().itemDrops[b.i]||[]).length} 個掉落來源</em></div>`).join('')}</section>`:''}`;}
+
+function skillPct(v){
+    let n=Number(v);
+    if(!Number.isFinite(n)) return String(v);
+    if(n<=1) n*=100;
+    return (Math.round(n*100)/100)+'%';
+}
+
+function skillDur(v){
+    let n=Number(v);
+    if(!Number.isFinite(n)) return String(v);
+
+    if(n>=60 && n%60===0){
+        return n+' 秒（'+(n/60)+' 分鐘）';
+    }
+
+    return n+' 秒';
+}
+
+function skillDice(v){
+    if(Array.isArray(v)){
+        if(
+            v.length===2 &&
+            !Array.isArray(v[0]) &&
+            !Array.isArray(v[1])
+        ){
+            return v[0]+'D'+v[1];
+        }
+
+        return v.map(function(x){
+            if(Array.isArray(x) && x.length===2){
+                return x[0]+'D'+x[1];
+            }
+            return String(x);
+        }).join('、');
+    }
+
+    return String(v);
+}
+
+function skillDeepInfo(id,d){
+    const effect=[];
+    const formula=[];
+    const condition=[];
+    const note=[];
+
+    const statNames={
+        str:'力量 STR',
+        dex:'敏捷 DEX',
+        con:'體質 CON',
+        int:'智力 INT',
+        wis:'精神 WIS',
+        cha:'魅力 CHA',
+
+        mr:'魔法防禦 MR',
+        er:'遠距離迴避 ER',
+
+        meleeHit:'近距離命中',
+        rangedHit:'遠距離命中',
+        meleeDmg:'近距離傷害',
+        rangedDmg:'遠距離傷害',
+        extraHit:'額外命中',
+        extraDmg:'額外傷害',
+        dr:'傷害減免',
+
+        resFire:'火屬性抗性',
+        resWater:'水屬性抗性',
+        resEarth:'地屬性抗性',
+        resWind:'風屬性抗性'
+    };
+
+    if(d.d && typeof d.d==='object'){
+        Object.keys(d.d).forEach(function(k){
+            const v=Number(d.d[k]);
+
+            if(!Number.isFinite(v)) return;
+
+            if(k==='ac'){
+                effect.push(
+                    v>=0
+                    ? 'AC 改善 '+v
+                    : 'AC 惡化 '+Math.abs(v)
+                );
+                return;
+            }
+
+            if(statNames[k]){
+                effect.push(
+                    statNames[k]+' '+(v>=0?'+':'')+v
+                );
+            }
+        });
+    }
+
+    if(d.dmgDice){
+        formula.push('基礎傷害骰：'+skillDice(d.dmgDice));
+    }
+
+    if(d.dmgBase!=null){
+        formula.push('固定基礎傷害：+'+d.dmgBase);
+    }
+
+    if(d.multiDmg){
+        formula.push('多段傷害：'+skillDice(d.multiDmg));
+    }
+
+    if(d.healDice){
+        formula.push('治癒骰：'+skillDice(d.healDice));
+    }
+
+    if(d.hits!=null){
+        formula.push('攻擊次數：'+d.hits+' 次');
+    }
+
+    if(d.skillAddDmg!=null){
+        formula.push('技能額外物理傷害：+'+d.skillAddDmg);
+    }
+
+    if(d.stunChance!=null){
+        formula.push(
+            '暈眩基礎機率：'+skillPct(d.stunChance)
+        );
+    }
+
+    if(
+        d.fixedStatus &&
+        d.fixedStatus.chance!=null
+    ){
+        formula.push(
+            '狀態成功基礎機率：'+
+            skillPct(d.fixedStatus.chance)
+        );
+    }
+
+    if(d.hpCost!=null && d.mpGain!=null){
+        formula.push(
+            '轉換：消耗 '+d.hpCost+
+            ' HP → 恢復 '+d.mpGain+' MP'
+        );
+    }
+
+    if(d.reqShield){
+        condition.push('必須裝備盾牌。');
+    }
+
+    if(d.reqWpn){
+        const names={
+            bow:'弓',
+            w2h:'雙手武器',
+            sword:'劍'
+        };
+
+        condition.push(
+            '武器限制：'+(names[d.reqWpn]||d.reqWpn)
+        );
+    }
+
+    if(d.reqEle){
+        condition.push(
+            '屬性限制：'+(ele[d.reqEle]||d.reqEle)
+        );
+    }
+
+    if(d.reqEleAny){
+        condition.push('必須先選擇妖精屬性。');
+    }
+
+    if(d.ranged){
+        condition.push('屬於遠距離攻擊技能。');
+    }
+
+    if(d.target==='all'){
+        condition.push('作用目標：全體。');
+    }
+
+    if(d.noRefresh){
+        note.push(
+            '效果存在期間不重複刷新，結束後才會再次施放。'
+        );
+    }
+
+    if(d.loadFreeRegen){
+        effect.push(
+            '負重狀態下仍可以自然恢復 HP／MP。'
+        );
+    }
+
+    /* ===== 特殊技能實際公式 ===== */
+
+    if(id==='sk_dark_str'){
+        formula.push(
+            '實際效果固定為 STR +3；並不是直接「傷害 +3」。STR 提升後會再由角色能力公式重新計算相關戰鬥能力。'
+        );
+    }
+
+    if(id==='sk_dark_dex'){
+        formula.push(
+            '實際效果固定為 DEX +3；DEX 提升後會再由角色能力公式重新計算相關戰鬥能力。'
+        );
+    }
+
+    if(id==='sk_counter_barrier'){
+        effect.push(
+            '反擊屏障期間，雙手武器也能進入反擊判定。'
+        );
+
+        formula.push(
+            '普通反擊：以一次實際物理攻擊傷害為基礎 ×50%，必定命中，而且不會觸發重擊。'
+        );
+
+        formula.push(
+            '反擊精通：反擊倍率由 50% 提升為 65%，並且必定爆擊。'
+        );
+
+        formula.push(
+            '單手劍＋反擊屏障：反擊計算完成後再 ×2；倍率上約等於普通反擊 100%，有反擊精通時約 130%。'
+        );
+
+        formula.push(
+            '少數帶 counterBarrierX2 特性的雙手武器，反擊屏障期間也會得到 ×2。'
+        );
+
+        condition.push(
+            '受到敵人一般攻擊命中時，普通情況有 50% 機率發動反擊。'
+        );
+
+        condition.push(
+            '如果本次成功盾牌格檔，反擊發動率為 100%。'
+        );
+
+        condition.push(
+            '擁有「反擊精通」時，反擊發動率為 100%。'
+        );
+
+        note.push(
+            '反擊屏障不是把敵人打你的傷害直接反射回去；反擊傷害是重新用你自己的武器與物理攻擊能力計算。'
+        );
+
+        note.push(
+            '武士刀在特定裝備條件下走「居合」規則；反擊屏障期間原生居合最終傷害也會 ×2。'
+        );
+    }
+
+    if(id==='sk_elf_mirror'){
+        formula.push(
+            '受到魔法傷害時，以最終 WIS 作為反射機率：1 點 WIS＝1% 發動率。'
+        );
+
+        formula.push(
+            '成功反射時，對施法者造成與該次魔法傷害等量的必中固定傷害。'
+        );
+    }
+
+    function uniq(a){
+        return a.filter(function(x,i){
+            return x && a.indexOf(x)===i;
+        });
+    }
+
+    return {
+        effect:uniq(effect),
+        formula:uniq(formula),
+        condition:uniq(condition),
+        note:uniq(note)
+    };
+}
+
+function skillDetail(id){
+    const d=DB.skills[id];
+
+    if(!d){
+        return '找不到資料';
+    }
+
+    const stats=[];
+
+    if(d.tier){
+        stats.push('階級：'+d.tier);
+    }
+
+    if(d.mp!=null){
+        stats.push('MP 消耗：'+d.mp);
+    }
+
+    if(d.hpCost!=null){
+        stats.push('HP 消耗：'+d.hpCost);
+    }else if(d.hp!=null){
+        stats.push('HP 消耗：'+d.hp);
+    }
+
+    if(d.mpGain!=null){
+        stats.push('MP 恢復：'+d.mpGain);
+    }
+
+    if(d.dur!=null){
+        stats.push('持續時間：'+skillDur(d.dur));
+    }
+
+    if(d.hits!=null){
+        stats.push('攻擊次數：'+d.hits+' 次');
+    }
+
+    if(d.dmgDice){
+        stats.push('傷害骰：'+skillDice(d.dmgDice));
+    }
+
+    if(d.multiDmg){
+        stats.push('多段傷害：'+skillDice(d.multiDmg));
+    }
+
+    if(d.healDice){
+        stats.push('治癒骰：'+skillDice(d.healDice));
+    }
+
+    if(d.reqEle){
+        stats.push(
+            '限定屬性：'+(ele[d.reqEle]||d.reqEle)
+        );
+    }
+
+    const deep=skillDeepInfo(id,d);
+
+    let desc=[];
+
+    if(d.desc){
+        desc.push(d.desc);
+    }
+
+    if(d.msg && d.msg!==d.desc){
+        desc.push(d.msg);
+    }
+
+    deep.effect.forEach(function(x){
+        if(desc.indexOf(x)<0){
+            desc.push(x);
+        }
+    });
+
+    let books=[];
+
+    Object.keys(DB.items||{}).forEach(function(i){
+        const x=DB.items[i];
+
+        if(
+            x &&
+            x.type==='skillbk' &&
+            x.sk===id
+        ){
+            books.push({i:i,x:x});
+        }
+    });
+
+    function sec(title,arr){
+        if(!arr || !arr.length) return '';
+
+        return `
+            <section>
+                <h3>${title}</h3>
+                <p>
+                    ${arr.map(function(x){
+                        return '• '+esc(x);
+                    }).join('<br>')}
+                </p>
+            </section>
+        `;
+    }
+
+    return `
+        <h2>${esc(d.n)}</h2>
+
+        <div class="awk-tags">
+            <span>${esc(skillReq(d))}</span>
+            ${d.tier?`<span>${d.tier}階</span>`:''}
+        </div>
+
+        <section>
+            <h3>🎓 可學職業／等級</h3>
+            <p>${esc(skillReq(d))}</p>
+        </section>
+
+        <section>
+            <h3>📊 技能資料</h3>
+            <p>
+                ${
+                    stats.length
+                    ? stats.map(esc).join('<br>')
+                    : '沒有額外數值欄位。'
+                }
+            </p>
+        </section>
+
+        ${sec('✨ 實際效果',desc)}
+        ${sec('🧮 計算方式',deep.formula)}
+        ${sec('⚙️ 發動條件',deep.condition)}
+        ${sec('💡 特殊說明',deep.note)}
+
+        ${
+            books.length
+            ? `
+                <section>
+                    <h3>📘 學習書／水晶</h3>
+
+                    ${
+                        books.map(function(b){
+                            return `
+                                <div class="awk-row">
+                                    <b>${esc(b.x.n)}</b>
+                                    <em>
+                                        ${
+                                            (knowledge().itemDrops[b.i]||[]).length
+                                        } 個掉落來源
+                                    </em>
+                                </div>
+                            `;
+                        }).join('')
+                    }
+                </section>
+              `
+            : ''
+        }
+    `;
+}
+
 function mobDetail(id){const d=DB.mobs[id];if(!d)return'找不到資料';const k=knowledge(),ms=[...new Set(k.mobMaps[d.n]||[])],ds=(k.mobDrops[d.n]||[]).sort((a,b)=>(b.rate||0)-(a.rate||0));return `<h2>${esc(d.n)}</h2><div class="awk-tags"><span>Lv.${esc(d.lv||0)}</span>${d.boss?'<span>BOSS</span>':''}<span>${esc(d.race||'-')}</span></div><section><h3>📊 怪物能力</h3><div class="awk-grid"><div>HP ${esc(d.hp||0)}</div><div>AC ${esc(d.ac==null?'-':d.ac)}</div><div>MR ${esc(d.mr||0)}</div><div>EXP ${esc(d.exp||0)}</div><div>屬性 ${esc(ele[d.e]||d.e||'無')}</div><div>行為 ${esc(d.beh||'-')}</div></div></section><section><h3>🗺️ 出沒地圖</h3><p>${ms.map(esc).join('、')||'特殊事件／召喚／階段型怪物'}</p></section><section><h3>🎁 專屬掉落</h3>${ds.length?ds.slice(0,80).map(r=>`<div class="awk-row"><b>${esc((DB.items[r.id]||{}).n||r.id)}</b><em>${r.rate!=null?esc(r.rate+'%'):'特殊'}</em></div>`).join(''):'<p>沒有登記專屬掉落。</p>'}</section>`;}
 function mapDetail(id){const n=knowledge().names[id]||id,ids=(DB.maps&&DB.maps[id])||[],mm=ids.map(x=>({id:x,d:DB.mobs[x]})).filter(x=>x.d);return `<h2>${esc(n)}</h2><div class="awk-tags"><span>${mm.length} 種怪物</span></div><section><h3>👾 怪物池</h3>${mm.length?mm.map(x=>`<button class="awk-link" onclick="AFKWiki.detail('mob','${esc(x.id)}')"><span>${x.d.boss?'👑 ':''}${esc(x.d.n)}</span><em>Lv.${esc(x.d.lv||0)}</em></button>`).join(''):'<p>安全區或沒有固定怪物。</p>'}</section>`;}
 function system(){return `<div class="awk-hero"><h2>📖 詳細百科</h2><p>收藏是收集進度；百科是攻略查詢。裝備、技能、怪物和地圖都直接讀目前遊戲資料。</p></div><section><h3>⚒️ 強化規則</h3><p>安定值內為安全強化；超過安定值後有失敗風險。武器、防具、飾品依各自規則判定，實際可強化上限與成功率以遊戲目前版本為準。</p></section><section><h3>🎲 裝備詞綴</h3><p>一般裝備可依來源產生祝福、屬性、遠古等特殊能力；遺物不走一般隨機詞綴。百科的「完整能力」直接使用遊戲現行物品資料。</p></section><section><h3>📚 百科用途</h3><p>可查裝備能力與掉落怪、技能學習等級與技能書、怪物能力與掉落、地圖怪物池。之後新增資料也會自動跟著出現。</p></section>`;}
