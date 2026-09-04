@@ -4073,3 +4073,14 @@ button.classic-skill-cell { cursor:pointer; }
         align-self: center;
     }
 }
+
+/* ===== 🖥️ PC 戰鬥區真正填滿中央欄 v2 ===== */
+@media (min-width: 1200px) {
+    #col-center:has(#battle-view.area-fit:not(.hidden))
+    #battle-view.area-fit:not(.hidden) {
+        width: calc(100% - 16px) !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        align-self: center !important;
+    }
+}
