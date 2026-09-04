@@ -2469,3 +2469,95 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { try
 
 // 🚀 效能：分頁面板重繪保護＋節流。狩獵時扣箭/耗肉/掉寶會每 tick 觸發 renderTabs 重建整個面板，
 //    重建會洗掉按鈕→在 mousedown↔mouseup 間重建使「賣出/強化」點擊失效並造成卡頓。
+
+// ===== 🚀 全平台戰鬥效能優化 v1：只節流視覺特效，不改任何戰鬥數值 =====
+(function(){
+    if (window.__combatPerfBoostV1) return;
+    window.__combatPerfBoostV1 = true;
+
+    const _perfNow = () => (window.performance && performance.now ? performance.now() : Date.now());
+    const _perfLayer = () => document.getElementById('vfx-layer');
+
+    let _lastDmg = 0;
+    let _lastBlood = 0;
+    let _lastSpell = 0;
+    let _lastArrow = 0;
+
+    // 傷害飄字：爆擊/重擊永遠保留；普通傷害過密時合併顯示壓力
+    if (typeof _vfxNumber === 'function') {
+        const _origVfxNumber = _vfxNumber;
+        _vfxNumber = function(x, y, dmg, ele, big) {
+            if (!big) {
+                const t = _perfNow();
+                if (t - _lastDmg < 22) return;
+
+                const l = _perfLayer();
+                if (l && l.getElementsByClassName('vfx-dmg').length >= 14) return;
+
+                _lastDmg = t;
+            }
+            return _origVfxNumber.apply(this, arguments);
+        };
+    }
+
+    // 命中血滴：避免多人/高速攻擊時瞬間產生大量小 DOM
+    if (typeof _vfxBlood === 'function') {
+        const _origVfxBlood = _vfxBlood;
+        _vfxBlood = function(cx, cy, big) {
+            const t = _perfNow();
+            const l = _perfLayer();
+
+            if (!big && t - _lastBlood < 45) return;
+            if (l && l.getElementsByClassName('vfx-blood').length >= (big ? 30 : 18)) return;
+
+            _lastBlood = t;
+            return _origVfxBlood.apply(this, arguments);
+        };
+    }
+
+    // 法術特效：畫面已經很滿時限制同時存在數量
+    if (typeof playSpellFx === 'function') {
+        const _origPlaySpellFx = playSpellFx;
+        playSpellFx = function() {
+            const l = _perfLayer();
+            const t = _perfNow();
+
+            if (l) {
+                const n = l.getElementsByClassName('vfx-spell').length;
+                if (n >= 16) return;
+                if (n >= 10 && t - _lastSpell < 10) return;
+            }
+
+            _lastSpell = t;
+            return _origPlaySpellFx.apply(this, arguments);
+        };
+    }
+
+    // 箭矢：高速連射時避免大量重疊元素
+    if (typeof playArrowFx === 'function') {
+        const _origPlayArrowFx = playArrowFx;
+        playArrowFx = function() {
+            const l = _perfLayer();
+            const t = _perfNow();
+
+            if (l) {
+                const n = l.getElementsByClassName('vfx-arrow').length;
+                if (n >= 10) return;
+                if (n >= 6 && t - _lastArrow < 12) return;
+            }
+
+            _lastArrow = t;
+            return _origPlayArrowFx.apply(this, arguments);
+        };
+    }
+
+    // 把 VFX 圖層隔離，減少特效造成整個遊戲畫面的重排/重繪
+    try {
+        const s = document.createElement('style');
+        s.id = 'combat-perf-boost-v1';
+        s.textContent =
+            '#vfx-layer{contain:layout paint style;isolation:isolate}' +
+            '.vfx-dmg,.vfx-spell,.vfx-arrow,.vfx-blood{backface-visibility:hidden}';
+        document.head.appendChild(s);
+    } catch(e) {}
+})();
