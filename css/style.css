@@ -4027,3 +4027,49 @@ button.classic-skill-cell { cursor:pointer; }
     }
 
 }
+
+/* ===== 🖥️ PC 戰鬥區放大 + 下方日誌縮半 v1 ===== */
+@media (min-width: 1200px) {
+
+    /* 中央欄：戰鬥區優先吃高度 */
+    #col-center {
+        min-height: 0;
+    }
+
+    #map-view-panel {
+        flex: 1 1 auto !important;
+        min-height: 0;
+    }
+
+    /* 覆蓋舊狩獵規則：不要再讓日誌吃掉所有剩餘空間 */
+    #col-center:has(#battle-view.area-fit:not(.hidden)) #map-view-panel {
+        flex: 1 1 auto !important;
+    }
+
+    #col-center:has(#battle-view.area-fit:not(.hidden)) #log-row {
+        flex: 0 0 170px !important;
+    }
+
+    /* 下方左右兩個日誌列縮到約原本一半 */
+    #log-row {
+        flex: 0 0 170px !important;
+        height: 170px;
+        min-height: 170px;
+        max-height: 170px;
+    }
+
+    #combat-log-panel,
+    #syslog-panel {
+        min-height: 0 !important;
+        height: 170px;
+    }
+
+    /* PC 狩獵畫面由原本 800×450 放大 */
+    #battle-view.area-fit:not(.hidden) {
+        width: min(1050px, 100%) !important;
+        max-width: 1050px !important;
+        aspect-ratio: 16 / 9;
+        height: auto;
+        align-self: center;
+    }
+}
