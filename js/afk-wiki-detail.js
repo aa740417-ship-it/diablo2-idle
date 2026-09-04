@@ -2480,6 +2480,809 @@ function skillDeepInfo(id,d){
         );
     }
 
+
+    /* ===== 技能百科公式批次11 ===== */
+
+    /* ===== 法師輔助／治癒／控場 ===== */
+
+    if(id==='sk_mummy_curse'){
+        effect.push(
+            '成功後使目標石化 6 秒，期間無法正常行動。'
+        );
+
+        condition.push(
+            '使用異常魔法命中判定。'
+        );
+
+        formula.push(
+            '異常命中值＝角色等級＋魔法命中－(目標等級－10)－目標MR÷10。'
+        );
+
+        formula.push(
+            '最後擲 1D20：自然20必中、自然1必定失敗，其餘命中值 ≥ 骰值才成功。'
+        );
+
+        note.push(
+            '石化屬於頭目免疫的行動限制效果，因此 BOSS 不會被木乃伊的詛咒石化。'
+        );
+    }
+
+    if(id==='sk_heal2'){
+        effect.push(
+            '立即治癒目前存活隊伍中 HP 比例最低的目標。'
+        );
+
+        formula.push(
+            '基礎治癒＝(10＋INT治癒加成)D8 ×2。'
+        );
+
+        formula.push(
+            '滿正義值時，因具有正義治癒屬性，最終恢復量再 ×1.20。'
+        );
+
+        formula.push(
+            '受到污濁之水影響的目標，最終治癒量 ×0.50。'
+        );
+
+        note.push(
+            '高級治癒術屬於瞬間治癒，可以觸發水之元氣的「下一次治癒 ×2」。'
+        );
+
+        note.push(
+            '治癒量不吃魔法傷害、SP、法術階級或魔法爆擊。'
+        );
+    }
+
+    if(id==='sk_holy_light'){
+        effect.push(
+            '解除 1 名隊伍成員身上的石化或麻痺。'
+        );
+
+        formula.push(
+            '一次施放只解除 1 名成員；系統優先處理主要玩家，再依序尋找其他隊員。'
+        );
+
+        note.push(
+            '如果全隊都沒有石化／麻痺，就不會施放，也不會消耗 MP 或進入淨化冷卻。'
+        );
+
+        note.push(
+            '施法者自己處於石化、冰凍、暈眩、麻痺、沉睡、沉默或魔法封印時，無法使用聖潔之光。'
+        );
+    }
+
+    if(id==='sk_dark_shadow'){
+        effect.push(
+            '成功後使目標目盲 20 秒，降低其一般攻擊的命中能力。'
+        );
+
+        condition.push(
+            '成功與否使用異常魔法命中判定。'
+        );
+
+        formula.push(
+            '異常命中值＝角色等級＋魔法命中－(目標等級－10)－目標MR÷10。'
+        );
+
+        note.push(
+            '黑闇之影是純異常狀態技能，本身沒有傷害骰。'
+        );
+    }
+
+    if(id==='sk_haste_spell'){
+        effect.push(
+            '攻擊速度 +33%、移動速度 +33%。'
+        );
+
+        formula.push(
+            '攻擊間隔＝原攻擊間隔 ÷1.33。'
+        );
+
+        formula.push(
+            '移動延遲＝原移動延遲 ÷1.33。'
+        );
+
+        formula.push(
+            '持續時間：1200 秒（20 分鐘）。'
+        );
+
+        note.push(
+            '加速術、強力加速術、加速藥水與裝備常駐加速使用同一類 haste 效果，不會彼此再疊一次 +33%。'
+        );
+    }
+
+    if(id==='sk_cancel'){
+        effect.push(
+            '解除 1 名隊伍成員身上的多種負面狀態。'
+        );
+
+        formula.push(
+            '目前可解除：冰凍、石化、中毒、麻痺、灼燒、燙傷、弱化、疾病、目盲、藥水冰霜、污濁之水。'
+        );
+
+        formula.push(
+            '一次施放只解除 1 名成員；優先處理主要玩家。'
+        );
+
+        note.push(
+            '如果全隊沒有任何可解除狀態，就不會施放，也不消耗 MP。'
+        );
+
+        note.push(
+            '魔法相消術使用獨立的淨化施法冷卻，不會吃掉一般治癒術的共用治癒冷卻。'
+        );
+
+        note.push(
+            '施法者自己被硬控、沉默或魔法封印時無法替隊伍解狀態。'
+        );
+    }
+
+    if(id==='sk_str_up'){
+        effect.push(
+            '力量 STR +5。'
+        );
+
+        formula.push(
+            '持續時間：1200 秒（20 分鐘）。'
+        );
+
+        note.push(
+            'STR 提升後，近距離傷害、負重等相關衍生能力會依角色目前公式重新計算。'
+        );
+    }
+
+    if(id==='sk_bless_wpn'){
+        effect.push(
+            '額外傷害 +2。'
+        );
+
+        effect.push(
+            '額外命中 +2。'
+        );
+
+        formula.push(
+            '持續時間：1200 秒（20 分鐘）。'
+        );
+
+        note.push(
+            '額外傷害／命中會進入一般武器攻擊的對應計算，不是單純武器面板傷害骰 +2。'
+        );
+    }
+
+    if(id==='sk_regen'){
+        effect.push(
+            '目前版本為「立即全隊治癒」，不是持續回血 HoT。'
+        );
+
+        formula.push(
+            '每名存活隊員各自獨立計算：治癒量＝(10＋INT治癒加成)D8 ×1.6。'
+        );
+
+        formula.push(
+            '技能專屬治癒冷卻＝30 ticks＝3 秒。'
+        );
+
+        formula.push(
+            '滿正義值時，最終治癒量再 ×1.20。'
+        );
+
+        formula.push(
+            '受到污濁之水的成員，自己的治癒量 ×0.50。'
+        );
+
+        note.push(
+            '每名隊員都是獨立擲骰，因此同一次施放每個人實際恢復量可能不同。'
+        );
+
+        note.push(
+            '如果受益者自身有可觸發的水之元氣，該名受益者這一次瞬間治癒可以再 ×2。'
+        );
+
+        note.push(
+            '團體治癒強化類武器若有 groupHealMult，會再乘算到此技能。'
+        );
+    }
+
+    if(id==='sk_greater_haste'){
+        effect.push(
+            '攻擊速度 +33%、移動速度 +33%。'
+        );
+
+        formula.push(
+            '攻擊間隔＝原攻擊間隔 ÷1.33。'
+        );
+
+        formula.push(
+            '移動延遲＝原移動延遲 ÷1.33。'
+        );
+
+        formula.push(
+            '持續時間：2400 秒（40 分鐘）。'
+        );
+
+        note.push(
+            '強力加速術與普通加速術效果強度相同，主要差別是持續時間更長。'
+        );
+
+        note.push(
+            '兩者屬於同一 haste 效果，不會同時疊成攻速／移速 +66%。'
+        );
+    }
+
+    if(id==='sk_ice_lance'){
+        effect.push(
+            '對單一目標造成水屬性魔法傷害，並嘗試附加冰凍。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝10D6＋45，之後再進入正常魔法傷害公式。'
+        );
+
+        formula.push(
+            '傷害會受到施法者魔法傷害係數、法術階級、魔法爆擊、目標 MR 與水屬性剋制影響。'
+        );
+
+        formula.push(
+            '目標承受傷害後若仍存活，再嘗試冰凍 6 秒；冰凍使用異常魔法命中判定。'
+        );
+
+        note.push(
+            'BOSS 免疫冰凍，但仍會正常受到冰矛圍籬的水屬性魔法傷害。'
+        );
+    }
+
+    if(id==='sk_holy_dash'){
+        effect.push(
+            '移動速度 +33%。'
+        );
+
+        formula.push(
+            '移動延遲＝原移動延遲 ÷1.33。'
+        );
+
+        formula.push(
+            '持續時間：64 秒。'
+        );
+
+        note.push(
+            '神聖疾走只提高移動速度，不會額外增加一般攻擊速度。'
+        );
+
+        note.push(
+            '神聖疾走與妖精「風之疾走」互斥；兩者不會同時疊加兩次 +33% 移速。'
+        );
+    }
+
+    if(id==='sk_full_heal'){
+        effect.push(
+            '立即治癒目前存活隊伍中 HP 比例最低的目標。'
+        );
+
+        formula.push(
+            '基礎治癒＝(12＋INT治癒加成)D12 ×2。'
+        );
+
+        formula.push(
+            '滿正義值時，因具有正義治癒屬性，最終治癒量再 ×1.20。'
+        );
+
+        formula.push(
+            '受到污濁之水影響時，最終治癒量 ×0.50。'
+        );
+
+        note.push(
+            '全部治癒術仍然是依治癒骰計算，不是直接把 HP 補滿；真正的「補滿缺失 HP」是生命之泉。'
+        );
+
+        note.push(
+            '此技能屬於瞬間治癒，可以觸發水之元氣。'
+        );
+    }
+
+    if(id==='sk_heal2' || id==='sk_regen' || id==='sk_full_heal'){
+        formula.push(
+            '【INT治癒加成】INT≤9：-1；INT10～11：+0；INT12～14：+1；INT15～17：+2；INT18：+3。'
+        );
+
+        formula.push(
+            'INT19～25：加成＝INT－15；例如 INT20＝+5、INT25＝+10。'
+        );
+
+        formula.push(
+            'INT26以上：加成＝10＋FLOOR((INT－25)÷5)，最高 +21。'
+        );
+
+        note.push(
+            'INT治癒加成增加的是「骰子顆數」，不是直接固定加上相同數字的 HP。'
+        );
+    }
+
+
+    /* ===== 技能百科公式批次12 ===== */
+
+    /* ===== 批次12覆蓋舊說明 ===== */
+    if([
+        'sk_blizzard',
+        'sk_blizzard_storm',
+        'sk_fire_prison',
+        'sk_quake',
+        'sk_heal_energy_storm',
+        'sk_holy_barrier',
+        'sk_sleep_mist',
+        'sk_thunder_storm',
+        'sk_fire_storm',
+        'sk_meteor',
+        'sk_soul_up',
+        'sk_abs_barrier',
+        'sk_disintegrate',
+        'sk_resurrection'
+    ].includes(id)){
+        effect.length=0;
+        formula.length=0;
+        condition.length=0;
+        note.length=0;
+    }
+
+
+
+    /* ===== 法師高階魔法 Lv32～40 ===== */
+
+    if(id==='sk_blizzard'){
+        effect.push(
+            '對場上所有存活敵人造成 8 段水屬性魔法傷害。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝8 段 × 2D10。'
+        );
+
+        formula.push(
+            '每個目標都依目前魔法傷害公式結算，受到施法者魔法能力、魔法爆擊、目標 MR、水屬性防禦與屬性剋制影響。'
+        );
+
+        note.push(
+            '冰雪暴本身沒有內建冰凍效果；若其他裝備另外賦予水系法術冰凍，才會額外觸發。'
+        );
+    }
+
+    if(id==='sk_blizzard_storm'){
+        effect.push(
+            '在自身周圍形成冰雪颶風，持續期間週期性攻擊全體敵人。'
+        );
+
+        formula.push(
+            '持續時間：32 秒。'
+        );
+
+        formula.push(
+            '每 4 秒觸發一次；每次對所有存活敵人造成 2D10 水屬性魔法傷害。'
+        );
+
+        formula.push(
+            '每次傷害都會套用正常魔法傷害、魔法爆擊、目標 MR、屬性防禦與水屬性剋制公式。'
+        );
+
+        formula.push(
+            '敵人受傷後若仍存活，會再進行一次冰凍判定：異常魔法命中值額外 -3。'
+        );
+
+        formula.push(
+            '冰凍成功時持續 6 秒。'
+        );
+
+        note.push(
+            'BOSS 仍會受到冰雪颶風傷害，但免疫冰凍。'
+        );
+
+        note.push(
+            '效果未結束前不可重新施放刷新時間。'
+        );
+    }
+
+    if(id==='sk_fire_prison'){
+        effect.push(
+            '以火牢包圍自身，持續期間週期性灼燒場上所有敵人。'
+        );
+
+        formula.push(
+            '持續時間：10 秒。'
+        );
+
+        formula.push(
+            '每 2 秒觸發一次；每次對所有存活敵人造成 2D15 火屬性魔法傷害。'
+        );
+
+        formula.push(
+            '傷害套用正常魔法傷害、魔法爆擊、目標 MR、火屬性防禦與屬性剋制公式。'
+        );
+
+        note.push(
+            '火牢本身沒有內建異常狀態，只造成週期性火屬性傷害。'
+        );
+
+        note.push(
+            '若裝備具有「火牢傷害倍率」的特殊裝備，會再乘算該倍率。'
+        );
+
+        note.push(
+            '效果未結束前不可重新施放刷新時間。'
+        );
+    }
+
+    if(id==='sk_quake'){
+        effect.push(
+            '對場上所有存活敵人造成地屬性魔法傷害。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝8D10＋30。'
+        );
+
+        formula.push(
+            '之後進入正常魔法傷害公式，受到魔法能力、魔法爆擊、目標 MR、地屬性防禦與屬性剋制影響。'
+        );
+    }
+
+    if(id==='sk_heal_energy_storm'){
+        effect.push(
+            '大幅縮短 HP 自然恢復的等待時間。'
+        );
+
+        formula.push(
+            '效果期間，HP 自然恢復間隔固定取較快值，最長每 3 秒恢復一次。'
+        );
+
+        formula.push(
+            '持續時間：320 秒。'
+        );
+
+        note.push(
+            '只影響 HP 自然恢復頻率，不會提高 MP 自然恢復速度。'
+        );
+
+        note.push(
+            '效果結束前不可重新施放刷新持續時間。'
+        );
+    }
+
+    if(id==='sk_holy_barrier'){
+        effect.push(
+            '受到的最終傷害減少 30%。'
+        );
+
+        formula.push(
+            '聖結界生效時：最終受到傷害 ×0.70。'
+        );
+
+        formula.push(
+            '持續時間：32 秒。'
+        );
+
+        note.push(
+            '一般物理攻擊與魔法傷害都會受到聖結界減免。'
+        );
+
+        note.push(
+            '和其他百分比減傷採乘算，不是直接相加。例如另一個減傷20%效果同時存在時：0.80×0.70＝0.56，也就是總減傷44%。'
+        );
+    }
+
+    if(id==='sk_sleep_mist'){
+        effect.push(
+            '對場上所有存活敵人嘗試施加沉睡 8 秒。'
+        );
+
+        condition.push(
+            '每個敵人分別進行異常魔法命中判定。'
+        );
+
+        formula.push(
+            '異常命中值＝角色等級＋魔法命中－(目標等級－10)－目標MR÷10。'
+        );
+
+        formula.push(
+            '擲 1D20：自然20必中、自然1必定失敗，其餘命中值 ≥ 骰值才成功。'
+        );
+
+        note.push(
+            '沉睡期間敵人無法行動。'
+        );
+
+        note.push(
+            '沉睡中的敵人只要受到任何傷害就會立即醒來。'
+        );
+
+        note.push(
+            'BOSS 免疫沉睡。'
+        );
+    }
+
+    if(id==='sk_thunder_storm'){
+        effect.push(
+            '對場上所有存活敵人造成多段風屬性魔法傷害。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝8 段 × 2D10。'
+        );
+
+        formula.push(
+            '每個目標依正常魔法傷害、魔法爆擊、MR、風屬性防禦與屬性剋制公式結算。'
+        );
+    }
+
+    if(id==='sk_fire_storm'){
+        effect.push(
+            '對場上所有存活敵人造成多段火屬性魔法傷害。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝4 段 × 4D10。'
+        );
+
+        formula.push(
+            '每個目標依正常魔法傷害、魔法爆擊、MR、火屬性防禦與屬性剋制公式結算。'
+        );
+    }
+
+    if(id==='sk_meteor'){
+        effect.push(
+            '召喚流星雨攻擊場上所有存活敵人。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝12 段 × 2D9 火屬性魔法傷害。'
+        );
+
+        formula.push(
+            '每個目標依正常魔法傷害、魔法爆擊、MR、火屬性防禦與屬性剋制公式結算。'
+        );
+
+        note.push(
+            '屬於高段數全體魔法，因此場上敵人越多，一次施放的總輸出量越高。'
+        );
+    }
+
+    if(id==='sk_soul_up'){
+        effect.push(
+            '最大 HP +20%。'
+        );
+
+        effect.push(
+            '最大 MP +20%。'
+        );
+
+        formula.push(
+            '最大HP＝FLOOR(原最大HP ×1.20)。'
+        );
+
+        formula.push(
+            '最大MP＝FLOOR(原最大MP ×1.20)。'
+        );
+
+        formula.push(
+            '持續時間：1200 秒（20 分鐘）。'
+        );
+
+        note.push(
+            '百分比提升是在角色其他基礎生命／魔力計算後再乘算。'
+        );
+    }
+
+    if(id==='sk_abs_barrier'){
+        effect.push(
+            '進入完全隔絕狀態 7 秒。'
+        );
+
+        effect.push(
+            '效果期間不受任何傷害。'
+        );
+
+        condition.push(
+            '此技能屬於手動技能。'
+        );
+
+        formula.push(
+            '屏障持續時間：7 秒。'
+        );
+
+        formula.push(
+            '施放後專屬冷卻＝7秒屏障時間＋12秒額外冷卻＝共19秒。'
+        );
+
+        note.push(
+            '絕對屏障期間無法一般攻擊、無法施法、無法使用道具。'
+        );
+
+        note.push(
+            '屏障期間也不會進行自然 HP／MP 恢復。'
+        );
+
+        note.push(
+            '屏障結束後才能恢復正常行動。'
+        );
+    }
+
+    if(id==='sk_disintegrate'){
+        effect.push(
+            '對單一目標造成極高的無屬性魔法傷害。'
+        );
+
+        condition.push(
+            '只有正義性向角色才能施放；性向值必須 ≥ 1000。'
+        );
+
+        formula.push(
+            '技能基礎傷害＝10D20＋100。'
+        );
+
+        formula.push(
+            '屬性為「無」，因此不進行火／水／風／地的剋制倍率。'
+        );
+
+        formula.push(
+            '之後仍受到正常魔法傷害能力、魔法爆擊與目標 MR 等公式影響。'
+        );
+
+        note.push(
+            '基礎 MP 消耗為 70；實際消耗仍會依角色目前的 MP 消耗增減效果計算。'
+        );
+    }
+
+    if(id==='sk_resurrection'){
+        effect.push(
+            '可立即復活已倒地的傭兵或出戰寵物。'
+        );
+
+        formula.push(
+            '基礎 MP 消耗：50；實際消耗依角色目前的技能 MP 消耗公式計算。'
+        );
+
+        formula.push(
+            '返生術本身沒有復活等待冷卻，隊友剛倒地即可使用。'
+        );
+
+        formula.push(
+            '復活後 HP＝最大HP的50%，MP恢復至最大值。'
+        );
+
+        note.push(
+            '復活時會清除倒地角色身上的異常狀態，並在原地重新加入戰鬥。'
+        );
+
+        note.push(
+            '返生術與復活卷軸不同：復活卷軸需要等待倒地15秒；返生術不用等待，但會消耗施法者 MP。'
+        );
+    }
+
+
+    /* ===== 技能百科公式批次13 ===== */
+
+    /* 法師剩餘特殊技能：先清除舊百科說明，以下列新版為準 */
+    if([
+        'sk_tornado',
+        'sk_berserk',
+        'sk_invisible',
+        'sk_seal'
+    ].includes(id)){
+        effect.length=0;
+        formula.length=0;
+        condition.length=0;
+        note.length=0;
+    }
+
+    if(id==='sk_tornado'){
+        effect.push(
+            '對場上所有存活敵人造成多段風屬性魔法傷害。'
+        );
+
+        formula.push(
+            '技能共有 6 段，每一段基礎傷害為 2D10。'
+        );
+
+        formula.push(
+            '完整基礎傷害＝6 × 2D10。'
+        );
+
+        formula.push(
+            '各目標再套用目前魔法傷害、魔法爆擊、目標 MR、風屬性抗性與屬性剋制公式。'
+        );
+
+        note.push(
+            '這是全體風屬性魔法，不是一次單體大傷害。'
+        );
+
+        note.push(
+            '部分武器效果可以免費追加龍捲風；免費觸發仍使用龍捲風本身的傷害公式。'
+        );
+    }
+
+    if(id==='sk_berserk'){
+        effect.push(
+            '近距離傷害 +5。'
+        );
+
+        effect.push(
+            'AC 改善 10，也就是角色 AC 數值 -10。'
+        );
+
+        formula.push(
+            '持續時間：1200 秒（20 分鐘）。'
+        );
+
+        note.push(
+            '這個「狂暴術」是法師的持續增益，和戰士的「狂暴」5%機率傷害×2不是同一個技能。'
+        );
+
+        note.push(
+            'AC 在目前系統中越低越好，因此 AC -10 是提升防禦，不是防禦惡化。'
+        );
+    }
+
+    if(id==='sk_invisible'){
+        effect.push(
+            '進入隱身狀態 64 秒。'
+        );
+
+        formula.push(
+            '施放消耗：HP 20、MP 45。'
+        );
+
+        formula.push(
+            '隱身期間，非 BOSS 且仍處於滿血的怪物會停止一般攻擊與技能行動。'
+        );
+
+        formula.push(
+            '怪物只要已經受到傷害、HP低於最大HP，就不再受到這個「停止行動」效果影響。'
+        );
+
+        note.push(
+            '所以隱身適合避免尚未交戰的普通怪主動攻擊，但並不是戰鬥中的完全無敵。'
+        );
+
+        note.push(
+            'BOSS 不受隱身的停止行動效果影響。'
+        );
+
+        note.push(
+            '目前程式判斷重點是「怪物是否滿血」，不是你攻擊後立刻強制清除隱身 buff。'
+        );
+
+        note.push(
+            '隱身斗篷與隱身術使用相同的戰鬥隱身判定。'
+        );
+    }
+
+    if(id==='sk_seal'){
+        effect.push(
+            '成功後使單一目標進入魔法封印／真空狀態 16 秒。'
+        );
+
+        formula.push(
+            '狀態期間，怪物仍可進行一般物理攻擊，但無法施放自己的魔法與技能。'
+        );
+
+        condition.push(
+            '成功與否使用目前統一的異常魔法命中判定。'
+        );
+
+        formula.push(
+            '異常命中值＝角色等級＋魔法命中－(目標等級－10)－目標MR÷10。'
+        );
+
+        formula.push(
+            '最後擲 1D20：自然20必中、自然1必定失敗，其餘命中值 ≥ 骰值才成功。'
+        );
+
+        note.push(
+            '魔法封印本身沒有直接傷害。'
+        );
+
+        note.push(
+            '目前 BOSS 免疫表不包含 vacuum／魔法封印，因此 BOSS 並非固定免疫；只要異常命中判定成功，也可能被封鎖技能。'
+        );
+    }
+
 function uniq(a){
         return a.filter(function(x,i){
             return x && a.indexOf(x)===i;
