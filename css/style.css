@@ -4122,3 +4122,25 @@ button.classic-skill-cell { cursor:pointer; }
         align-self: stretch !important;
     }
 }
+
+/* ===== 🖥️ PC 人物放大 + 戰鬥繪製減負 large5 ===== */
+@media (min-width: 800px) and (hover: hover) and (pointer: fine) {
+
+    /* 主角＋傭兵放大 35%，從中心向外放大，不改站位 */
+    #player-morph-sprite .pm-body,
+    #player-morph-sprite .pm-shadow,
+    #player-morph-sprite .pm-weapon,
+    .party-sprite .pm-body,
+    .party-sprite .pm-shadow,
+    .party-sprite .pm-weapon {
+        width: 135% !important;
+        height: auto !important;
+        max-width: none !important;
+        left: -17.5% !important;
+    }
+
+    /* 戰鬥區不要對每一張動畫幀反覆做通用 GPU 濾鏡 */
+    #battle-view img {
+        filter: none;
+    }
+}
