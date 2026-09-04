@@ -2561,3 +2561,34 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { try
         document.head.appendChild(s);
     } catch(e) {}
 })();
+
+// ===== 🚀 全平台 UI 重繪節流測試 perf4 =====
+// 戰鬥計算頻率完全不變，只降低 tick 結束後的大型 DOM 重繪頻率。
+(function(){
+    if (window.__tickRenderThrottlePerf4) return;
+    window.__tickRenderThrottlePerf4 = true;
+
+    if (typeof flushTickRender !== 'function') return;
+
+    const _origFlushTickRenderPerf4 = flushTickRender;
+    let _lastFlushPerf4 = 0;
+
+    flushTickRender = function(){
+        const now =
+            (typeof performance !== 'undefined' && performance.now)
+                ? performance.now()
+                : Date.now();
+
+        const activeBattle =
+            typeof state !== 'undefined' &&
+            state &&
+            state.running &&
+            !(typeof catchupActive === 'function' && catchupActive());
+
+        // 180ms 門檻配合 100ms tick，實際約每兩個 tick 重畫一次。
+        if (activeBattle && now - _lastFlushPerf4 < 180) return;
+
+        _lastFlushPerf4 = now;
+        return _origFlushTickRenderPerf4.apply(this, arguments);
+    };
+})();
