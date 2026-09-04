@@ -2592,3 +2592,78 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { try
         return _origFlushTickRenderPerf4.apply(this, arguments);
     };
 })();
+
+// ===== 🖥️ 低效能 PC 自動減負模式 lowpc1 =====
+(function(){
+    if (window.__lowPcPerfModeV1) return;
+    window.__lowPcPerfModeV1 = true;
+
+    let finePointer = false;
+    try {
+        finePointer = window.matchMedia(
+            '(hover: hover) and (pointer: fine)'
+        ).matches;
+    } catch(e) {}
+
+    const mem = Number(navigator.deviceMemory || 99);
+    const cores = Number(navigator.hardwareConcurrency || 99);
+
+    // 只對低階桌機啟用；手機/平板不套用
+    const lowPc = finePointer && (mem <= 4 || cores <= 4);
+
+    window.__lowEndPC = lowPc;
+    if (!lowPc) return;
+
+    document.documentElement.classList.add('low-end-pc');
+
+    // 約 8 FPS：只節流動畫圖片更新，不碰戰鬥 tick
+    const FRAME_MS = 125;
+
+    function throttleAnim(name){
+        try {
+            const original = window[name];
+            if (typeof original !== 'function' || original.__lowPcWrapped) return;
+
+            let last = 0;
+
+            const wrapped = function(){
+                const now = performance.now();
+
+                if (now - last < FRAME_MS) return;
+
+                last = now;
+                return original.apply(this, arguments);
+            };
+
+            wrapped.__lowPcWrapped = true;
+            window[name] = wrapped;
+        } catch(e) {}
+    }
+
+    throttleAnim('_mobAnimApply');
+    throttleAnim('_playerMorphApply');
+    throttleAnim('_allySpritesApply');
+
+    // 關掉低階 PC 上沒必要的 CSS 補間動畫
+    try {
+        const style = document.createElement('style');
+        style.id = 'low-pc-perf-style-v1';
+        style.textContent = `
+            html.low-end-pc #battle-view .mob-name,
+            html.low-end-pc #battle-view .status-icon {
+                transition: none !important;
+            }
+
+            html.low-end-pc #battle-view {
+                will-change: auto !important;
+            }
+        `;
+        document.head.appendChild(style);
+    } catch(e) {}
+
+    console.log(
+        '[LOW-PC] enabled',
+        'memory=', mem,
+        'cores=', cores
+    );
+})();
