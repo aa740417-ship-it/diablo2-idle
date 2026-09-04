@@ -467,7 +467,7 @@
         /* 🖥️ v2.7.1 用戶要求「狩獵區域固定解析度」：戰鬥框改「固定 1120×338 px」(維持 1920/580 條狀比例)、置中、不再隨視窗寬度伸縮。
            原因：動畫怪是小張像素幀(狼91×46/王子55×97…)，響應式框高會讓 height:100% 的放大倍率隨視窗浮動→動畫怪忽大忽小又糊；框高鎖死後放大倍率恆定、大小一致。
            max-width:100% 僅為超窄視窗(非目標)防溢出的安全網——怪物大小由「固定框高 338」決定、與寬度無關，故即使觸發也不影響怪物尺寸一致性。align-self:center 讓固定寬度框在整欄置中(面板標題仍滿版)。 */
-        #battle-view.area-fit:not(.hidden) { display: flex; align-items: flex-end; justify-content: center; background-position: center; overflow: hidden; flex: 0 0 auto; width: 800px; aspect-ratio: 16 / 9; max-width: 100%; align-self: center; }   /* 🖥️ v3.2.80 用戶要求「狩獵區改 16:9 全幅」：框改 800×450(16:9)完整顯示 1920×1080 場景圖(cover 同比例=不裁)；怪物站立帶另鎖 242px 釘在框底(見下方 #mob-list)，上半露天空/場景。⚠️v2.6.0 :not(.hidden)：安全區 battle-view 帶 .hidden 時本規則不得蓋過 .hidden 而露出狩獵圖 */
+        #battle-view.area-fit:not(.hidden) { display: flex; align-items: flex-end; justify-content: center; background-position: center; overflow: hidden; flex: 0 0 auto; width: 1080px; aspect-ratio: 16 / 9; max-width: 100%; align-self: center; }   /* 🖥️ v3.2.80 用戶要求「狩獵區改 16:9 全幅」：框改 800×450(16:9)完整顯示 1920×1080 場景圖(cover 同比例=不裁)；怪物站立帶另鎖 242px 釘在框底(見下方 #mob-list)，上半露天空/場景。⚠️v2.6.0 :not(.hidden)：安全區 battle-view 帶 .hidden 時本規則不得蓋過 .hidden 而露出狩獵圖 */
         #battle-view.area-fit #mob-list { height: 242px; }   /* 🎯 v3.2.80 怪物站立帶固定 242px(維持 v2.7.3 尺寸→怪物大小/動畫/前後排景深/特效命中全不變)；battle-view align-items:flex-end 使此帶釘在 16:9 框底(地面) */
         #battle-view.area-fit #mob-list:has(.boss-slot) { height: 242px; aspect-ratio: auto; }   /* 🐉 龍窟頭目(boss-slot)維持站立帶高(242·同一般)→大圖填滿帶、腳貼底 */
         /* 🎯 五怪站位（⚠️v2.6.39 用戶要求：取消隨機出沒＋恢復整齊「前排三個・後排兩個(後排較高)」＋怪變大）：
