@@ -4084,3 +4084,41 @@ button.classic-skill-cell { cursor:pointer; }
         align-self: center !important;
     }
 }
+
+/* ===== 🖥️ PC 中央戰鬥版面穩定版 large4 ===== */
+@media (min-width: 800px) and (hover: hover) and (pointer: fine) {
+
+    #col-center {
+        min-height: 0;
+    }
+
+    #col-center:has(#battle-view.area-fit:not(.hidden)) #map-view-panel {
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+    }
+
+    #col-center:has(#battle-view.area-fit:not(.hidden)) #log-row,
+    #log-row {
+        flex: 0 0 170px !important;
+        height: 170px !important;
+        min-height: 170px !important;
+        max-height: 170px !important;
+    }
+
+    #combat-log-panel,
+    #syslog-panel {
+        height: 170px !important;
+        min-height: 0 !important;
+    }
+
+    #battle-view.area-fit:not(.hidden) {
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+        aspect-ratio: auto !important;
+        align-self: stretch !important;
+    }
+}
