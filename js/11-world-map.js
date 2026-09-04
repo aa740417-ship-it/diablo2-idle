@@ -1064,6 +1064,11 @@ function doBianUncurse(slotKey) {
     let _e = document.getElementById('interaction-content'); if (_e) renderBianAttr(_e);
 }
 function renderBianAttr(el) {
+    // 手機版：碧恩視窗可滑到底，避開底部固定功能列
+    el.style.overflowY = 'auto';
+    el.style.webkitOverflowScrolling = 'touch';
+    el.style.maxHeight = 'calc(100dvh - 210px)';
+    el.style.paddingBottom = '150px';
     // 只列出 裝備中武器 與 副手武器（戰士雙持時才有 offwpn）
     let slots = [{ k: 'wpn', n: '武器' }];
     if (player.eq && player.eq.offwpn) slots.push({ k: 'offwpn', n: '副手武器' });
