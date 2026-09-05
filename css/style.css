@@ -4171,3 +4171,16 @@ button.classic-skill-cell { cursor:pointer; }
     align-self: center !important;
   }
 }
+
+/* v3.3.11 PC：強制戰鬥畫面 800x450 */
+@media (min-width: 1200px) {
+  #col-center:has(#battle-view.area-fit:not(.hidden))
+  #battle-view.area-fit:not(.hidden) {
+    flex: 0 0 auto !important;
+    width: 800px !important;
+    max-width: 800px !important;
+    height: 450px !important;
+    aspect-ratio: 16 / 9 !important;
+    align-self: center !important;
+  }
+}
