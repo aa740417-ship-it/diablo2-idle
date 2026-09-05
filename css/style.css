@@ -4144,3 +4144,12 @@ button.classic-skill-cell { cursor:pointer; }
         filter: none;
     }
 }
+
+/* v3.3.9 PC版：縮小打怪畫面，讓下方雙對話欄往上 */
+@media (min-width: 1200px) {
+  #battle-view.area-fit:not(.hidden) {
+    width: 950px !important;
+    max-width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+  }
+}
