@@ -4211,3 +4211,20 @@ button.classic-skill-cell { cursor:pointer; }
     min-height: 0 !important;
   }
 }
+
+/* ===== 狀態圖標小型化 ===== */
+#status-icon-bar{
+  gap:2px !important;
+}
+
+.status-icon{
+  width:20px !important;
+  height:20px !important;
+  flex:0 0 20px !important;
+  border-radius:3px !important;
+}
+
+.status-icon--ally::after{
+  width:4px !important;
+  height:4px !important;
+}

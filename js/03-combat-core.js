@@ -838,9 +838,9 @@ function tick() {
     if(player.statuses.potionFrost > 0) alerts.push("藥水霜化");
     if(player.statuses.foulWater > 0) alerts.push("汙濁之水");   // 🌊 v3.6.20 玩家NPC二模板（妖精）：受到治癒效果減半
     if(!state.ff) {
-        document.getElementById('status-alerts').innerText = alerts.length > 0 ? "[" + alerts.join(", ") + "]" : "";
-        document.getElementById('status-alerts').className = alerts.length > 0 ? "text-red-400 text-sm font-bold anim-flash" : "text-sm font-normal";
-        renderStatusEffects(); // 每個 tick 即時刷新「狀態」欄的增益/減益顯示
+        if (state.ticks % 5 === 0) document.getElementById('status-alerts').innerText = alerts.length > 0 ? "[" + alerts.join(", ") + "]" : "";
+        if (state.ticks % 5 === 0) document.getElementById('status-alerts').className = alerts.length > 0 ? "text-red-400 text-sm font-bold anim-flash" : "text-sm font-normal";
+        if (state.ticks % 5 === 0) renderStatusEffects(); // 每 5 tick 更新一次狀態 UI
     }
     
     // 法術自動施放冷卻：以 tick(0.1秒) 遞減；間隔統一由職業／變身 cast 決定，不讀攻擊速度
