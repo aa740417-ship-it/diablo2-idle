@@ -9,7 +9,7 @@
 
     const OFFLINE_VERSION = 6;
     const OFFLINE_MIN_MS = 1 * 60 * 1000;
-    const OFFLINE_MAX_MS = 12 * 60 * 60 * 1000;
+    const OFFLINE_MAX_MS = 24 * 60 * 60 * 1000;
     const OFFLINE_EFFICIENCY = 0.70;
     const OFFLINE_SAMPLE_MIN_MS = 15 * 1000;
     const OFFLINE_SAMPLE_MIN_KILLS = 3;
@@ -1354,7 +1354,7 @@
                 '<div style="font-size:22px;font-weight:700;color:#fde68a;border-bottom:1px solid #4b5563;padding-bottom:10px;margin-bottom:14px;">離線收益</div>' +
                 '<div style="color:#cbd5e1;line-height:1.7;margin-bottom:12px;">' +
                     '<div>狩獵區：<span style="color:#93c5fd;">' + _offlineEsc(result.mapName) + '</span></div>' +
-                    '<div>離線時間：' + _offlineFormatDuration(result.requestedElapsedMs || result.elapsedMs) + (result.capped ? '（已達 12 小時上限）' : '') + '</div>' +
+                    '<div>離線時間：' + _offlineFormatDuration(result.requestedElapsedMs || result.elapsedMs) + (result.capped ? '（已達 24 小時上限）' : '') + '</div>' +
                     (result.died ? '<div style="color:#fca5a5;font-weight:700;">戰鬥 ' + _offlineFormatDuration(result.elapsedMs) + ' 後死亡，後續收益停止。</div>' : '') +
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:1fr auto;gap:8px 14px;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:12px;">' +
@@ -1570,11 +1570,11 @@
             cardCount: loot.cardCount
         };
         if (typeof logSys === 'function' && options.catchupFormat) {
-            logSys('<span class="' + (survivalPlan.died ? 'text-red-400' : 'text-cyan-300') + ' font-bold">⏩ 掛機補跑完成：</span>已補上 ' +
-                _offlineFormatCatchupDuration(elapsed) + ' 的進度' + (gold > 0 ? ('，金幣 +' + gold.toLocaleString()) : '') +
+            logSys('<span class="' + (survivalPlan.died ? 'text-red-400' : 'text-cyan-300') + ' font-bold">⏩ 離線結算完成：</span>已結算 ' +
+                _offlineFormatCatchupDuration(elapsed) + ' 的離線收益' + (gold > 0 ? ('，金幣 +' + gold.toLocaleString()) : '') +
                 (survivalPlan.died ? '，角色在戰鬥中死亡，後續時間不再計算收益。' : '。'));
             let gains = _offlineCatchupGainRows(loot);
-            if (gains.length) logSys('<span class="sys-item-gain">掛機期間獲得：' + gains.join('、') + '</span>');
+            if (gains.length) logSys('<span class="sys-item-gain">離線期間獲得：' + gains.join('、') + '</span>');
         } else if (typeof logSys === 'function') {
             logSys('<span class="text-amber-300 font-bold">' + label + '：</span>經驗 ' + exp.toLocaleString() +
                 '、金幣 ' + gold.toLocaleString() + '、擊殺怪物 ' + kills.toLocaleString() +
@@ -1621,7 +1621,7 @@
             if (!_offlineWriteClaimAt(now)) return false;
             return _offlineGrantBatch(saved, profile, elapsed, rawElapsed, 1, {
                 now: now,
-                label: '掛機結算',
+                label: '離線結算',
                 advanceCombatTime: true,
                 catchupFormat: true,
                 showModal: false

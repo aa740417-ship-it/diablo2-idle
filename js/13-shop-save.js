@@ -2038,7 +2038,7 @@ window.__offlineHuntRealTickV2 = true;
  *
  * 原則：
  * 1. 不直接送經驗 / 金幣 / 掉落
- * 2. 重新利用現有 queueCatchupMs 真實逐 tick 補跑
+ * 2. 重新利用現有 queueCatchupMs 離線直接一次結算
  * 3. 只有一般狩獵地圖可離線掛
  * 4. 村莊不掛
  * ========================================================= */
@@ -2050,7 +2050,7 @@ var OFFLINE_V2_MIN_MS =
     10 * 1000;               // 少於 10 秒不補
 
 var OFFLINE_V2_MAX_MS =
-    12 * 60 * 60 * 1000;   // 離線掛機最多計算 12 小時
+    24 * 60 * 60 * 1000;   // 離線掛機最多計算 24 小時
 
 
 function offlineV2Key(slot){
@@ -2570,12 +2570,12 @@ function offlineV2Resume(meta){
 
 
         /*
-         * 真實逐 tick 補跑。
+         * 離線直接一次結算。
          */
         if(
             typeof queueCatchupMs ===
             'function' &&
-            queueCatchupMs(runMs)
+            window.offlineSettleCatchup(runMs, 'login')
         ){
 
             try{
@@ -2607,7 +2607,7 @@ function offlineV2Resume(meta){
                 ){
                     txt +=
                         '<span class="text-slate-400">' +
-                        '（第一版最多計算 12 小時）' +
+                        '（最多計算 24 小時）' +
                         '</span>';
                 }
 
@@ -2620,7 +2620,7 @@ function offlineV2Resume(meta){
             try{
                 logSys(
                     '<span class="text-red-400">' +
-                    '離線掛機補跑啟動失敗。' +
+                    '離線掛機直接結算失敗。' +
                     '</span>'
                 );
             }catch(e){}
