@@ -374,7 +374,6 @@
     function _offlineCanSnapshot(now, profile) {
         if (typeof state === 'undefined' || !state || !state.running) return false;
         if (typeof player === 'undefined' || !player || !player.cls || player.dead) return false;
-        if (typeof currentRoleIsMercenary === 'function' && currentRoleIsMercenary()) return false;
         if (!player.offlineHunt) return false;
         if (typeof mapState === 'undefined' || !mapState || !_offlineValidHuntMap(mapState.current)) return false;
         // 死亡後只鎖離線頭目戰；普通狩獵區復活後仍可重新建立掛機快照。
@@ -1603,10 +1602,9 @@
             let saved = _offlineEnsureState();
             let map = typeof mapState !== 'undefined' && mapState ? String(mapState.current || '') : '';
             let profile = _offlineProfileForMap(saved, map);
-            let mercBlocked = typeof currentRoleIsMercenary === 'function' && currentRoleIsMercenary();
             _offlineHiddenAt = 0;
             // 沒有合格實戰樣本時仍消耗背景時間與狀態，不退回逐 tick 補跑。
-            if (mercBlocked || !saved || !saved.eligible || saved.map !== map || !profile || profile.killsPerMin <= 0) {
+            if (!saved || !saved.eligible || saved.map !== map || !profile || profile.killsPerMin <= 0) {
                 _offlineAdvanceCombatTime(elapsed);
                 _offlineResetRuntime(map);
                 _offlinePrepareSnapshot(now);
@@ -1670,10 +1668,9 @@
             let rawElapsed = Math.max(0, now - from);
             let elapsed = Math.min(rawElapsed, OFFLINE_MAX_MS);
             let profile = _offlineProfile(source.profile);
-            let mercBlocked = typeof currentRoleIsMercenary === 'function' && currentRoleIsMercenary();
 
             let bossLocked = source.bossUnlocked === false && profile && profile.bossRoom === true;
-            if (mercBlocked || !source.eligible || bossLocked || !profile || profile.map !== source.map || elapsed < OFFLINE_MIN_MS || profile.killsPerMin <= 0) {
+            if (!source.eligible || bossLocked || !profile || profile.map !== source.map || elapsed < OFFLINE_MIN_MS || profile.killsPerMin <= 0) {
                 _offlineResetRuntime(typeof mapState !== 'undefined' && mapState ? mapState.current : '');
                 _offlinePrepareSnapshot(now);
                 return false;
