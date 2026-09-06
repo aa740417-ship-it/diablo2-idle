@@ -2573,7 +2573,7 @@ function offlineV2Resume(meta){
          * 離線直接一次結算。
          */
         if(
-            typeof queueCatchupMs ===
+            typeof window.offlineSettleCatchup ===
             'function' &&
             window.offlineSettleCatchup(runMs, 'login')
         ){
