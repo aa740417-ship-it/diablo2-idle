@@ -7,6 +7,10 @@
 (function () {
     'use strict';
 
+    /* 離線掛機功能已停用：不補跑、不發離線收益 */
+    window.offlineSettleCatchup = function(){ return true; };
+    return;
+
     const OFFLINE_VERSION = 6;
     const OFFLINE_MIN_MS = 1 * 60 * 1000;
     const OFFLINE_MAX_MS = 24 * 60 * 60 * 1000;
