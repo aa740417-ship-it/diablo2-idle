@@ -1041,7 +1041,13 @@ function autoActions() {
     // 瞬間移動卷軸：戰鬥中出現 BOSS 時自動使用（自動使用必定為未裝備傳送控制戒指的傳送術效果）
     {
         let tChk = document.getElementById('set-teleport');
-        if (tChk && tChk.checked && mapState.mobs.some(m => m && m.boss && !m.noAutoTeleport) && !isSiegeArea(mapState.current) && !PURE_BOSS_MAPS.includes(mapState.current) && !state.prideClimb && !state.oblivion && !state.riftRun && (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil)) {   // 🕒 手動瞬移後 5 秒內不自動瞬移/自動購買；攻城區與純BOSS房(安塔瑞斯/法利昂/巴拉卡斯)：BOSS為目標，不自動瞬移；🔧 卡瑞(noAutoTeleport)不觸發自動瞬移；🗼 傲慢之塔攀登中不自動瞬移；🌀 時空裂痕不自動瞬移逃離頭目
+        let bossHuntChk = document.getElementById('set-teleport-boss');
+        let bossHuntActive = !!(
+            bossHuntChk &&
+            bossHuntChk.checked &&
+            hasTeleportRing()
+        );
+        if (tChk && tChk.checked && !bossHuntActive && mapState.mobs.some(m => m && m.boss && !m.noAutoTeleport) && !isSiegeArea(mapState.current) && !PURE_BOSS_MAPS.includes(mapState.current) && !state.prideClimb && !state.oblivion && !state.riftRun && (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil)) {   // 🕒 手動瞬移後 5 秒內不自動瞬移/自動購買；攻城區與純BOSS房(安塔瑞斯/法利昂/巴拉卡斯)：BOSS為目標，不自動瞬移；🔧 卡瑞(noAutoTeleport)不觸發自動瞬移；🗼 傲慢之塔攀登中不自動瞬移；🌀 時空裂痕不自動瞬移逃離頭目
             let item = player.inv.find(i => i.id === 'scroll_teleport');
             if (!item) {
                 let _tpCost = shopPrice(DB.items.scroll_teleport.p);   // 攻城獲勝 8 折亦適用
@@ -1052,6 +1058,63 @@ function autoActions() {
                 }
             }
             if (item) useItem(item.uid, true);   // silent → 不強制 BOSS
+        }
+    }
+
+
+    // === 傳戒自動找BOSS v1 ===
+    // 有傳送控制戒指 + 勾選 → 場上無王時自動使用瞬移卷軸
+    // 傳戒使這次瞬移的下一批怪物必定出現 BOSS；王存在時停止瞬移。
+    {
+        let bossChk = document.getElementById('set-teleport-boss');
+
+        let hasBossNow = mapState.mobs.some(m => m && m.boss);
+        let bossPool = false;
+        try {
+            bossPool = (DB.maps[mapState.current] || [])
+                .some(id => DB.mobs[id] && DB.mobs[id].boss);
+        } catch(e) {}
+
+        let bossHuntOK =
+            bossChk &&
+            bossChk.checked &&
+            hasTeleportRing() &&
+            !state.ff &&
+            !hasBossNow &&
+            !mapState.forceBoss &&
+            bossPool &&
+            !mapState.current.startsWith('town_') &&
+            !isSiegeArea(mapState.current) &&
+            !PURE_BOSS_MAPS.includes(mapState.current) &&
+            !KING_ROOMS[mapState.current] &&
+            !state.prideClimb &&
+            !state.oblivion &&
+            !state.riftRun &&
+            !state.antharas &&
+            (typeof prideTeleportBlocked !== 'function' || !prideTeleportBlocked()) &&
+            (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil);
+
+        if (bossHuntOK) {
+            let item = player.inv.find(i => i.id === 'scroll_teleport');
+
+            // 沒卷軸時沿用現有邏輯，自動購買 1 張
+            if (!item) {
+                let price = shopPrice(DB.items.scroll_teleport.p);
+                if (player.gold >= price) {
+                    player.gold -= price;
+                    gainItem('scroll_teleport', 1, true, true);
+                    item = player.inv.find(i => i.id === 'scroll_teleport');
+                }
+            }
+
+            if (item) {
+                state._autoBossHuntTeleport = true;
+                try {
+                    useItem(item.uid, true);
+                } finally {
+                    state._autoBossHuntTeleport = false;
+                }
+            }
         }
     }
 

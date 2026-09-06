@@ -796,7 +796,10 @@ function useItem(u, silent = false) {
             if (!silent && HIDDEN_AREA_PARENT[mapState.current]) {   // 🏛️ 對應地圖手動用卷軸→進入隱藏狩獵區域（自動瞬移 silent 不進入、照常逃離頭目）；下方仍 consume 卷軸
                 enterHiddenArea(HIDDEN_AREA_PARENT[mapState.current]);
             } else {
-                let forceBoss = !silent && hasTeleportRing();
+                let forceBoss = hasTeleportRing() && (
+                    !silent ||
+                    (typeof state !== 'undefined' && state._autoBossHuntTeleport)
+                );
                 doTeleport(forceBoss);
                 if(!silent) logSys(`使用瞬間移動卷軸，當前的怪物消失了${forceBoss ? '；傳送控制戒指引動了強敵的氣息……' : ''}。`);
             }
