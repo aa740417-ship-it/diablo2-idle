@@ -2375,6 +2375,12 @@ function offlineV2OtherSameRoleActive(){
  */
 function offlineV2Resume(meta){
 
+    /* 新離線結算系統存在時，不再啟動舊 V2 補跑，避免重複／空結算 */
+    if (typeof window.offlineSettleCatchup === 'function') {
+        offlineV2ConsumeCheckpoint();
+        return;
+    }
+
     if(
         !meta ||
         !meta.active ||
