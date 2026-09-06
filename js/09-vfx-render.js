@@ -2090,7 +2090,14 @@ function _pmCurActivePrio() {   // 目前「仍在播放中」動作的權重（
 function _playerMorphTrigger(k, skId) {   // js/04 attack／castSkill·manualCast 包裝 skill／HP-delta hurt 呼叫（🗡️ v3.0.67 職業形態亦適用·呼叫端零改動）
     let form = _playerBattleForm(); if (!form) return;
     let st = _pmState;
-    if (st.act === 'death') return;   // 死亡鎖定：復活前不接受任何動作（最高權重）
+    if (st.act === 'death') return;
+
+        // 玩家受擊動畫：220ms 內不重複從第0幀播放
+        if (k === 'hurt') {
+            const now = Date.now();
+            if (st._hurtAnimAt && now - st._hurtAnimAt < 220) return;
+            st._hurtAnimAt = now;
+        }   // 死亡鎖定：復活前不接受任何動作（最高權重）
     let newP = _PM_PRIO[k] || 0, curP = _pmCurActivePrio();   // 🎬 v3.0.106 依權重決定是否打斷（hurt>skill>attack）
     if (newP < curP) { if (k === 'attack') st.pendAtk = true; return; }   // 權重較低→不打斷（attack 排隊·hurt/skill 直接略過）
     if (k === 'skill') st.skGen = (skId === 'sk_warrior_roar');   // 🗡️ v3.0.70 戰士咆哮用「通用」skill 動作（CSV 規則）·其餘技能優先武器專屬 wskill
