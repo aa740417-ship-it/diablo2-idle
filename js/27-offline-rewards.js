@@ -35,7 +35,7 @@
     //   實測校準（12 小時掛機存活率）：最低血 30%→98.8%／20%→89.6%／10%→74%／5%→64%。
     //   ⚠️ 0.5 曾試過＝10% 血時 12 小時只剩 4.7% 存活＝棘輪下的終身死刑，過兇，勿調回。
     const OFFLINE_LATENT_DEATH_HP_PCT = 0.35;
-    const OFFLINE_LATENT_DEATH_MAX_PER_HOUR = 0.05;
+    const OFFLINE_LATENT_DEATH_MAX_PER_HOUR = 0;
 
     let _offlineRuntime = null;
     let _offlineLoading = false;
