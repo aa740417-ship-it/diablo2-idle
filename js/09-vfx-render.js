@@ -1249,7 +1249,11 @@ function _renderMobsImpl() {
             let _mi = mobStillImg(m.n, m.img, true);   // 🎬 戰鬥初始幀：有動畫→優先 spawn_0（無 spawn 退 idle_0·再退舊靜態）；無動畫→舊靜態
             // 🎬 v2.6.94 受擊序列幀（hurt_*.png）：被擊中且該怪有 hurt 動畫→優先播一輪（非鎖定·可蓋掉攻擊/待機·不打斷登場/技能鎖定）。gate 在「確有 hurt 序列」避免無 hurt 的怪被誤清掉進行中的攻擊動作。
             // 🎯 v2.7.30 頭目受擊門檻（用戶要求）：頭目「只有被 重擊(_vfxBig='heavy') 或 爆擊(_vfxBig='crit')」才播 hurt——一般命中不打斷頭目的待機/攻擊/技能動作，維持頭目氣勢；非頭目維持「任何命中都播」。⚠️ _vfxBig 由本幀攻擊設(js/03:818 getPhysicalDmg 樞紐)·須在下一行 _vfxQueueDmg 重設它「之前」判斷。
-            if (m.justHit && MOB_ANIM_NAMES.has(m.n) && (!m.boss || m._vfxBig === 'crit' || m._vfxBig === 'heavy' || m._spellHurt)) {
+            const _hurtForced = (m._vfxBig === 'crit' || m._vfxBig === 'heavy' || m._spellHurt);
+                const _hurtNow = Date.now();
+                const _hurtAllowed = _hurtForced || !m._hurtAnimAt || (_hurtNow - m._hurtAnimAt >= 220);
+                if (m.justHit && MOB_ANIM_NAMES.has(m.n) && (!m.boss || _hurtForced) && _hurtAllowed) {
+                    m._hurtAnimAt = _hurtNow;
                 if (typeof MOB_ANIM_8DIR !== 'undefined' && MOB_ANIM_8DIR.has(m.n)) { if (typeof _mobAnimTrigger === 'function') _mobAnimTrigger(m, 'hurt'); }   // 🧭 v3.2.11 八方向怪：cache 分方向存(通用 cache 為空)→逕觸發受擊(該怪必有 hurt·_mob8Apply 從方向 cache 取幀)
                 else { let _ha = _mobAnimCache[m.n]; if (_ha && _ha !== 'probing' && _ha.hurt && typeof _mobAnimTrigger === 'function') _mobAnimTrigger(m, 'hurt'); }
             }   // 🎬 v3.0.14 _spellHurt：法術傷害也讓「頭目」播 hurt（一般怪本就任何命中都播·物理維持 v2.7.30 爆擊/重擊門檻·DoT/反射不標記→頭目不因持續傷害狂顫）
