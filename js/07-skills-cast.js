@@ -1047,7 +1047,7 @@ function autoActions() {
             bossHuntChk.checked &&
             hasTeleportRing()
         );
-        if (tChk && tChk.checked && !bossHuntActive && mapState.mobs.some(m => m && m.boss && !m.noAutoTeleport) && !isSiegeArea(mapState.current) && !PURE_BOSS_MAPS.includes(mapState.current) && !state.prideClimb && !state.oblivion && !state.riftRun && (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil)) {   // 🕒 手動瞬移後 5 秒內不自動瞬移/自動購買；攻城區與純BOSS房(安塔瑞斯/法利昂/巴拉卡斯)：BOSS為目標，不自動瞬移；🔧 卡瑞(noAutoTeleport)不觸發自動瞬移；🗼 傲慢之塔攀登中不自動瞬移；🌀 時空裂痕不自動瞬移逃離頭目
+        if (tChk && tChk.checked && !bossHuntActive && !mapState.mobs.some(m => m && m.boss && !m.noAutoTeleport && !m._dead && (m.curHp == null || m.curHp > 0)) && !isSiegeArea(mapState.current) && !PURE_BOSS_MAPS.includes(mapState.current) && !state.prideClimb && !state.oblivion && !state.riftRun && (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil)) {   // 🕒 手動瞬移後 5 秒內不自動瞬移/自動購買；攻城區與純BOSS房(安塔瑞斯/法利昂/巴拉卡斯)：BOSS為目標，不自動瞬移；🔧 卡瑞(noAutoTeleport)不觸發自動瞬移；🗼 傲慢之塔攀登中不自動瞬移；🌀 時空裂痕不自動瞬移逃離頭目
             let item = player.inv.find(i => i.id === 'scroll_teleport');
             if (!item) {
                 let _tpCost = shopPrice(DB.items.scroll_teleport.p);   // 攻城獲勝 8 折亦適用
@@ -1068,7 +1068,7 @@ function autoActions() {
     {
         let bossChk = document.getElementById('set-teleport-boss');
 
-        let hasBossNow = mapState.mobs.some(m => m && m.boss);
+        let hasBossNow = mapState.mobs.some(m => m && m.boss && !m._dead && (m.curHp == null || m.curHp > 0));
         let bossPool = false;
         try {
             bossPool = (DB.maps[mapState.current] || [])
