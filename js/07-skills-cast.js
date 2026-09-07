@@ -1068,12 +1068,30 @@ function autoActions() {
     {
         let bossChk = document.getElementById('set-teleport-boss');
 
-        let hasBossNow = mapState.mobs.some(m => m && m.boss && !m._dead && (m.curHp == null || m.curHp > 0));
+        // 🔒 傳戒找王戰鬥鎖
+        // 只看 HP 判定活王；即使清算旗標短暫異常，也不能把還有血的王瞬移掉。
+        let hasBossNow = mapState.mobs.some(
+            m => m && m.boss && (m.curHp == null || m.curHp > 0)
+        );
 
-        // 🔒 傳戒找王保護：只要剛看過活王，王短暫離開陣列後 3 秒內禁止再次瞬移
-        // 避免同一拍清算/重繪造成 hasBossNow 短暫 false，把尚未真正結束的王瞬移掉。
-        if (hasBossNow) state._bossHuntGuardUntil = (state.ticks || 0) + 30;
-        let bossGuardActive = (state.ticks || 0) < (state._bossHuntGuardUntil || 0);
+        // 換地圖後清掉上一張圖殘留的鎖
+        if (
+            state._bossHuntLockMap &&
+            state._bossHuntLockMap !== mapState.current
+        ) {
+            state._bossHuntCombatLock = false;
+            state._bossHuntLockMap = null;
+        }
+
+        // 王只要還活著，就永久鎖住自動找王瞬移
+        // 直到 killMob() 確認王真正死亡才解除
+        if (hasBossNow) {
+            state._bossHuntCombatLock = true;
+            state._bossHuntLockMap = mapState.current;
+        }
+
+        let bossGuardActive =
+            (state.ticks || 0) < (state._bossHuntGuardUntil || 0);
 
         let bossPool = false;
         try {
@@ -1087,6 +1105,7 @@ function autoActions() {
             hasTeleportRing() &&
             !state.ff &&
             !hasBossNow &&
+            !state._bossHuntCombatLock &&
             !bossGuardActive &&
             !mapState.forceBoss &&
             bossPool &&

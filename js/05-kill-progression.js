@@ -351,6 +351,16 @@ function killMob(idx) {
     }
     mob._dead = true;
 
+    // 🔓 傳戒找王：只有頭目真正死亡結算到這裡才解除戰鬥鎖
+    // transformTo 變身頭目會在上方先 return，因此變身途中不會誤解鎖。
+    if (mob.boss && typeof state !== 'undefined') {
+        state._bossHuntCombatLock = false;
+        state._bossHuntLockMap = null;
+
+        // 死亡後只留 0.5 秒清算緩衝，避免同 tick 馬上再瞬移
+        state._bossHuntGuardUntil = (state.ticks || 0) + 5;
+    }
+
     if (
         typeof state !== 'undefined' &&
         state.ff &&
