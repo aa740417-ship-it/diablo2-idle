@@ -349,6 +349,8 @@ function killMob(idx) {
             return;
         }
     }
+    // 🧾 BOSS 結算保護：獎勵流程全部完成前，不允許清算器把王移除
+    if (mob.boss) mob._killSettled = false;
     mob._dead = true;
 
     // 🔓 傳戒找王：只有頭目真正死亡結算到這裡才解除戰鬥鎖
@@ -386,9 +388,12 @@ function killMob(idx) {
     //   傷害於呼叫端已結算）。finally 還原原來源，避免污染呼叫端後續（如寵物/召喚 tick 的 _dps 歸屬）。
     let _svKillSrc = _combatSrc; _combatSrc = 'player';
     try {
-    if (typeof pvpOnKillMob === 'function') pvpOnKillMob(mob);
-    if (typeof necroBookOnKill === 'function') necroBookOnKill(mob);   // 🏺 v3.8.12 死靈之書：全隊1%回復＋骷髏復生（建築由函式內排除）
-    if(typeof auditTrackKill === 'function') auditTrackKill(mob);   // 統計：累計經驗/擊殺
+    try { if (typeof pvpOnKillMob === 'function') pvpOnKillMob(mob); }
+    catch (e) { console.warn('[killMob] pvpOnKillMob failed', e); }
+    try { if (typeof necroBookOnKill === 'function') necroBookOnKill(mob); }
+    catch (e) { console.warn('[killMob] necroBookOnKill failed', e); }   // 🏺 v3.8.12 死靈之書：全隊1%回復＋骷髏復生（建築由函式內排除）
+    try { if(typeof auditTrackKill === 'function') auditTrackKill(mob); }
+    catch (e) { console.warn('[killMob] auditTrackKill failed', e); }   // 統計：累計經驗/擊殺
     // 🔧 轉場建築（往上層的樓梯 / 遺忘之島傳送門）：擊敗即進入下一層/島，不顯示「擊敗了…」戰鬥訊息（race 建築且 noAutoTeleport，排除攻城塔/城門）
     let _hideKillMsg = (mob.race === '建築' && mob.noAutoTeleport);
     if(!_hideKillMsg) logCombat(`擊敗了 <span class="${getMobColor(mob.lv)}">${mob.n}</span>！`, 'player-heavy');  // 👈 新增
@@ -399,7 +404,8 @@ function killMob(idx) {
     player.exp += _playerExpGain;
     checkLvUp();
     // 🐾 寵物經驗：每隻未倒地出戰寵物各得完整份額；不受玩家 Lv100 經驗封頂影響（升級需求＝玩家表 1/10）
-    if (typeof petsGainExp === 'function') petsGainExp(_petExpGain);
+    try { if (typeof petsGainExp === 'function') petsGainExp(_petExpGain); }
+    catch (e) { console.warn('[killMob] petsGainExp failed', e); }
     // 🤝 協力傭兵各得完整份額（以自身等級計 getExpGainMult·滿等歸0·不減其他人）。
     if (player.allies && player.allies.length && mob.exp) {
         player.allies.forEach(a => {
@@ -610,6 +616,10 @@ function killMob(idx) {
         _vfxLootCtx = false;      // ✨ VFX：擊殺掉落上下文一併關閉
         _lootMobInfo = null;      // 🐾 掉落來源怪物上下文一併關閉（杜絕殘留洩漏到兌換/任務其他 gainItem）
     }
+
+    // ✅ 到這裡代表完整擊殺／掉落流程已跑完，清算器才可以移除 BOSS
+    if (mob.boss) mob._killSettled = true;
+
     renderMobs();
     updateUI();
     if(isSiegeArea(mapState.current)) mapState.suppressSiegeBoss = false;   // 攻城區擊殺後，重生開始可出現城門/守護塔(10%)
@@ -645,7 +655,36 @@ function settleDeadMobs() {
     //    目標死亡→targetIdx=-1，下一 tick getTarget 自動鎖定「最早出生(_born 最小·場上存活最久)」的活怪（v3.0.11 由格位序改為出生序）。存活的目標位置不變（免 uid 重映射）。
     let _tgtDied = mapState.targetIdx >= 0 && mapState.mobs[mapState.targetIdx] && mapState.mobs[mapState.targetIdx]._dead;
     for (let i = 0; i < mapState.mobs.length; i++) {
-        if (mapState.mobs[i] && mapState.mobs[i]._dead) { mapState.mobs[i] = null; if (mapState.spawnAt) mapState.spawnAt[i] = null; changed = true; }
+        let _dm = mapState.mobs[i];
+        if (!_dm || !_dm._dead) continue;
+
+        // 🛡️ BOSS 防消失：killMob 中途若有任何錯誤，王不能被清掉
+        if (_dm.boss && _dm._killSettled === false) {
+            _dm._dead = false;
+            _dm.curHp = 1;
+
+            if (typeof state !== 'undefined') {
+                state._bossHuntCombatLock = true;
+                state._bossHuntLockMap = mapState.current;
+                state._bossHuntGuardUntil = (state.ticks || 0) + 30;
+            }
+
+            if (mapState.targetIdx === i) _tgtDied = false;
+
+            try {
+                logSys(
+                    '<span class="text-red-400 font-bold">⚠ 頭目 ' +
+                    _dm.n +
+                    ' 的死亡結算未完成，已保留頭目並恢復 1 HP，將重新結算。</span>'
+                );
+            } catch (e) {}
+
+            continue;
+        }
+
+        mapState.mobs[i] = null;
+        if (mapState.spawnAt) mapState.spawnAt[i] = null;
+        changed = true;
     }
     if (_tgtDied) mapState.targetIdx = -1;
     if (typeof npcClanGroupBattleActive === 'function' && npcClanGroupBattleActive() &&
