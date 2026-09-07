@@ -1069,6 +1069,12 @@ function autoActions() {
         let bossChk = document.getElementById('set-teleport-boss');
 
         let hasBossNow = mapState.mobs.some(m => m && m.boss && !m._dead && (m.curHp == null || m.curHp > 0));
+
+        // 🔒 傳戒找王保護：只要剛看過活王，王短暫離開陣列後 3 秒內禁止再次瞬移
+        // 避免同一拍清算/重繪造成 hasBossNow 短暫 false，把尚未真正結束的王瞬移掉。
+        if (hasBossNow) state._bossHuntGuardUntil = (state.ticks || 0) + 30;
+        let bossGuardActive = (state.ticks || 0) < (state._bossHuntGuardUntil || 0);
+
         let bossPool = false;
         try {
             bossPool = (DB.maps[mapState.current] || [])
@@ -1081,6 +1087,7 @@ function autoActions() {
             hasTeleportRing() &&
             !state.ff &&
             !hasBossNow &&
+            !bossGuardActive &&
             !mapState.forceBoss &&
             bossPool &&
             !mapState.current.startsWith('town_') &&
