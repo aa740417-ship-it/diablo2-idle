@@ -604,7 +604,15 @@ function killMob(idx) {
     updateUI();
     if(isSiegeArea(mapState.current)) mapState.suppressSiegeBoss = false;   // 攻城區擊殺後，重生開始可出現城門/守護塔(10%)
     handleSiegeKill(mob);   // 攻城戰：擊殺計數 + 城門/守護塔判定
-    if ((mob.boss || (mob.trollPlayer && !mob._siegePlayer)) && !player.dead) saveGame();   // 頭目／PVP玩家擊殺後存檔：保護稀有掉落與一小時密語排程
+    if ((mob.boss || (mob.trollPlayer && !mob._siegePlayer)) && !player.dead) {
+        // 🚀 BOSS/PVP 存檔節流：連續擊殺 10 秒內只完整寫檔一次，降低 localStorage 卡頓
+        if (!window._bossKillSaveTimer) {
+            window._bossKillSaveTimer = setTimeout(() => {
+                window._bossKillSaveTimer = null;
+                try { saveGame(); } catch (e) {}
+            }, 10000);
+        }
+    }
     if (_kbRoom && mob.boss && !player.dead) {   // 🔧 軍王之室：擊敗頭目並取得掉落後，於清算時傳送回村/回城（🏛️ 雙BOSS祭壇：場上不再有其他存活BOSS時才算全滅）
         let _krm = KING_ROOMS[mapState.current];
         if (!_krm.dual || !mapState.mobs.some(m => m && m.boss && !m._dead && m.uid !== mob.uid)) state._kbVictory = true;
