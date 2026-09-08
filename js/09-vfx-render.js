@@ -1037,6 +1037,39 @@ const _BOSS_ENTRANCE_ELE = {
 };
 let _bossEntranceLast = {};
 function vfxBossEntrance(mob, opts) {
+
+    /* ===== 神器領主手機版出場特效 v4.9 ===== */
+    const _artifactBossEntrance =
+        mob &&
+        mob.n === '神器領主';
+
+    if (_artifactBossEntrance) {
+
+        opts = Object.assign(
+            {},
+            opts || {},
+            {
+                sub: '',
+                name: '★ 神器領主現身 ★'
+            }
+        );
+
+        document.body.classList.add(
+            'artifact-boss-entrance-small'
+        );
+
+        clearTimeout(
+            window.__artifactBossEntranceTimer
+        );
+
+        window.__artifactBossEntranceTimer =
+            setTimeout(function(){
+                document.body.classList.remove(
+                    'artifact-boss-entrance-small'
+                );
+            }, 1800);
+    }
+
     try {
         if (!mob || window.__vfxOff || document.hidden) return;   // 🌙 v3.6.03 分頁隱藏不播出場特效（閃光/暗角/名條多元素·背景中無法回收）
         if (typeof state !== 'undefined' && state.ff && !state.ffSmall) return;   // 🩹 v3.4.97 比照 vfxKill(v3.4.49)：前景微卡頓的小補跑(≤2秒)放行——變身/出怪常落在補跑批次·原 _vfxMute 一律靜音＝「變身名條有時不出現」主因；長背景補跑維持靜音（2 秒同名去重防爆量）

@@ -2145,6 +2145,17 @@ function pledgeBlessTick() {
 }
 
 function spawnMob(idx) {
+
+    // 神器聖域：最多同時 3 隻怪
+    // 使用原本 0、1、2 三個戰鬥位置，第4格以上不生成
+    if (
+        mapState &&
+        mapState.current === 'artifact_sanctum' &&
+        idx >= 3
+    ) {
+        return;
+    }
+
     if (mapState.current === 'rift_battle') { spawnRiftMob(idx); return; }   // 🌀 時空裂痕：自訂動態出怪（不靠 DB.maps）
     let pool = DB.maps[mapState.current];
     if(!pool) return;

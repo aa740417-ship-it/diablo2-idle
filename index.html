@@ -20,6 +20,96 @@
 
 
 
+
+<style id="artifact-boss-entrance-v49">
+
+/* 神器領主出場時才套用 */
+body.artifact-boss-entrance-small .vfx-boss-sub{
+    display:none !important;
+}
+
+body.artifact-boss-entrance-small .vfx-boss-name{
+    font-size:24px !important;
+    line-height:1.2 !important;
+    letter-spacing:1px !important;
+
+    white-space:nowrap !important;
+
+    color:#fde68a !important;
+
+    text-shadow:
+        0 2px 3px #000,
+        0 0 8px rgba(250,204,21,.75)
+        !important;
+}
+
+/* 把整個頭目出場內容縮小 */
+body.artifact-boss-entrance-small
+.vfx-boss-banner,
+body.artifact-boss-entrance-small
+.vfx-boss-wrap,
+body.artifact-boss-entrance-small
+.vfx-boss-entrance{
+
+    transform:scale(.72) !important;
+    transform-origin:center center !important;
+}
+
+</style>
+
+
+<style id="artifact-sanctum-no-card">
+/* 神器聖域：拿掉怪物卡片底板，只留怪物、血條、必要標記 */
+.mob-target.artifact-sanctum-mob,
+.mob-target.artifact-sanctum-boss{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  backdrop-filter: none !important;
+  overflow: visible !important;
+}
+
+/* 卡片內層也清掉 */
+.mob-target.artifact-sanctum-mob .mob-img-wrap,
+.mob-target.artifact-sanctum-boss .mob-img-wrap,
+.mob-target.artifact-sanctum-mob .mob-img-inner,
+.mob-target.artifact-sanctum-boss .mob-img-inner{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 如果有額外裝飾層，一起隱藏 */
+.mob-target.artifact-sanctum-mob::before,
+.mob-target.artifact-sanctum-mob::after,
+.mob-target.artifact-sanctum-boss::before,
+.mob-target.artifact-sanctum-boss::after{
+  display: none !important;
+  content: none !important;
+}
+
+/* 保留點擊區，但不要看到底板 */
+.mob-target.artifact-sanctum-mob{
+  border-radius: 0 !important;
+}
+.mob-target.artifact-sanctum-boss{
+  border-radius: 0 !important;
+}
+
+/* 血條維持可見 */
+.mob-target.artifact-sanctum-mob .mob-hp-bar,
+.mob-target.artifact-sanctum-boss .mob-hp-bar{
+  opacity: 1 !important;
+}
+
+/* 頭目名稱保留，如果你之後想拿掉可再改 */
+.mob-target.artifact-sanctum-boss .boss-name,
+.mob-target.artifact-sanctum-boss .mob-boss-name{
+  opacity: 1 !important;
+}
+</style>
+
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
@@ -561,13 +651,13 @@
     <script src="js/00-data.js?v=v3.8.35-public-banner-compact-v13"></script>
 <script src="js/01-drops-config.js?v=v3.8.26-flywing-relics"></script>
 <script src="js/02-stats-recompute.js?v=v3.8.26-flywing-relics"></script>
-    <script src="js/03-combat-core.js?v=v3.8.35-hybrid-catchup-v3"></script>
+    <script src="js/03-combat-core.js?v=sanctum-3mob-v2"></script>
     <script src="js/04-combat-attack.js?v=v3.8.26-flywing-relics"></script>
 <script src="js/05-kill-progression.js?v=v3.8.35-catchup-report-v1"></script>
     <script src="js/06-status-allies.js?v=20260904a"></script>
     <script src="js/07-skills-cast.js?v=v3.8.35-elf4-protect-final1"></script>
 <script src="js/08-items-equip.js?v=v3.8.35-mobile-top-status-v1"></script>
-<script src="js/09-vfx-render.js?v=20260904-lowpc1"></script>
+<script src="js/09-vfx-render.js?v=artifact-boss-v49"></script>
     <script src="js/10-ui-tabs.js?v=v3.8.35-mobile-performance-v1"></script>
 <script src="js/11-world-map.js?v=v3.8.35-elf4-protect-final1"></script>
 <script src="js/12-npc-quests.js?v=v3.8.35-wh-skill-native1"></script>
@@ -604,5 +694,6 @@
 <script src="js/27-offline-rewards.js?v=20260906-offline-disabled1"></script>
 <script src="js/27-junk-list.js?v=20260905-junklist1"></script>
 <script src="js/afk-wiki-detail.js?v=20260904a"></script>
+    <script src="js/class-artifact-system.js?v=artifact-public-test-v56"></script>
 </body>
 </html>
