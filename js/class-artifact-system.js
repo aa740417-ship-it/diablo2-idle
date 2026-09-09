@@ -441,40 +441,54 @@ else setTimeout(boot,0);
 
 const TIER_BONUS = {
  royal:{
-   dmg:[0,5,10,18,28,40],
-   hit:[0,2,3,5,7,10]
+   dmg:[0,10,20,35,55,80],
+   hit:[0,3,6,10,14,18],
+   crit:[0,3,6,9,12,15],
+   critDmg:[0,10,20,32,48,65]
  },
  knight:{
-   dmg:[0,6,12,20,32,45],
-   hit:[0,2,3,5,7,10]
+   dmg:[0,12,24,40,65,95],
+   hit:[0,3,6,10,14,18],
+   crit:[0,4,8,12,16,20],
+   critDmg:[0,12,25,40,60,85]
  },
  mage:{
-   magic:[0,6,12,20,32,45],
-   mp:[0,4,8,12,18,25],
-   mhit:[0,2,3,5,7,10]
+   magic:[0,12,24,40,65,95],
+   mp:[0,6,12,20,30,40],
+   mhit:[0,3,6,10,14,18],
+   crit:[0,3,6,10,14,18],
+   critDmg:[0,10,22,36,55,75]
  },
  elf:{
-   dmg:[0,6,12,20,32,45],
-   hit:[0,2,3,5,7,10]
+   dmg:[0,12,24,40,65,95],
+   hit:[0,3,6,10,14,18],
+   crit:[0,4,8,12,16,20],
+   critDmg:[0,12,25,40,60,85]
  },
  dark:{
-   dmg:[0,6,12,20,32,45],
-   hit:[0,2,3,5,7,10],
-   crit:[0,2,4,6,8,12]
+   dmg:[0,12,24,40,65,95],
+   hit:[0,3,6,10,14,18],
+   crit:[0,5,10,15,20,25],
+   critDmg:[0,12,25,40,60,80]
  },
  illusion:{
-   magic:[0,5,10,18,28,40],
-   mp:[0,4,7,11,16,22],
-   mhit:[0,2,3,5,7,10]
+   magic:[0,10,20,35,55,85],
+   mp:[0,6,11,18,26,36],
+   mhit:[0,3,6,10,14,18],
+   crit:[0,3,6,9,13,17],
+   critDmg:[0,10,20,34,52,70]
  },
  dragon:{
-   dmg:[0,7,14,22,34,48],
-   hit:[0,2,3,5,7,10]
+   dmg:[0,14,28,45,70,100],
+   hit:[0,3,6,10,14,18],
+   crit:[0,4,8,12,16,20],
+   critDmg:[0,12,25,42,65,90]
  },
  warrior:{
-   dmg:[0,8,16,25,38,55],
-   hit:[0,2,3,5,7,10],
-   critDmg:[0,10,20,35,50,75]
+   dmg:[0,16,32,50,80,115],
+   hit:[0,3,6,10,14,18],
+   crit:[0,4,8,12,17,22],
+   critDmg:[0,18,36,58,88,120]
  }
 };
 
@@ -606,12 +620,10 @@ function applyTierBonus(){
  if(!x || !player.d) return;
 
  let b = TIER_BONUS[x.a.cls];
-
  if(!b) return;
 
  let d = player.d;
  let t = x.t;
-
 
  if(
    x.a.cls === 'royal' ||
@@ -620,15 +632,22 @@ function applyTierBonus(){
  ){
    add(d,'meleeDmg',b.dmg[t]);
    add(d,'meleeHit',b.hit[t]);
+   add(d,'meleeCrit',b.crit[t]);
+   add(d,'meleeCritDmg',b.critDmg[t]);
  }
 
  else if(x.a.cls === 'elf'){
+
    if(x.a.meleeElf){
      add(d,'meleeDmg',b.dmg[t]);
      add(d,'meleeHit',b.hit[t]);
+     add(d,'meleeCrit',b.crit[t]);
+     add(d,'meleeCritDmg',b.critDmg[t]);
    }else{
      add(d,'rangedDmg',b.dmg[t]);
      add(d,'rangedHit',b.hit[t]);
+     add(d,'rangedCrit',b.crit[t]);
+     add(d,'rangedCritDmg',b.critDmg[t]);
    }
  }
 
@@ -636,16 +655,14 @@ function applyTierBonus(){
    add(d,'meleeDmg',b.dmg[t]);
    add(d,'meleeHit',b.hit[t]);
    add(d,'meleeCrit',b.crit[t]);
+   add(d,'meleeCritDmg',b.critDmg[t]);
  }
 
  else if(x.a.cls === 'warrior'){
    add(d,'meleeDmg',b.dmg[t]);
    add(d,'meleeHit',b.hit[t]);
-   add(
-     d,
-     'meleeCritDmg',
-     b.critDmg[t]
-   );
+   add(d,'meleeCrit',b.crit[t]);
+   add(d,'meleeCritDmg',b.critDmg[t]);
  }
 
  else if(
@@ -655,20 +672,19 @@ function applyTierBonus(){
    add(d,'magicDmg',b.magic[t]);
    add(d,'extraMp',b.mp[t]);
    add(d,'magicHit',b.mhit[t]);
+   add(d,'magicCrit',b.crit[t]);
+   add(d,'magicCritDmg',b.critDmg[t]);
  }
 }
-
 
 /* ===== 顯示階級能力 ===== */
 
 function bonusRows(item){
 
  let x = info(item);
-
  if(!x) return [];
 
  let b = TIER_BONUS[x.a.cls];
-
  if(!b) return [];
 
  let t = x.t;
@@ -681,15 +697,22 @@ function bonusRows(item){
  ){
    rows.push('近距離傷害 +' + b.dmg[t]);
    rows.push('近距離命中 +' + b.hit[t]);
+   rows.push('近距離爆擊 +' + b.crit[t] + '%');
+   rows.push('近距離爆擊傷害 +' + b.critDmg[t] + '%');
  }
 
  else if(x.a.cls === 'elf'){
+
    if(x.a.meleeElf){
      rows.push('近距離傷害 +' + b.dmg[t]);
      rows.push('近距離命中 +' + b.hit[t]);
+     rows.push('近距離爆擊 +' + b.crit[t] + '%');
+     rows.push('近距離爆擊傷害 +' + b.critDmg[t] + '%');
    }else{
      rows.push('遠距離傷害 +' + b.dmg[t]);
      rows.push('遠距離命中 +' + b.hit[t]);
+     rows.push('遠距離爆擊 +' + b.crit[t] + '%');
+     rows.push('遠距離爆擊傷害 +' + b.critDmg[t] + '%');
    }
  }
 
@@ -697,15 +720,14 @@ function bonusRows(item){
    rows.push('近距離傷害 +' + b.dmg[t]);
    rows.push('近距離命中 +' + b.hit[t]);
    rows.push('近距離爆擊 +' + b.crit[t] + '%');
+   rows.push('近距離爆擊傷害 +' + b.critDmg[t] + '%');
  }
 
  else if(x.a.cls === 'warrior'){
    rows.push('近距離傷害 +' + b.dmg[t]);
    rows.push('近距離命中 +' + b.hit[t]);
-   rows.push(
-     '近距離爆擊傷害 +' +
-     b.critDmg[t] + '%'
-   );
+   rows.push('近距離爆擊 +' + b.crit[t] + '%');
+   rows.push('近距離爆擊傷害 +' + b.critDmg[t] + '%');
  }
 
  else if(
@@ -715,11 +737,12 @@ function bonusRows(item){
    rows.push('魔法傷害 +' + b.magic[t]);
    rows.push('額外魔法點數 +' + b.mp[t]);
    rows.push('魔法命中 +' + b.mhit[t]);
+   rows.push('魔法爆擊 +' + b.crit[t] + '%');
+   rows.push('魔法爆擊傷害 +' + b.critDmg[t] + '%');
  }
 
  return rows;
 }
-
 
 /* ===== 物品詳細頁 ===== */
 
@@ -1366,6 +1389,9 @@ setInterval(forceArtifactNoCard53,250);
     disableGrantTest();
     setTimeout(disableGrantTest, 500);
 })();
+
+
+
 
 
 
