@@ -272,9 +272,44 @@ function characteristicDamage(a,t,mainDmg){
   }
   return Math.max(1,Math.floor(mainDmg*a.mult[t-1]));
 }
-function stage5Damage(mainDmg){
-  let d=(player&&player.d)||{}, intv=Number(d.int!=null?d.int:player.int)||0, md=Number(d.magicDmg)||0, lv=Number(player&&player.lv)||1;
-  return Math.max(1,Math.floor(Math.max(mainDmg*2.25,320+lv*10+intv*6+md*9)));
+function stage5Damage(mainDmg,a){
+
+  let d=(player&&player.d)||{};
+  let intv=Number(d.int!=null?d.int:player.int)||0;
+  let md=Number(d.magicDmg)||0;
+  let lv=Number(player&&player.lv)||1;
+
+  /* 魔法職維持原本魔法成長，避免再把法系往上推 */
+  if(a && (a.cls==='mage' || a.cls==='illusion')){
+    return Math.max(
+      1,
+      Math.floor(
+        Math.max(
+          mainDmg*2.25,
+          320+lv*10+intv*6+md*9
+        )
+      )
+    );
+  }
+
+  /* 物理／遠程專武：5階單體爆發補強 */
+  let mult=4.0;
+
+  if(a){
+    if(a.cls==='knight') mult=5.0;
+    else if(a.cls==='warrior') mult=5.2;
+    else if(a.cls==='dark') mult=4.8;
+    else if(a.cls==='dragon') mult=4.6;
+    else if(a.cls==='elf'){
+      mult=a.meleeElf ? 4.6 : 4.2;
+    }
+    else if(a.cls==='royal') mult=4.0;
+  }
+
+  return Math.max(
+    1,
+    Math.floor(mainDmg*mult)
+  );
 }
 function addDamage(target,amount,label,ele,big){
   if(!target||target._dead||target.curHp<=0)return 0;
@@ -310,7 +345,7 @@ function installCombatHook(){
 
       let t=weaponTier(it),rate=a.rate[t-1]||0;
       if(Math.random()*100<rate&&target.curHp>0)addDamage(target,characteristicDamage(a,t,mainDmg),a.passive,a.ele,false);
-      if(t>=5&&target.curHp>0&&Math.random()*100<20)addDamage(target,stage5Damage(mainDmg),a.special,a.ele,true);
+      if(t>=5&&target.curHp>0&&Math.random()*100<20)addDamage(target,stage5Damage(mainDmg,a),a.special,a.ele,true);
     }catch(e){console.warn('[專武] 特效錯誤',e);}
     return out;
   }
