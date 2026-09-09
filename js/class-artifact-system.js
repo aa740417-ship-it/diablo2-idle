@@ -352,6 +352,253 @@ function installCombatHook(){
   wrapped.__classWeaponWrapped=true;window.playerAttack=wrapped;
 }
 
+
+/* ===== 🤝 傭兵職業專武特效 v64 ===== */
+
+function allyClassWeaponCharacteristicDamage(ally,a,t,mainDmg){
+
+  let d=(ally&&ally.d)||{};
+  let intv=Number(d.int!=null?d.int:(ally&&ally.int))||0;
+  let md=Number(d.magicDmg)||0;
+
+  if(a.cls==='mage'||a.cls==='illusion'){
+    return Math.max(
+      1,
+      Math.floor(
+        50+t*30+intv*3+md*5+
+        mainDmg*a.mult[t-1]
+      )
+    );
+  }
+
+  return Math.max(
+    1,
+    Math.floor(mainDmg*a.mult[t-1])
+  );
+}
+
+function allyClassWeaponStage5Damage(ally,a,mainDmg){
+
+  let d=(ally&&ally.d)||{};
+  let intv=Number(d.int!=null?d.int:(ally&&ally.int))||0;
+  let md=Number(d.magicDmg)||0;
+  let lv=Number(ally&&ally.lv)||1;
+
+  /* 法師／幻術維持法系公式 */
+  if(a.cls==='mage'||a.cls==='illusion'){
+    return Math.max(
+      1,
+      Math.floor(
+        Math.max(
+          mainDmg*2.25,
+          320+lv*10+intv*6+md*9
+        )
+      )
+    );
+  }
+
+  /* 與玩家 v63 五階專武倍率完全一致 */
+  let mult=4.0;
+
+  if(a.cls==='knight') mult=5.0;
+  else if(a.cls==='warrior') mult=5.2;
+  else if(a.cls==='dark') mult=4.8;
+  else if(a.cls==='dragon') mult=4.6;
+  else if(a.cls==='elf'){
+    mult=a.meleeElf ? 4.6 : 4.2;
+  }
+  else if(a.cls==='royal') mult=4.0;
+
+  return Math.max(
+    1,
+    Math.floor(mainDmg*mult)
+  );
+}
+
+function allyClassWeaponDamage(ally,target,amount,label,ele,big){
+
+  if(
+    !ally ||
+    !target ||
+    target._dead ||
+    target.curHp<=0
+  ) return 0;
+
+  let dmg=Math.max(1,Math.floor(Number(amount)||0));
+  let before=Number(target.curHp)||0;
+  let dealt=0;
+
+  /*
+   * 優先走正式傭兵傷害函式：
+   * - 正確記錄 DPS
+   * - 正確處理擊殺
+   * - 正確處理各種受傷效果
+   */
+  if(typeof _allyDamageMob==='function'){
+
+    _allyDamageMob(
+      ally,
+      target,
+      dmg,
+      ele||'none'
+    );
+
+    dealt=Math.max(
+      0,
+      before-Math.max(0,Number(target.curHp)||0)
+    );
+
+  }else{
+
+    target.curHp-=dmg;
+    target.justHit=ele||'none';
+    dealt=Math.min(before,dmg);
+
+    try{
+      if(typeof mobWake==='function')
+        mobWake(target);
+    }catch(e){}
+
+    if(target.curHp<=0){
+      let idx=(
+        typeof mapState!=='undefined' &&
+        mapState &&
+        Array.isArray(mapState.mobs)
+      ) ? mapState.mobs.indexOf(target) : -1;
+
+      if(idx>=0 && typeof killMob==='function')
+        killMob(idx);
+    }
+  }
+
+  try{
+    if(typeof logCombat==='function'){
+      let name=
+        ally._allyName ||
+        ally.name ||
+        CLASS_NAMES[
+          CLASS_ALIASES[ally.cls]||ally.cls
+        ] ||
+        '傭兵';
+
+      logCombat(
+        `<span class="font-bold" style="color:${big?'#fbbf24':'#c4b5fd'}">`+
+        `【協力·${esc(name)}·${esc(label)}】</span>`+
+        ` 追加造成 ${dealt||dmg} 點${big?'專武魔法':'專武'}傷害。`,
+        'player-special'
+      );
+    }
+  }catch(e){}
+
+  return dealt||dmg;
+}
+
+function installAllyCombatHook(){
+
+  if(
+    typeof window.allyWeaponProcs!=='function' ||
+    window.allyWeaponProcs.__classWeaponAllyWrapped
+  ) return;
+
+  const original=window.allyWeaponProcs;
+
+  function wrapped(ally,target,hitInfo,instOverride){
+
+    let out=original.apply(this,arguments);
+
+    try{
+
+      if(
+        !ally ||
+        !target ||
+        target._dead ||
+        target.curHp<=0 ||
+        !hitInfo ||
+        !hitInfo.hit
+      ) return out;
+
+      let inst=
+        instOverride ||
+        (ally.eq&&ally.eq.wpn);
+
+      if(!inst) return out;
+
+      let a=WEAPONS[inst.id];
+      if(!a) return out;
+
+      let allyCls=
+        CLASS_ALIASES[ally.cls] ||
+        ally.cls ||
+        '';
+
+      if(allyCls!==a.cls) return out;
+
+      /* 火妖專武只有火屬妖精發動 */
+      if(
+        a.fireElf &&
+        ally.elfEle!=='fire'
+      ) return out;
+
+      let mainDmg=Math.max(
+        0,
+        Number(hitInfo.dmg)||0
+      );
+
+      if(mainDmg<=0) return out;
+
+      let t=weaponTier(inst);
+      let rate=a.rate[t-1]||0;
+
+      /* 70% 等職業特效 */
+      if(
+        Math.random()*100<rate &&
+        target.curHp>0
+      ){
+        allyClassWeaponDamage(
+          ally,
+          target,
+          allyClassWeaponCharacteristicDamage(
+            ally,a,t,mainDmg
+          ),
+          a.passive,
+          a.ele,
+          false
+        );
+      }
+
+      /* 5階 20% 專屬魔法 */
+      if(
+        t>=5 &&
+        target.curHp>0 &&
+        Math.random()*100<20
+      ){
+        allyClassWeaponDamage(
+          ally,
+          target,
+          allyClassWeaponStage5Damage(
+            ally,a,mainDmg
+          ),
+          a.special,
+          a.ele,
+          true
+        );
+      }
+
+    }catch(e){
+      console.warn(
+        '[專武] 傭兵特效錯誤',
+        e
+      );
+    }
+
+    return out;
+  }
+
+  wrapped.__classWeaponAllyWrapped=true;
+  window.allyWeaponProcs=wrapped;
+}
+
+
 function installBossHook(){
   if(typeof window.killMob!=='function'||window.killMob.__classWeaponWrapped)return;
   const original=window.killMob;
@@ -454,11 +701,11 @@ window.ClassArtifact=window.ClassWeapon;
 function boot(){
   if(!registerData()){setTimeout(boot,400);return;}
   ensurePanel();
-  installCombatHook();installBossHook();installNameHook();
+  installCombatHook();installAllyCombatHook();installBossHook();installNameHook();
   setInterval(()=>{
     try{
       if(ready())migrateWeapons();
-      installCombatHook();installBossHook();installNameHook();
+      installCombatHook();installAllyCombatHook();installBossHook();installNameHook();
       let p=document.getElementById('artifact-panel');
       if(p&&!p.classList.contains('hidden'))renderPanel();
     }catch(e){}
