@@ -176,11 +176,11 @@ function registerData(){
     };
   });
 
-  DB.mobs.artifact_guard_1={n:'聖域守衛',img:'assets/anim/夢幻之島鎧甲守衛/idle_0.png',lv:78,s:'L',beh:'主動',race:'魔法生物',e:'earth',hp:8500,ac:-78,mr:65,exp:6200,goldMin:700,goldMax:1200,atkSpd:1.7,dmg:[2,82],db:65,hit:88};
-  DB.mobs.artifact_guard_2={n:'符文守護者',img:'assets/anim/地元素守護者/idle_0.png',lv:80,s:'L',beh:'主動',race:'魔法生物',e:'wind',hp:9500,ac:-82,mr:72,exp:6900,goldMin:750,goldMax:1300,atkSpd:1.6,dmg:[2,88],db:70,hit:92};
-  DB.mobs.artifact_guard_3={n:'星界監視者',img:'assets/anim/深淵之主/idle_0.png',lv:82,s:'L',beh:'主動',race:'元素',e:'water',hp:10500,ac:-85,mr:78,exp:7600,goldMin:800,goldMax:1400,atkSpd:1.5,dmg:[2,94],db:76,hit:96};
-  DB.mobs.artifact_guard_4={n:'神器守護者',img:'assets/anim/魂騎士/idle_0.png',lv:84,s:'L',beh:'主動',race:'魔法生物',e:'fire',hp:12000,ac:-88,mr:82,exp:8400,goldMin:900,goldMax:1500,atkSpd:1.5,dmg:[2,100],db:82,hit:100};
-  DB.mobs[BOSS_ID]={n:'神器領主',img:'assets/anim/真‧死亡騎士 冥皇丹特斯/idle_0.png',lv:90,s:'L',beh:'主動',race:'魔法生物',boss:true,e:'none',hp:100000,ac:-100,mr:95,exp:35000,goldMin:5000,goldMax:9000,atkSpd:1.4,dmg:[3,125],db:105,hit:112,noHpCurve:true};
+  DB.mobs.artifact_guard_1={n:'聖域守衛',img:'assets/anim/夢幻之島鎧甲守衛/idle_0.png',lv:78,s:'L',beh:'主動',race:'魔法生物',e:'earth',hp:80,ac:5,mr:0,exp:6200,goldMin:700,goldMax:1200,atkSpd:1.7,dmg:[1,3],db:65,hit:88};
+  DB.mobs.artifact_guard_2={n:'符文守護者',img:'assets/anim/地元素守護者/idle_0.png',lv:80,s:'L',beh:'主動',race:'魔法生物',e:'wind',hp:90,ac:5,mr:0,exp:6900,goldMin:750,goldMax:1300,atkSpd:1.6,dmg:[1,3],db:70,hit:92};
+  DB.mobs.artifact_guard_3={n:'星界監視者',img:'assets/anim/深淵之主/idle_0.png',lv:82,s:'L',beh:'主動',race:'元素',e:'water',hp:100,ac:5,mr:0,exp:7600,goldMin:800,goldMax:1400,atkSpd:1.5,dmg:[1,3],db:76,hit:96};
+  DB.mobs.artifact_guard_4={n:'神器守護者',img:'assets/anim/魂騎士/idle_0.png',lv:84,s:'L',beh:'主動',race:'魔法生物',e:'fire',hp:110,ac:5,mr:0,exp:8400,goldMin:900,goldMax:1500,atkSpd:1.5,dmg:[1,3],db:82,hit:100};
+  DB.mobs[BOSS_ID]={n:'神器領主',img:'assets/anim/真‧死亡騎士 冥皇丹特斯/idle_0.png',lv:90,s:'L',beh:'主動',race:'魔法生物',boss:true,e:'none',hp:300,ac:5,mr:0,exp:35000,goldMin:5000,goldMax:9000,atkSpd:1.4,dmg:[1,5],db:105,hit:112,noHpCurve:true};
 
   let pool=[];
   ['artifact_guard_1','artifact_guard_2','artifact_guard_3','artifact_guard_4'].forEach(id=>{for(let i=0;i<5;i++)pool.push(id);});
