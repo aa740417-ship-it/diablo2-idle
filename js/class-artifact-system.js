@@ -612,10 +612,10 @@ function installBossHook(){
     let out=original.apply(this,arguments);
     if(drop){
       try{
-        // 0.05% = 0.0005
+        // 0.5% = 0.005
         let roll = Math.random();
 
-        if(roll < 0.0005){
+        if(roll < 0.005){
           let id = WEAPON_IDS[
             Math.floor(Math.random() * WEAPON_IDS.length)
           ];
