@@ -189,10 +189,10 @@ function registerData(){
 
   try{
     if(typeof MOB_DROPS!=='undefined'){
-      MOB_DROPS['聖域守衛']=[[STONE_ID,0.0035]];
-      MOB_DROPS['符文守護者']=[[STONE_ID,0.004]];
-      MOB_DROPS['星界監視者']=[[STONE_ID,0.0045]];
-      MOB_DROPS['神器守護者']=[[STONE_ID,0.005]];
+      MOB_DROPS['聖域守衛']=[[STONE_ID,0.175]];
+      MOB_DROPS['符文守護者']=[[STONE_ID,0.20]];
+      MOB_DROPS['星界監視者']=[[STONE_ID,0.225]];
+      MOB_DROPS['神器守護者']=[[STONE_ID,0.25]];
       if(!MOB_DROPS['神器領主'])MOB_DROPS['神器領主']=[];
     }
   }catch(e){}
@@ -612,10 +612,10 @@ function installBossHook(){
     let out=original.apply(this,arguments);
     if(drop){
       try{
-        // 0.001% = 0.00001
+        // 0.05% = 0.0005
         let roll = Math.random();
 
-        if(roll < 0.00001){
+        if(roll < 0.0005){
           let id = WEAPON_IDS[
             Math.floor(Math.random() * WEAPON_IDS.length)
           ];
