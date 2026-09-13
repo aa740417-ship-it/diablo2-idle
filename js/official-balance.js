@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB50
+ * 放置天堂－仿正服平衡層 OB51
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB50：
- * 1. 製作裝備祝福率／祝福材料傳承總稽核
- * 2. 仿正服一般製作的隨機祝福率由10%收斂為1%，與一般非頭目來源一致
- * 3. 使用祝福裝備作為材料時，成品必定祝福的既有傳承規則完整保留
- * 4. 寵物裝備白板規則、製作材料與金幣需求全部不變
- * 5. 原版 index.html 維持原本製作10%隨機祝福率
+ * OB51：
+ * 1. 頭目裝備隨機祝福率總稽核
+ * 2. 仿正服一般頭目裝備的隨機祝福基準由10%收斂為3%
+ * 3. 一般非頭目來源維持1%；OB50製作來源維持1%
+ * 4. fixedAffixes、明確祝福物品、祝福材料傳承等固定來源全部不變
+ * 5. 原版 index.html 維持一般頭目10%隨機祝福率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB50',
+        version: 'OB51',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3213,3 +3213,44 @@
     }, 0);
 })();
 /* ===== 仿正服 OB50：製作祝福率稽核 END ===== */
+
+/* ===== 仿正服 OB51：頭目祝福率稽核 START ===== */
+(function officialBossBlessAuditOB51(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialBossBlessAuditOB51) return;
+    window.__officialBossBlessAuditOB51 = true;
+
+    const BLESS51 = {
+        normalSourceRandomBlessRate: 0.01,
+        officialCraftRandomBlessRate: 0.01,
+
+        // 一般頭目仍保留比普通怪高的期待感，但不再是 10 倍。
+        officialBossRandomBlessRate: 0.03,
+        originalBossRandomBlessRate: 0.10,
+
+        fixedAffixesUnchanged: true,
+        explicitBlessedDropsUnchanged: true,
+        blessedCraftMaterialInheritanceUnchanged: true,
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_BLESS_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_BLESS_AUDIT || {},
+        BLESS51
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_BLESS_AUDIT.runtimeOB51 = {
+                gainItem: typeof gainItem === 'function',
+                officialMode: !!window.OFFICIAL_BALANCE_MODE
+            };
+
+            console.info(
+                '[official-OB51] boss blessing audit',
+                window.OFFICIAL_BLESS_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB51：頭目祝福率稽核 END ===== */

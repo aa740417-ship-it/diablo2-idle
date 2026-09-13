@@ -109,10 +109,16 @@
                 'js/14-craft-pandora.js?v=OB50-craft-bless'
             );
 
+            // OB51：gainItem 頭目隨機祝福率加入仿正服條件式。
+            html = html.replace(
+                /js\/08-items-equip\.js(?:\?[^"'<>\s]*)?/g,
+                'js/08-items-equip.js?v=OB51-boss-bless'
+            );
+
             // 在所有原版 JS 跑完後才載入仿正服平衡層；
             // 儲存隔離則已在上方先安裝，所以遊戲初始化讀到的就是獨立存檔。
             const inject =
-                '<script src="js/official-balance.js?v=OB50-craft-bless-audit"><\/script>';
+                '<script src="js/official-balance.js?v=OB51-boss-bless-audit"><\/script>';
 
             if (!html.includes('</body>')) {
                 throw new Error('找不到 </body>，無法載入仿正服平衡層');

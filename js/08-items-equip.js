@@ -227,11 +227,17 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false, de
     let attr = false;   
     
     if (!forceNormal && !_noAffixCtx && d && !isRelic(d) && ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc')) {   // 🦴 _noAffixCtx：白板（寵物裝備製作）→ 不附詞綴；🏺 遺物永不附詞綴（不會祝福/賦予）
-        // 詞綴：一般頭目與製作 10%；席琳頭目 20%、瘋狂席琳頭目 30%；其他來源基礎 1%。箭矢/遺物/白板不附加。
-        //   🗑️ v3.5.87 舊制 rollAffixesOld 已刪（與新制 byte-identical·affixOld 參數棄用不再分派）
+        // 詞綴：原版一般頭目 10%、其他一般來源 1%；製作可由 blessRate 指定。
+        // OB51 仿正服：一般頭目隨機祝福基準收斂為 3%，仍高於一般來源 1%；
+        // fixedAffixes／明確 blessRate／祝福材料 _forceBless 均維持原本優先權。
+        let _sourceBlessRate = Number.isFinite(blessRate)
+            ? blessRate
+            : ((_lootMobInfo && _lootMobInfo.boss)
+                ? ((typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) ? 0.03 : 0.10)
+                : 0.01);
         let _af = (fixedAffixes && typeof fixedAffixes === 'object')
             ? { attr: !!fixedAffixes.attr, bless: fixedAffixes.bless === 'cursed' ? 'cursed' : !!fixedAffixes.bless, anc: !!fixedAffixes.anc }
-            : rollAffixesNew(Number.isFinite(blessRate) ? blessRate : ((_lootMobInfo && _lootMobInfo.boss) ? 0.10 : 0.01));
+            : rollAffixesNew(_sourceBlessRate);
         attr = _af.attr; bless = _af.bless; anc = _af.anc;
         if (_forceBless) bless = true;   // 🔧 v3.1.27 製作材料含祝福裝備→成品必定祝福（僅在此裝備詞綴分支·寵物白板 _noAffixCtx 已於上方擋掉）
     }
@@ -2788,4 +2794,3 @@ setTimeout(function(){
     }catch(e){}
 
 }, 300);
-
