@@ -4079,7 +4079,21 @@ function _allyConsumeQuestProgress(slotN, reqs) {
 }
 function _allyGrantTrialRewards(rewards) {
     let old = _tradLootCtx; _tradLootCtx = true;
-    try { (rewards || []).forEach(id => gainItem(id, 1, false, false)); }
+
+    // OB54：一般角色試煉在 OB48 已固定普通版本，
+    // 傭兵任務管理是另一條獨立發獎路徑，也必須套用同一規則。
+    // 原版仍維持 forceNormal=false，不改既有隨機行為。
+    let _officialForceNormal = (
+        typeof officialTrialRewardForceNormal === 'function'
+    )
+        ? officialTrialRewardForceNormal()
+        : !!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE);
+
+    try {
+        (rewards || []).forEach(id =>
+            gainItem(id, 1, false, _officialForceNormal)
+        );
+    }
     finally { _tradLootCtx = old; }
 }
 function allyCompleteTrialQuest(slotN, key) {
