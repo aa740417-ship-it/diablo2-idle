@@ -7,6 +7,24 @@ const txt=v=>String(v==null?'':v).replace(/<[^>]*>/g,'').trim();
 const cls={royal:'王族',knight:'騎士',elf:'妖精',mage:'法師',dark:'黑暗妖精',illusion:'幻術士',dragon:'龍騎士',warrior:'戰士',all:'全職業'};
 const ele={none:'無',fire:'火',water:'水',wind:'風',earth:'地'};
 const type={wpn:'武器',arm:'防具',acc:'飾品',skillbk:'技能書',scroll:'卷軸',pot:'藥水',etc:'道具',misc:'道具'};
+
+function officialWikiMode(){
+    return !!(
+        typeof window !== 'undefined' &&
+        window.OFFICIAL_BALANCE_MODE
+    );
+}
+
+function officialWikiVersion(){
+    try{
+        return (
+            window.OFFICIAL_BALANCE &&
+            window.OFFICIAL_BALANCE.version
+        ) || 'OB57';
+    }catch(e){
+        return 'OB57';
+    }
+}
 let cache=null;
 function mapNames(){const o={};try{(MAP_REGIONS||[]).forEach(r=>(r.maps||[]).forEach(m=>o[m.v]=m.t||m.v));}catch(e){}return o;}
 function knowledge(){if(cache)return cache;const names=mapNames(),mobMaps={},itemDrops={},mobDrops={};try{if(typeof _wcBuildKnowledge==='function'){const k=_wcBuildKnowledge();Object.keys(k.mobMaps||{}).forEach(mn=>mobMaps[mn]=(k.mobMaps[mn]||[]).map(x=>x&&x.name?x.name:String(x)));Object.keys(k.itemDrops||{}).forEach(id=>itemDrops[id]=(k.itemDrops[id]||[]).map(r=>({id:r.itemId,mob:r.mob,rate:r.rate})));Object.keys(k.mobDrops||{}).forEach(mn=>mobDrops[mn]=(k.mobDrops[mn]||[]).map(r=>({id:r.itemId,mob:r.mob,rate:r.rate})));return cache={names,mobMaps,itemDrops,mobDrops};}}catch(e){}try{Object.keys(DB.maps||{}).forEach(k=>{(DB.maps[k]||[]).forEach(id=>{const m=DB.mobs[id];if(!m||!m.n)return;(mobMaps[m.n]||(mobMaps[m.n]=[])).push(names[k]||k);});});const add=t=>{if(!t)return;Object.keys(t).forEach(mn=>(t[mn]||[]).forEach(x=>{const id=Array.isArray(x)?x[0]:x,rate=Array.isArray(x)?Number(x[1]):null;if(!DB.items[id])return;const r={id,mob:mn,rate:Number.isFinite(rate)?rate:null};(itemDrops[id]||(itemDrops[id]=[])).push(r);(mobDrops[mn]||(mobDrops[mn]=[])).push(r);}));};try{if(typeof MOB_DROPS!=='undefined')add(MOB_DROPS)}catch(e){}try{if(typeof DARK_WEAPON_DROPS!=='undefined')add(DARK_WEAPON_DROPS)}catch(e){}try{if(typeof DRAGON_DROPS!=='undefined')add(DRAGON_DROPS)}catch(e){}try{if(typeof WARRIOR_DROPS!=='undefined')add(WARRIOR_DROPS)}catch(e){}try{if(typeof MEM_DROPS!=='undefined')add(MEM_DROPS)}catch(e){}try{if(typeof DARK_CRYSTAL_DROPS!=='undefined')add(DARK_CRYSTAL_DROPS)}catch(e){}}catch(e){}return cache={names,mobMaps,itemDrops,mobDrops};}
@@ -20,7 +38,25 @@ function skills(){return Object.keys(DB.skills||{}).map(id=>({id,d:DB.skills[id]
 function mobs(){return Object.keys(DB.mobs||{}).map(id=>({id,d:DB.mobs[id]})).filter(x=>x.d&&x.d.n&&match(x.d.n,x.id,x.d.race,x.d.lv,x.d.beh)).sort((a,b)=>(a.d.lv||0)-(b.d.lv||0)||a.d.n.localeCompare(b.d.n,'zh-Hant'));}
 function card(kind,id,title,sub,badge){return `<button class="awk-card" onclick="AFKWiki.detail('${kind}','${esc(id)}')"><div><b>${esc(title)}</b><span>${esc(sub||'')}</span></div>${badge?`<em>${esc(badge)}</em>`:''}<i>›</i></button>`;}
 function list(){let rows=[];if(S.tab==='items')rows=items().slice(0,180).map(x=>card('item',x.id,x.d.n,itemSummary(x.d),type[x.d.type]||x.d.type));if(S.tab==='skills')rows=skills().slice(0,180).map(x=>card('skill',x.id,x.d.n,skillReq(x.d),x.d.tier?`${x.d.tier}階`:'技能'));if(S.tab==='mobs')rows=mobs().slice(0,180).map(x=>card('mob',x.id,x.d.n,`${x.d.race||'-'}・${x.d.beh||'-'}`,`Lv.${x.d.lv||0}`));if(S.tab==='maps')rows=maps().filter(x=>match(x.n,x.id,x.r)).slice(0,180).map(x=>card('map',x.id,x.n,x.r,`${(DB.maps&&DB.maps[x.id]||[]).length}怪`));return `<div class="awk-note">顯示前 180 筆；直接用上方搜尋可以快速縮小範圍。</div><div class="awk-list">${rows.join('')||'<div class="awk-empty">沒有符合的資料。</div>'}</div>`;}
-function drops(id){const a=knowledge().itemDrops[id]||[];return a.length?`<section><h3>🎁 掉落來源</h3>${a.sort((x,y)=>(y.rate||0)-(x.rate||0)).slice(0,60).map(r=>`<div class="awk-row"><b>${esc(r.mob)}</b><em>${r.rate!=null?esc(r.rate+'%'):'特殊'}</em></div>`).join('')}</section>`:'';}
+function drops(id){
+    const a=knowledge().itemDrops[id]||[];
+    if(!a.length) return '';
+
+    const modeNote=officialWikiMode()
+        ? `<div class="awk-note" style="margin:0 0 10px 0;">
+            仿正服提示：下方百分比是掉落資料表的原始值。
+            實戰還會再套用仿正服的全域、區域、頭目與物品類別倍率，
+            因此不一定等於最後實際掉落率。
+          </div>`
+        : '';
+
+    return `<section><h3>🎁 掉落來源</h3>${modeNote}${
+        a.sort((x,y)=>(y.rate||0)-(x.rate||0))
+         .slice(0,60)
+         .map(r=>`<div class="awk-row"><b>${esc(r.mob)}</b><em>${r.rate!=null?esc(r.rate+'%'):'特殊'}</em></div>`)
+         .join('')
+    }</section>`;
+}
 function itemDetail(id){const d=DB.items[id];if(!d)return'找不到資料';let desc='';try{if(typeof buildItemDescHTML==='function')desc=buildItemDescHTML({id,uid:'wiki_'+id,en:0,cnt:1});}catch(e){}if(!desc)desc=`<p>${esc(d.d||'無額外說明')}</p><p>適用職業：${esc(req(d))}</p><p>安定值：${d.noEnhance?'無法強化':esc(d.safe||0)}</p>`;let p=[];try{if(typeof weaponPurposeLabels==='function')p=p.concat(weaponPurposeLabels(d)||[])}catch(e){}try{if(typeof relicPurposeLabels==='function')p=p.concat(relicPurposeLabels(d)||[])}catch(e){}return `<h2>${esc(d.n)}</h2><div class="awk-tags"><span>${esc(type[d.type]||d.type||'物品')}</span><span>${esc(req(d))}</span>${d.legend?'<span>傳說</span>':''}${d.relic?'<span>遺物</span>':''}</div>${p.length?`<section><h3>⭐ 核心特色</h3><p>${p.map(esc).join('<br>')}</p></section>`:''}<section><h3>📋 完整能力</h3><div class="awk-desc">${desc}</div></section>${drops(id)}`;}
 
 function skillPct(v){
@@ -2266,7 +2302,9 @@ function skillDeepInfo(id,d){
 
     if(id==='sk_summon'){
         effect.push(
-            '召喚術會依角色等級、魅力與召喚控制戒指，召喚 1～6 隻真正具有 HP 的戰鬥召喚物。'
+            officialWikiMode()
+                ? '【仿正服】召喚術會依角色等級與魅力召喚 1～5 隻真正具有 HP 的戰鬥召喚物；召喚控制戒指保留選怪功能，但不額外增加第 6 隻。'
+                : '召喚術會依角色等級、魅力與召喚控制戒指，召喚 1～6 隻真正具有 HP 的戰鬥召喚物。'
         );
 
         formula.push(
@@ -2274,7 +2312,9 @@ function skillDeepInfo(id,d){
         );
 
         formula.push(
-            'Lv28～48 階：除數 8，正常上限 5；有召喚控制戒指時上限 6。'
+            officialWikiMode()
+                ? 'Lv28～48 階：除數 8，上限固定 5；召喚控制戒指不再提高數量上限。'
+                : 'Lv28～48 階：除數 8，正常上限 5；有召喚控制戒指時上限 6。'
         );
 
         formula.push(
@@ -2298,7 +2338,9 @@ function skillDeepInfo(id,d){
         );
 
         note.push(
-            '例如低階召喚 CHA 34：FLOOR((34＋6)÷8)＝5 隻；如果有召喚控制戒指，CHA 42 時可達 6 隻。'
+            officialWikiMode()
+                ? '【仿正服】例如低階召喚 CHA 34：FLOOR((34＋6)÷8)＝5 隻；即使 CHA 更高且持召喚控制戒指，上限仍為 5 隻。'
+                : '例如低階召喚 CHA 34：FLOOR((34＋6)÷8)＝5 隻；如果有召喚控制戒指，CHA 42 時可達 6 隻。'
         );
 
         condition.push(
@@ -2326,7 +2368,9 @@ function skillDeepInfo(id,d){
         );
 
         note.push(
-            '因此有戒指多出的第 6 隻也是完整一隻的傷害，不是把原本 5 隻的傷害重新分配。'
+            officialWikiMode()
+                ? '【仿正服】OB55 已移除戒指額外第 6 隻；OB56 並將同型存活召喚物的特殊技能觸發率依目前隻數正規化，避免多召喚物重複放大 proc。'
+                : '因此有戒指多出的第 6 隻也是完整一隻的傷害，不是把原本 5 隻的傷害重新分配。'
         );
 
         formula.push(
@@ -2346,7 +2390,9 @@ function skillDeepInfo(id,d){
         );
 
         effect.push(
-            '部分召喚物具有 10%～20% 機率的特殊攻擊，例如中毒、範圍中毒、屬性魔法或全體魔法。'
+            officialWikiMode()
+                ? '【仿正服】部分召喚物具有特殊攻擊；同型存活 N 隻時，每隻的原始觸發率會 ÷N，使整隊平均觸發次數維持基準。'
+                : '部分召喚物具有 10%～20% 機率的特殊攻擊，例如中毒、範圍中毒、屬性魔法或全體魔法。'
         );
 
         formula.push(
@@ -5713,11 +5759,134 @@ function qEquipDexList(){
 }
 
 
+
+/* ===== 🏛️ 仿正服規則百科（OB57） ===== */
+
+function qOfficialRuleRow(title, text){
+    return `
+        <div class="awk-row" style="
+            display:block;
+            padding:11px 12px;
+            margin:0 0 8px 0;
+            border:1px solid #334155;
+            border-radius:10px;
+            background:#101a2b;
+        ">
+            <b style="display:block;color:#fbbf24;margin-bottom:5px;">
+                ${esc(title)}
+            </b>
+            <span style="color:#cbd5e1;line-height:1.65;">
+                ${text}
+            </span>
+        </div>
+    `;
+}
+
+function qOfficialRulesList(){
+    const ver=officialWikiVersion();
+
+    if(!officialWikiMode()){
+        return `
+            <section>
+                <h3>🏛️ 仿正服規則</h3>
+                <p>此頁只會在仿正服入口顯示。</p>
+            </section>
+        `;
+    }
+
+    const expRows=[
+        ['Lv1～29','×1.00'],
+        ['Lv30～39','×1.10'],
+        ['Lv40～49','×1.25'],
+        ['Lv50～59','×1.50'],
+        ['Lv60～69','×1.80'],
+        ['Lv70～79','×2.20'],
+        ['Lv80～89','×2.80'],
+        ['Lv90～99','×3.50']
+    ].map(x=>`
+        <div class="awk-row">
+            <b>${x[0]}</b>
+            <em>${x[1]}</em>
+        </div>
+    `).join('');
+
+    return `
+        <section style="
+            border:1px solid #92400e;
+            border-radius:12px;
+            padding:14px;
+            margin-bottom:14px;
+            background:#21170d;
+        ">
+            <h2 style="margin:0 0 8px 0;color:#fbbf24;">
+                🏛️ 仿正服規則總覽
+            </h2>
+            <p style="margin:0;color:#d6d3d1;line-height:1.7;">
+                目前百科依 <b>${esc(ver)}</b> 整理。
+                這裡只列仿正服與原版不同的規則；未特別標示者沿用遊戲原規則。
+            </p>
+        </section>
+
+        <section>
+            <h3>📈 經驗與成長</h3>
+            ${qOfficialRuleRow('角色升級需求','Lv1～29 不額外拉長；Lv30 起逐段提高。')}
+            ${expRows}
+            ${qOfficialRuleRow('玩家＋傭兵組隊經驗','玩家與未倒地傭兵共享同一個角色經驗池。一般隊長每名存活傭兵 +1% 組隊加成；王族每名 +2%；總加成最高 +10%。')}
+            ${qOfficialRuleRow('寵物經驗','所有可獲得經驗的出戰寵物共享同一份寵物經驗池；1 隻時不變，多隻時平均分配。倒地與已達玩家等級上限的寵物不占分母。')}
+            ${qOfficialRuleRow('寵物升級需求','寵物升級需求為玩家同級需求的 1/4。既有寵物由舊制轉換時保留目前等級內的經驗完成百分比。')}
+        </section>
+
+        <section>
+            <h3>🎁 掉寶與金幣</h3>
+            ${qOfficialRuleRow('全域基礎','基礎掉寶倍率 ×0.55；怪物金幣基礎倍率 ×0.70。各地圖、頭目與特殊物品還可能再套各自的平衡倍率。')}
+            ${qOfficialRuleRow('百科掉落率顯示','物品頁列出的百分比是資料表原始值，不是仿正服最後實戰值。實際掉落會再套仿正服倍率。')}
+            ${qOfficialRuleRow('隨機詞綴','仿正服停用原本 0～5 條隨機 lootAff 詞綴；祝福、屬性、古代等屬於其他來源規則，不等同於 0～5 條詞綴。')}
+        </section>
+
+        <section>
+            <h3>💰 商店／製作／市場</h3>
+            ${qOfficialRuleRow('商店購買','一般商店價格在既有價格計算後再 ×1.10。')}
+            ${qOfficialRuleRow('出售','一般出售回收基準比原版低；特殊狀態造成的售價倍率另有上限，避免單件物品賣價無限放大。')}
+            ${qOfficialRuleRow('製作祝福','仿正服一般製作的隨機祝福率為 1%；若使用祝福裝備作為對應材料，原本的祝福傳承仍保留。')}
+            ${qOfficialRuleRow('一般頭目祝福','一般非頭目來源隨機祝福基準 1%；一般頭目基準 3%。固定指定祝福的來源不受此規則影響。')}
+            ${qOfficialRuleRow('潘朵拉／收購市場','遺物搜尋費用為 150；新產生的龍鑽收購報酬套用 80%，金幣收購價格套用較低的仿正服係數與價格上限。')}
+        </section>
+
+        <section>
+            <h3>📜 任務與試煉</h3>
+            ${qOfficialRuleRow('一般角色試煉','15／30／45／50 級職業試煉與重複 NPC 兌換，在仿正服固定產出普通版本，不利用重複兌換洗特殊版本。')}
+            ${qOfficialRuleRow('傭兵試煉','傭兵任務管理的 15／30／45／50 級試煉同樣固定普通版本，與一般角色一致。')}
+        </section>
+
+        <section>
+            <h3>🐾 寵物／傭兵</h3>
+            ${qOfficialRuleRow('寵物安全區復活','OB57 起，倒地寵物回安全區不再免費復活；有復活卷軸時會消耗 1 張立即復活，沒有卷軸則維持倒地。返生術與野外復活卷軸路徑保留。')}
+            ${qOfficialRuleRow('傭兵安全區復活','目前正式版仍維持回村免費復活倒地傭兵。你先前決定停止後續平衡修改，因此尚未套用 OB58。')}
+        </section>
+
+        <section>
+            <h3>🧙 召喚系統</h3>
+            ${qOfficialRuleRow('召喚控制戒指','Lv28～48 召喚上限固定 5 隻；召喚控制戒指保留指定召喚物功能，但不再把上限提高到 6 隻。Lv52 以上原有 5／4／2／1 上限不變。')}
+            ${qOfficialRuleRow('召喚特殊技能','同型存活 N 隻時，每隻特殊技能的原始觸發率會 ÷N，使整隊平均觸發次數維持單一整隊基準；1 隻時完全不變。')}
+        </section>
+
+        <section>
+            <h3>🏰 其他仿正服規則</h3>
+            ${qOfficialRuleRow('離線收益','目前離線直接獎勵系統停用，不會另外產生一份離線經濟收益。')}
+            ${qOfficialRuleRow('PVP','競技場設計為榮譽玩法，不直接發裝備、經驗或金幣。')}
+            ${qOfficialRuleRow('攻城','新攻城與舊三城攻城都統一有 1,000,000 金幣的參加成本。')}
+            ${qOfficialRuleRow('職業專屬神器系統','目前仿正服入口停用職業神器／神器聖域相關系統；原版入口維持原本設定。')}
+            ${qOfficialRuleRow('存檔','仿正服使用獨立 localStorage 命名空間，與原版角色存檔分開。')}
+        </section>
+    `;
+}
+
 /* ---- 接進現有百科 ---- */
   list=function(){
     if(S.tab==='quests') return qList();
     if(S.tab==='craftnpc') return qCraftList();
     if(S.tab==='equipdex') return qEquipDexList();
+    if(S.tab==='officialrules') return qOfficialRulesList();
     return _baseList();
 };
 
@@ -5850,6 +6019,41 @@ function qEquipDexList(){
             'on',
             S.tab==='equipdex'
         );
+
+        // 仿正服專用規則頁：原版入口完全不顯示。
+        let ob=[...tabs.children].find(function(x){
+            return x.getAttribute('data-awk-official')==='1';
+        });
+
+        if(officialWikiMode()){
+            if(!ob){
+                ob=document.createElement('button');
+                ob.setAttribute('data-awk-official','1');
+                ob.className=b.className;
+                ob.classList.remove('on');
+                ob.textContent='仿正服';
+
+                ob.onclick=function(){
+                    AFKWiki.tab('officialrules');
+                };
+
+                const sys=[...tabs.children].find(function(x){
+                    return x.textContent==='系統規則';
+                });
+
+                tabs.insertBefore(
+                    ob,
+                    sys||null
+                );
+            }
+
+            ob.classList.toggle(
+                'on',
+                S.tab==='officialrules'
+            );
+        }else if(ob){
+            ob.remove();
+        }
   };
 
 })();
