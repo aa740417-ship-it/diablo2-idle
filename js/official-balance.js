@@ -1,5 +1,5 @@
 /*
- * 放置天堂－仿正服平衡層 OB10
+ * 放置天堂－仿正服平衡層 OB11
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
  * OB10：
@@ -13,7 +13,7 @@
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB10',
+        version: 'OB11',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -640,3 +640,225 @@
     console.info('[official-economy] OB10 enabled', ECON);
 })();
 /* ===== 仿正服 OB10：經濟平衡 END ===== */
+
+/* ===== 仿正服 OB11：移除隨機詞綴 START ===== */
+(function officialNoRandomAffixOB11(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialNoRandomAffixOB11) return;
+    window.__officialNoRandomAffixOB11 = true;
+
+    // 1) 未來所有新取得裝備：不再抽 0~5 條隨機詞綴。
+    try {
+        if (typeof rollLootQuality === 'function') {
+            rollLootQuality = function() {
+                return { q: 'white', aff: [] };
+            };
+        }
+
+        // 縱深保險：仿正服模式完全不計算隨機詞綴能力。
+        if (typeof applyLootAffixAttributes === 'function') {
+            applyLootAffixAttributes = function(){};
+        }
+        if (typeof applyLootAffixCombat === 'function') {
+            applyLootAffixCombat = function(){};
+        }
+    } catch (e) {
+        console.warn('[official-affix] disable random affix failed', e);
+    }
+
+    // 2) 清除既有仿正服存檔中的 lootAff / lootQ。
+    //    只移除「0~5 條隨機數值詞綴」，不動祝福/詛咒、屬性、古代、套裝等原本系統。
+    function stripRandomAffixFields(root) {
+        if (!root || typeof root !== 'object') return 0;
+
+        const seen = new Set();
+        let changed = 0;
+
+        function walk(v) {
+            if (!v || typeof v !== 'object' || seen.has(v)) return;
+            seen.add(v);
+
+            // 只對看起來像物品的物件處理。
+            if (Object.prototype.hasOwnProperty.call(v, 'id')) {
+                let touched = false;
+
+                if (Object.prototype.hasOwnProperty.call(v, 'lootAff')) {
+                    delete v.lootAff;
+                    touched = true;
+                }
+                if (Object.prototype.hasOwnProperty.call(v, 'lootQ')) {
+                    delete v.lootQ;
+                    touched = true;
+                }
+
+                if (touched) changed++;
+            }
+
+            if (Array.isArray(v)) {
+                for (const x of v) walk(x);
+            } else {
+                for (const k of Object.keys(v)) {
+                    const x = v[k];
+                    if (x && typeof x === 'object') walk(x);
+                }
+            }
+        }
+
+        walk(root);
+        return changed;
+    }
+
+    function cleanOfficialAffixesNow(saveAfter) {
+        let changed = 0;
+
+        try {
+            if (typeof player !== 'undefined' && player && player.cls) {
+                changed += stripRandomAffixFields(player);
+
+                // 現有自動販賣規則也關掉詞綴條數判定。
+                if (player.autoSellRules && typeof player.autoSellRules === 'object') {
+                    player.autoSellRules.affixSellMax = -1;
+                    if (player.autoSellRules.quality) {
+                        player.autoSellRules.quality.white = false;
+                        player.autoSellRules.quality.blue = false;
+                    }
+                }
+
+                // 移除詞綴後立刻重算能力，避免舊詞綴數值暫留在畫面。
+                try {
+                    if (typeof recomputeStats === 'function') recomputeStats();
+                } catch (e) {}
+
+                try {
+                    if (typeof renderTabs === 'function') renderTabs(true);
+                } catch (e) {}
+
+                try {
+                    if (typeof updateUI === 'function') updateUI();
+                } catch (e) {}
+
+                if (saveAfter && changed > 0) {
+                    try {
+                        if (typeof saveGame === 'function') saveGame();
+                    } catch (e) {
+                        console.warn('[official-affix] save cleaned character failed', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[official-affix] clean player failed', e);
+        }
+
+        // 仿正服共用倉庫也清掉舊隨機詞綴。
+        try {
+            if (typeof player !== 'undefined' && player && player.cls &&
+                typeof loadWarehouse === 'function' &&
+                typeof saveWarehouse === 'function') {
+
+                const w = loadWarehouse();
+                if (w && Array.isArray(w.items)) {
+                    const wc = stripRandomAffixFields(w.items);
+                    if (wc > 0) {
+                        saveWarehouse(w);
+                        changed += wc;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[official-affix] clean warehouse failed', e);
+        }
+
+        return changed;
+    }
+
+    // 3) 每次切換/讀取角色後自動清理一次。
+    try {
+        if (typeof loadGame === 'function' && !window.__officialLoadGameAffixWrapped) {
+            window.__officialLoadGameAffixWrapped = true;
+            const _officialBaseLoadGame = loadGame;
+
+            loadGame = function() {
+                const result = _officialBaseLoadGame.apply(this, arguments);
+
+                const after = function() {
+                    setTimeout(function() {
+                        const n = cleanOfficialAffixesNow(true);
+                        if (n > 0 && typeof logSys === 'function') {
+                            logSys('<span class="text-amber-300">仿正服：已移除舊的隨機詞綴裝備資料。</span>');
+                        }
+                    }, 0);
+                };
+
+                if (result && typeof result.then === 'function') {
+                    result.then(after, function(){});
+                } else {
+                    after();
+                }
+
+                return result;
+            };
+        }
+    } catch (e) {
+        console.warn('[official-affix] loadGame wrapper failed', e);
+    }
+
+    // 若更新時角色已在遊戲內，直接清一次。
+    setTimeout(function() {
+        cleanOfficialAffixesNow(true);
+    }, 100);
+
+    // 4) 自動賣出：永久關閉詞綴條數規則。
+    try {
+        if (typeof getAutoSellRules === 'function' && !window.__officialAutoSellAffixRulesWrapped) {
+            window.__officialAutoSellAffixRulesWrapped = true;
+            const _officialBaseGetAutoSellRules = getAutoSellRules;
+
+            getAutoSellRules = function() {
+                const r = _officialBaseGetAutoSellRules.apply(this, arguments);
+                if (r && typeof r === 'object') {
+                    r.affixSellMax = -1;
+                    if (!r.quality) r.quality = {};
+                    r.quality.white = false;
+                    r.quality.blue = false;
+                }
+                return r;
+            };
+        }
+    } catch (e) {
+        console.warn('[official-affix] autosell rules wrapper failed', e);
+    }
+
+    function removeAutoSellAffixSection() {
+        try {
+            const sel = document.getElementById('as-affix-max');
+            if (!sel) return;
+
+            // 整段「隨機詞綴快捷販賣」區塊直接移除。
+            const sec = sel.closest('.as-sec');
+            if (sec) sec.remove();
+            else {
+                const row = sel.closest('.as-row');
+                if (row) row.remove();
+                else sel.remove();
+            }
+        } catch (e) {}
+    }
+
+    try {
+        if (typeof openAutoSellRules === 'function' && !window.__officialAutoSellAffixUIWrapped) {
+            window.__officialAutoSellAffixUIWrapped = true;
+            const _officialBaseOpenAutoSellRules = openAutoSellRules;
+
+            openAutoSellRules = function() {
+                const result = _officialBaseOpenAutoSellRules.apply(this, arguments);
+                removeAutoSellAffixSection();
+                setTimeout(removeAutoSellAffixSection, 0);
+                return result;
+            };
+        }
+    } catch (e) {
+        console.warn('[official-affix] autosell UI wrapper failed', e);
+    }
+
+    console.info('[official-affix] OB11 random affixes disabled');
+})();
+/* ===== 仿正服 OB11：移除隨機詞綴 END ===== */
