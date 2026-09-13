@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB44
+ * 放置天堂－仿正服平衡層 OB45
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB44：
- * 1. 全服金幣來源／自動販賣／潘朵拉經濟總稽核
- * 2. 確認自動販賣與手動販賣共用 getSellPrice，不存在額外高價旁路
- * 3. 仿正服 NPC 賣店最高回收價封頂為物品原定價100%
- * 4. 一般白板仍維持約15%回收；祝福／屬性／古代裝備保留較高回收但不再無限疊乘
- * 5. 潘朵拉黑市維持金幣回收口；玩家收購／龍鑽／遺物搜尋沿用既有仿正服限制
+ * OB45：
+ * 1. 製作／強化／特殊移動／固定服務費的全服金幣消耗總稽核
+ * 2. 製作既有金幣需求維持原值；仿正服已降低金幣收入，不再二次全面加價
+ * 3. 裝備強化維持「消耗卷軸＋失敗風險」，不額外徵收金幣
+ * 4. 遺忘之島搭船、魔物追蹤、屬性切換、淨化、精通等既有固定費維持
+ * 5. 寵物自動補給仍走 shopPrice，會自然套用仿正服 NPC 買價倍率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB44',
+        version: 'OB45',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -2798,3 +2798,65 @@
     }, 0);
 })();
 /* ===== 仿正服 OB44：金幣經濟安全閥 END ===== */
+
+/* ===== 仿正服 OB45：固定金幣消耗總稽核 START ===== */
+(function officialFixedGoldSinkAuditOB45(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialFixedGoldSinkAuditOB45) return;
+    window.__officialFixedGoldSinkAuditOB45 = true;
+
+    const ECON45 = {
+        // 重要決策：固定費用不再乘第二層仿正服倍率。
+        // 原因＝OB1 起打怪金幣已先被全服與地圖倍率壓低，
+        // 若固定費用再全面加價，等於同時壓收入＋抬支出，會造成雙重緊縮。
+        fixedGoldSinkMult: 1.00,
+
+        // 製作：只保留配方原本已明訂的金幣需求。
+        craftGoldMult: 1.00,
+
+        // 強化：現行核心只消耗強化卷軸；不另收金幣。
+        enhanceGoldCost: 0,
+
+        // 特殊移動／服務。
+        oblivionTravelGold: 100000,
+        monsterTrackingGold: 100000,
+        elfElementSwitchGold: 500000,
+        curseCleanseFallbackGold: 1000000,
+        accessoryScrollGold: 1000000,
+        protectScrollGold: 1000000,
+        masteryChangeGold: 3000000,
+        clanCreateGold: 30000,
+        siegeEntryGold: 1000000,
+
+        // 死亡經驗買回：死亡等級² × 1000，取回實際損失的一半。
+        deathBuybackGoldFormula: 'level^2*1000',
+        deathBuybackExpRatio: 0.50,
+
+        // 寵物自動補給用一般 NPC shopPrice，OB10 的買價調整已自然套用。
+        petAutoSupplyUsesShopPrice: true,
+
+        // 稽核結論。
+        extraGlobalSinkIncreaseNeeded: false
+    };
+
+    window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY_AUDIT || {},
+        ECON45
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_ECONOMY_AUDIT.runtimeOB45 = {
+                doEnhance: typeof doEnhance === 'function',
+                consumeMaterialById: typeof consumeMaterialById === 'function',
+                shopPrice: typeof shopPrice === 'function',
+                fixedGoldSinkMult: ECON45.fixedGoldSinkMult
+            };
+            console.info(
+                '[official-OB45] fixed gold sink audit',
+                window.OFFICIAL_ECONOMY_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB45：固定金幣消耗總稽核 END ===== */
