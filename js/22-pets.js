@@ -908,9 +908,17 @@ function petsTick() {
     let wild = _petInWild();
     outs.forEach(p => {
         let d = petDerive(p); if (!d) return;
-        // 倒地：非野外（安全區）免費復活；野外等 5 秒復活卷軸
+        // 倒地：原版安全區免費復活；OB57 仿正服安全區需消耗復活卷軸。
+        // 野外仍維持原本 5 秒後自動使用復活卷軸。
         if (p._downed) {
-            if (!wild) { _petReviveDone(p, '安全區'); return; }
+            if (!wild) {
+                if (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) {
+                    officialPetTownReviveWithScroll(p);
+                } else {
+                    _petReviveDone(p, '安全區');
+                }
+                return;
+            }
             p._reviveCd = (p._reviveCd || 0) - 1;
             if (p._reviveCd <= 0 || (typeof playerHasAutoReviveEarring === 'function' && playerHasAutoReviveEarring())) {   // 🏺 巨靈的承諾耳環：跳過冷卻立即復活（仍消耗卷軸）
                 let sc = player.inv.find(i => i.id === 'scroll_revive' && (i.cnt || 0) > 0);
@@ -1255,16 +1263,45 @@ function petDevotionGrant(p) {
     p._reviveGuardUntil = ((typeof state !== 'undefined' && state.ticks) || 0) + 80;
     logCombat(`<span class="font-bold text-pink-300">【珍愛夥伴的執念】</span>守護 ${p.form}：8 秒內受到傷害 −100%、額外傷害 +8。`, 'player-special');
 }
+// OB57：仿正服安全區／回村不再免費拉起倒地寵物。
+// 若身上有既有的復活卷軸，安全區會立即消耗 1 張後復活；沒有則維持倒地。
+// 返生術仍走既有手動復活流程，不受本函式影響。
+function officialPetTownReviveWithScroll(p) {
+    if (!p || !p._downed) return false;
+    if (!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE)) return false;
+
+    let sc = (player.inv || []).find(i =>
+        i && i.id === 'scroll_revive' && (i.cnt || 0) > 0
+    );
+    if (!sc) return false;
+
+    sc.cnt--;
+    if (sc.cnt <= 0) {
+        player.inv = (player.inv || []).filter(i => i && i.uid !== sc.uid);
+    }
+
+    _petReviveDone(p, '安全區·復活卷軸');
+    return true;
+}
+
 function petDevotionGuardOn(p) { return !!(p && (p._reviveGuardUntil || 0) > (((typeof state !== 'undefined' && state.ticks) || 0))); }
 // 🐾 v3.6.29 回村/回城（js/11 changeMap 村莊分支呼叫·比照傭兵 reviveDownedMercsAtTown）：
-//    出戰寵物倒地者免費復活＋全體補滿 HP/MP（MP 含防具精神加成的有效上限·同 petsTick _mmpEff）＋清異常狀態。
+//    原版：倒地寵物免費復活。OB57 仿正服：倒地寵物需消耗復活卷軸。
+//    未倒地或成功復活者仍補滿 HP/MP（MP 含防具精神加成）並清異常狀態。
 //    petsOutList 已依目前角色過濾——他角色出戰中的寵物不動（多分頁共用桶慣例）。
 function petsReviveAtTown() {
     let outs = (typeof petsOutList === 'function') ? petsOutList() : [];
     if (!outs.length) return;
     let n = 0;
     outs.forEach(p => {
-        if (p._downed) { p._downed = false; p._reviveCd = 0; p._animAct = null; n++; petDevotionGrant(p); }   // 🏺 v3.6.44 回村復活亦觸發珍愛夥伴 buff
+        if (p._downed) {
+            if (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) {
+                if (officialPetTownReviveWithScroll(p)) n++;
+                if (p._downed) return;   // 沒有復活卷軸：維持倒地，不偷偷補滿 HP
+            } else {
+                p._downed = false; p._reviveCd = 0; p._animAct = null; n++; petDevotionGrant(p);
+            }
+        }
         p.hp = petMhpEff(p);   // 🏺 v3.7.20 回村補滿含 petHpAll 光環
         p.mp = (p.mmp || 0) + (((typeof petDerive === 'function' && petDerive(p)) || {}).mmpBonus || 0);
         p._statuses = newMobStatus();

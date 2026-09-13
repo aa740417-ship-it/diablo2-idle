@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB56
+ * 放置天堂－仿正服平衡層 OB57
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB56：
- * 1. 多召喚物特殊技能觸發率總稽核
- * 2. 仿正服召喚普攻原本已依整隊設計值拆成單隻份額，本版同步正規化proc觸發率
- * 3. 同型態存活N隻時，每隻proc機率改為原始機率÷N，整隊平均觸發次數維持基準
- * 4. 傭兵抽象召喚依_v2count套用同一規則；造屍術無SUMMON_TIERS proc故不受影響
- * 5. 原版 index.html 維持每隻召喚物各自完整proc機率
+ * OB57：
+ * 1. 寵物死亡／安全區復活資源總稽核
+ * 2. 仿正服倒地寵物回到安全區不再免費復活
+ * 3. 安全區若持有復活卷軸，立即消耗1張後復活；沒有卷軸則維持倒地
+ * 4. 返生術、野外5秒自動復活卷軸、存活寵物回村補滿HP/MP全部保留
+ * 5. 原版 index.html 維持安全區／回村免費復活
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB56',
+        version: 'OB57',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3521,3 +3521,48 @@
     }, 0);
 })();
 /* ===== 仿正服 OB56：召喚技能觸發率稽核 END ===== */
+
+/* ===== 仿正服 OB57：寵物復活經濟稽核 START ===== */
+(function officialPetReviveEconomyAuditOB57(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialPetReviveEconomyAuditOB57) return;
+    window.__officialPetReviveEconomyAuditOB57 = true;
+
+    const PETREV57 = {
+        townFreeReviveRemoved: true,
+        townReviveConsumesScroll: true,
+        townReviveScrollId: 'scroll_revive',
+
+        noScrollKeepsPetDowned: true,
+
+        fieldAutoScrollReviveKept: true,
+        returnLifeSpellKept: true,
+
+        alivePetTownFullHealKept: true,
+        originalModeTownFreeReviveKept: true
+    };
+
+    window.OFFICIAL_PET_REVIVE_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_PET_REVIVE_AUDIT || {},
+        PETREV57
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_PET_REVIVE_AUDIT.runtimeOB57 = {
+                townReviveHelper:
+                    typeof officialPetTownReviveWithScroll === 'function',
+                petsReviveAtTown:
+                    typeof petsReviveAtTown === 'function',
+                officialMode:
+                    !!window.OFFICIAL_BALANCE_MODE
+            };
+
+            console.info(
+                '[official-OB57] pet revive economy audit',
+                window.OFFICIAL_PET_REVIVE_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB57：寵物復活經濟稽核 END ===== */
