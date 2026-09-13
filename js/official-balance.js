@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB2
+ * 放置天堂－仿正服平衡層 OB3
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB2：
- * 1. 保留 OB1 經驗需求曲線
- * 2. 取消隊伍掉寶/金幣直接乘人數
- * 3. 第一批區域平衡：新兵修練場→說話之島→港口→古魯丁
- * 4. 區域經驗、金幣、主要掉落逐步收緊
+ * OB3：
+ * 1. 保留 OB2 全部平衡
+ * 2. 新增說話之島地監 1~2 樓
+ * 3. 新增古魯丁地監 1~2 樓
+ * 4. 地監保留較好的練功價值，但金幣與掉寶仍受控
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB2',
+        version: 'OB3',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -56,6 +56,30 @@
                 exp: 0.80,
                 gold: 0.75,
                 drop: 0.80
+            },
+            zone_13: {
+                name: '說話之島地監1樓',
+                exp: 0.90,
+                gold: 0.78,
+                drop: 0.80
+            },
+            zone_14: {
+                name: '說話之島地監2樓',
+                exp: 0.88,
+                gold: 0.76,
+                drop: 0.78
+            },
+            zone_06: {
+                name: '古魯丁地監1樓',
+                exp: 0.86,
+                gold: 0.74,
+                drop: 0.76
+            },
+            zone_07: {
+                name: '古魯丁地監2樓',
+                exp: 0.84,
+                gold: 0.72,
+                drop: 0.74
             }
         }
     };
@@ -153,7 +177,7 @@
         console.warn('[official-balance] gold patch failed', e);
     }
 
-    // ===== 第一批地區：經驗＋主要掉落表 =====
+    // ===== 已納入仿正服平衡的地區：經驗＋主要掉落表 =====
     try {
         if (typeof killMob === 'function') {
             const _baseKillMob = killMob;
