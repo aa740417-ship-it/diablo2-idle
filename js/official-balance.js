@@ -1,11 +1,11 @@
 /*
- * 放置天堂－仿正服平衡層 OB5
+ * 放置天堂－仿正服平衡層 OB6
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB5：
- * 1. 保留 OB4 全部平衡
- * 2. 新增常見怪物個別收益差異
- * 3. 骷髏偏低收益；食屍鬼／史巴托／萊肯依危險度提高回報
+ * OB6：
+ * 1. 保留 OB5 全部平衡
+ * 2. 新增第二批常見怪物個別收益
+ * 3. 骷髏系依武器差異分級，楊果里恩／歐熊／地獄犬依危險度提高回報
  * 4. 個別倍率只套用在已納入仿正服平衡的地圖
  */
 (function () {
@@ -13,7 +13,7 @@
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB5',
+        version: 'OB6',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -118,10 +118,18 @@
     // 只在 CFG.zones 已納入的仿正服地圖生效。
     // 這些倍率會再乘上各地圖的 exp/gold/drop 倍率。
     const MONSTER_BALANCE = {
-        '骷髏':   { exp: 0.95, gold: 0.90, drop: 0.90 },
-        '食屍鬼': { exp: 1.08, gold: 1.00, drop: 1.03 },
-        '史巴托': { exp: 1.10, gold: 1.05, drop: 1.08 },
-        '萊肯':   { exp: 1.12, gold: 1.08, drop: 1.05 }
+        '骷髏':       { exp: 0.95, gold: 0.90, drop: 0.90 },
+        '骷髏弓箭手': { exp: 1.02, gold: 0.95, drop: 0.95 },
+        '骷髏斧手':   { exp: 1.05, gold: 1.00, drop: 1.02 },
+        '骷髏槍兵':   { exp: 1.00, gold: 0.97, drop: 1.00 },
+
+        '食屍鬼':     { exp: 1.08, gold: 1.00, drop: 1.03 },
+        '史巴托':     { exp: 1.10, gold: 1.05, drop: 1.08 },
+        '萊肯':       { exp: 1.12, gold: 1.08, drop: 1.05 },
+
+        '楊果里恩':   { exp: 1.12, gold: 1.08, drop: 1.08 },
+        '歐熊':       { exp: 1.08, gold: 1.05, drop: 1.02 },
+        '地獄犬':     { exp: 1.15, gold: 1.10, drop: 1.12 }
     };
 
     function monsterCfg(mob) {
