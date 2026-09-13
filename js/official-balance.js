@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB14
+ * 放置天堂－仿正服平衡層 OB15
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB14：
- * 1. 保留 OB1~OB13 全部仿正服設定
- * 2. 新增奇岩地監1~4樓、沙漠地監1~4樓
- * 3. 深樓層逐步提高經驗價值，金幣與掉寶繼續收斂
- * 4. 妖魔殭屍、卡司特、黑暗精靈依危險度增加相對回報
+ * OB15：
+ * 1. 保留 OB1~OB14 全部仿正服設定
+ * 2. 新增龍之谷地監1~6樓
+ * 3. 深樓層逐步提高經驗價值，金幣與掉寶仍維持收斂
+ * 4. 骷髏神射手、骷髏警衛、多羅、骷髏鬥士、莫妮亞、阿魯巴依危險度提高回報
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB14',
+        version: 'OB15',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -210,6 +210,44 @@
                 exp: 0.96,
                 gold: 0.76,
                 drop: 0.66
+            },
+
+            // OB15：龍之谷地監
+            zone_26: {
+                name: '龍之谷地監1樓',
+                exp: 0.94,
+                gold: 0.74,
+                drop: 0.68
+            },
+            zone_27: {
+                name: '龍之谷地監2樓',
+                exp: 0.96,
+                gold: 0.75,
+                drop: 0.67
+            },
+            zone_28: {
+                name: '龍之谷地監3樓',
+                exp: 0.98,
+                gold: 0.76,
+                drop: 0.66
+            },
+            zone_29: {
+                name: '龍之谷地監4樓',
+                exp: 1.00,
+                gold: 0.77,
+                drop: 0.65
+            },
+            zone_30: {
+                name: '龍之谷地監5樓',
+                exp: 1.03,
+                gold: 0.79,
+                drop: 0.64
+            },
+            zone_31: {
+                name: '龍之谷地監6樓',
+                exp: 1.06,
+                gold: 0.81,
+                drop: 0.63
             }
         }
     };
@@ -250,7 +288,15 @@
         // OB14：奇岩／沙漠地監代表怪物
         '妖魔殭屍':    { exp: 1.05, gold: 1.00, drop: 1.02 },
         '卡司特':      { exp: 1.10, gold: 1.04, drop: 1.05 },
-        '黑暗精靈':    { exp: 1.15, gold: 1.08, drop: 1.08 }
+        '黑暗精靈':    { exp: 1.15, gold: 1.08, drop: 1.08 },
+
+        // OB15：龍之谷地監代表怪物
+        '骷髏神射手':  { exp: 1.10, gold: 1.04, drop: 1.05 },
+        '骷髏警衛':    { exp: 1.08, gold: 1.03, drop: 1.04 },
+        '多羅':        { exp: 1.10, gold: 1.05, drop: 1.05 },
+        '骷髏鬥士':    { exp: 1.12, gold: 1.06, drop: 1.06 },
+        '莫妮亞':      { exp: 1.15, gold: 1.08, drop: 1.08 },
+        '阿魯巴':      { exp: 1.18, gold: 1.10, drop: 1.10 }
     };
 
     // ===== OB8：頭目掉落分層 =====
