@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB16
+ * 放置天堂－仿正服平衡層 OB17
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB16：
- * 1. 保留 OB1~OB15 全部仿正服設定
- * 2. 新增螞蟻洞窟1~2樓、地下通道1~3樓、海音周邊
- * 3. 異常狀態怪與高HP怪提高相對經驗回報
- * 4. 金幣與掉寶持續維持仿正服收斂節奏
+ * OB17：
+ * 1. 保留 OB1~OB16 全部仿正服設定
+ * 2. 新增伊娃王國、象牙塔4~8樓
+ * 3. 水系魔法怪、高防高HP怪提高相對經驗回報
+ * 4. 象牙塔越高樓層經驗提高、金幣與掉寶持續收斂
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB16',
+        version: 'OB17',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -290,6 +290,46 @@
                 exp: 0.91,
                 gold: 0.73,
                 drop: 0.69
+            },
+
+            // OB17：伊娃王國
+            eva_kingdom: {
+                name: '伊娃王國',
+                exp: 0.98,
+                gold: 0.75,
+                drop: 0.67
+            },
+
+            // OB17：象牙塔
+            zone_37: {
+                name: '象牙塔4樓',
+                exp: 1.00,
+                gold: 0.76,
+                drop: 0.66
+            },
+            zone_38: {
+                name: '象牙塔5樓',
+                exp: 1.03,
+                gold: 0.78,
+                drop: 0.65
+            },
+            zone_39: {
+                name: '象牙塔6樓',
+                exp: 1.06,
+                gold: 0.80,
+                drop: 0.64
+            },
+            zone_40: {
+                name: '象牙塔7樓',
+                exp: 1.09,
+                gold: 0.82,
+                drop: 0.63
+            },
+            zone_41: {
+                name: '象牙塔8樓',
+                exp: 1.12,
+                gold: 0.84,
+                drop: 0.62
             }
         }
     };
@@ -352,7 +392,25 @@
         '蟑螂人':      { exp: 1.08, gold: 1.02, drop: 1.04 },
         '蟹人':        { exp: 1.05, gold: 1.02, drop: 1.03 },
         '蛇女':        { exp: 1.08, gold: 1.04, drop: 1.05 },
-        '多眼怪':      { exp: 1.15, gold: 1.08, drop: 1.08 }
+        '多眼怪':      { exp: 1.15, gold: 1.08, drop: 1.08 },
+
+        // OB17：伊娃王國
+        '海星':        { exp: 1.08, gold: 1.03, drop: 1.04 },
+        '希爾黛斯':    { exp: 1.10, gold: 1.05, drop: 1.06 },
+        '伊萊克頓':    { exp: 1.15, gold: 1.08, drop: 1.08 },
+        '奎斯坦修':    { exp: 1.18, gold: 1.10, drop: 1.10 },
+
+        // OB17：象牙塔4~5樓
+        '紙人':        { exp: 1.08, gold: 1.03, drop: 1.04 },
+        '密密':        { exp: 1.12, gold: 1.05, drop: 1.06 },
+        '活鎧甲':      { exp: 1.14, gold: 1.06, drop: 1.07 },
+        '鋼鐵高崙':    { exp: 1.18, gold: 1.08, drop: 1.08 },
+
+        // OB17：象牙塔6~8樓
+        '影魔':        { exp: 1.16, gold: 1.08, drop: 1.08 },
+        '鬼魂':        { exp: 1.14, gold: 1.06, drop: 1.07 },
+        '紅鬼魂':      { exp: 1.18, gold: 1.08, drop: 1.09 },
+        '死神':        { exp: 1.20, gold: 1.10, drop: 1.10 }
     };
 
     // ===== OB8：頭目掉落分層 =====
