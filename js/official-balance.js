@@ -1,19 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB20
+ * 放置天堂－仿正服平衡層 OB21
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB20：
- * 1. 保留 OB1~OB19 全部仿正服設定
- * 2. 新增妖魔森林、妖精森林、風木地監
- * 3. 前中期地區維持平順成長，不重複修改已完成的說話之島區域
- * 4. 妖魔法師、卡司特系與巴列斯依危險度提高相對回報
+ * OB21：
+ * 1. 保留 OB1~OB20 全部仿正服設定
+ * 2. 新增歐瑞、歐瑞雪原、艾爾摩激戰地、國境要塞、夢幻之島
+ * 3. 雪原／艾爾摩不死系與魔法怪依危險度提高相對回報
+ * 4. 夢幻之島偏經驗型特殊區，四大精靈王／獨角獸／夢魘提高頭目回報
+ * 5. 修正 OB20 zone_01 / elf_forest 顯示名稱對調問題
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB20',
+        version: 'OB21',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -380,13 +381,13 @@
 
             // OB20：前中期世界區域
             zone_01: {
-                name: '妖魔森林',
+                name: '妖精森林周邊',
                 exp: 0.86,
                 gold: 0.71,
                 drop: 0.72
             },
             elf_forest: {
-                name: '妖精森林',
+                name: '妖魔森林',
                 exp: 0.92,
                 gold: 0.74,
                 drop: 0.69
@@ -396,6 +397,40 @@
                 exp: 0.96,
                 gold: 0.76,
                 drop: 0.66
+            },
+
+            // OB21：歐瑞／艾爾摩
+            zone_02: {
+                name: '歐瑞',
+                exp: 0.92,
+                gold: 0.73,
+                drop: 0.69
+            },
+            zone_03: {
+                name: '歐瑞雪原',
+                exp: 0.97,
+                gold: 0.75,
+                drop: 0.67
+            },
+            zone_04: {
+                name: '艾爾摩激戰地',
+                exp: 1.00,
+                gold: 0.77,
+                drop: 0.65
+            },
+            zone_05: {
+                name: '國境要塞',
+                exp: 1.02,
+                gold: 0.78,
+                drop: 0.64
+            },
+
+            // OB21：夢幻之島（偏經驗型特殊區）
+            dream_island: {
+                name: '夢幻之島',
+                exp: 1.08,
+                gold: 0.78,
+                drop: 0.60
             }
         }
     };
@@ -527,7 +562,36 @@
 
         // OB20：風木地監
         '怪手':        { exp: 1.05, gold: 1.02, drop: 1.03 },
-        '巴列斯':      { exp: 1.48, gold: 1.25, drop: 1.36 }
+        '巴列斯':      { exp: 1.48, gold: 1.25, drop: 1.36 },
+
+        // OB21：歐瑞／艾爾摩
+        '雪人':        { exp: 1.08, gold: 1.03, drop: 1.04 },
+        '艾爾摩士兵':  { exp: 1.10, gold: 1.05, drop: 1.05 },
+        '艾爾摩法師':  { exp: 1.15, gold: 1.08, drop: 1.08 },
+        '冰石高崙':    { exp: 1.12, gold: 1.05, drop: 1.06 },
+        '冰原老虎':    { exp: 1.10, gold: 1.05, drop: 1.05 },
+        '雪怪':        { exp: 1.12, gold: 1.06, drop: 1.06 },
+        '艾爾摩將軍':  { exp: 1.20, gold: 1.10, drop: 1.10 },
+
+        // OB21：夢幻之島一般怪
+        '夢幻之島蘑菇':      { exp: 1.10, gold: 1.03, drop: 1.03 },
+        '夢幻之島鬼火':      { exp: 1.10, gold: 1.03, drop: 1.03 },
+        '夢幻之島火蜥蜴':    { exp: 1.12, gold: 1.04, drop: 1.04 },
+        '夢幻之島殺人蜂':    { exp: 1.15, gold: 1.05, drop: 1.05 },
+        '夢幻之島暴走兔':    { exp: 1.15, gold: 1.05, drop: 1.05 },
+        '夢幻之島火炎蛋':    { exp: 1.16, gold: 1.06, drop: 1.06 },
+        '夢幻之島冰石高崙':  { exp: 1.16, gold: 1.06, drop: 1.06 },
+        '夢幻之島閃電球':    { exp: 1.16, gold: 1.06, drop: 1.06 },
+        '夢幻之島鎧甲守衛':  { exp: 1.18, gold: 1.08, drop: 1.07 },
+        '夢幻之島大鬼火':    { exp: 1.18, gold: 1.08, drop: 1.07 },
+
+        // OB21：夢幻之島頭目
+        '夢幻之島火精靈王':  { exp: 1.40, gold: 1.18, drop: 1.28 },
+        '夢幻之島水精靈王':  { exp: 1.40, gold: 1.18, drop: 1.28 },
+        '夢幻之島風精靈王':  { exp: 1.40, gold: 1.18, drop: 1.28 },
+        '夢幻之島地精靈王':  { exp: 1.40, gold: 1.18, drop: 1.28 },
+        '獨角獸':            { exp: 1.45, gold: 1.20, drop: 1.30 },
+        '夢魘':              { exp: 1.42, gold: 1.18, drop: 1.28 }
     };
 
     // ===== OB8：頭目掉落分層 =====
