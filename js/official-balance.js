@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB6
+ * 放置天堂－仿正服平衡層 OB7
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB6：
- * 1. 保留 OB5 全部平衡
- * 2. 新增第二批常見怪物個別收益
- * 3. 骷髏系依武器差異分級，楊果里恩／歐熊／地獄犬依危險度提高回報
- * 4. 個別倍率只套用在已納入仿正服平衡的地圖
+ * OB7：
+ * 1. 保留 OB6 全部平衡
+ * 2. 新增古魯丁地監菁英與頭目收益分級
+ * 3. 食人妖精／長老為進階怪；食人妖精王／巫師為菁英；四色／死亡騎士為頭目
+ * 4. 頭目掉寶雖提高相對權重，但仍會乘全服與地圖掉寶倍率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB6',
+        version: 'OB7',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -114,7 +114,7 @@
         }
     };
 
-    // ===== OB5：常見怪物個別收益 =====
+    // ===== OB7：怪物／菁英／頭目個別收益 =====
     // 只在 CFG.zones 已納入的仿正服地圖生效。
     // 這些倍率會再乘上各地圖的 exp/gold/drop 倍率。
     const MONSTER_BALANCE = {
@@ -129,7 +129,16 @@
 
         '楊果里恩':   { exp: 1.12, gold: 1.08, drop: 1.08 },
         '歐熊':       { exp: 1.08, gold: 1.05, drop: 1.02 },
-        '地獄犬':     { exp: 1.15, gold: 1.10, drop: 1.12 }
+        '地獄犬':     { exp: 1.15, gold: 1.10, drop: 1.12 },
+        '食人妖精':    { exp: 1.10, gold: 1.08, drop: 1.05 },
+        '長老':      { exp: 1.12, gold: 1.10, drop: 1.08 },
+        '食人妖精王':   { exp: 1.20, gold: 1.18, drop: 1.15 },
+        '巫師':      { exp: 1.25, gold: 1.20, drop: 1.18 },
+        '西瑪':      { exp: 1.35, gold: 1.25, drop: 1.30 },
+        '巴土瑟':     { exp: 1.35, gold: 1.25, drop: 1.30 },
+        '卡士柏':     { exp: 1.35, gold: 1.25, drop: 1.30 },
+        '馬庫爾':     { exp: 1.40, gold: 1.30, drop: 1.35 },
+        '死亡騎士':    { exp: 1.50, gold: 1.35, drop: 1.45 }
     };
 
     function monsterCfg(mob) {
