@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB24
+ * 放置天堂－仿正服平衡層 OB25
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB24：
- * 1. 保留 OB1~OB23 全部仿正服設定
- * 2. 新增魔獸訓練場、黑魔法研究室、冥法軍訓練場
- * 3. 三區依怪物等級與魔法／硬度逐步提高經驗價值
- * 4. 魔法怪、異常狀態怪、高硬度怪提高相對回報
- * 5. 黑法師沿用 OB22 已存在的個別倍率，不重複建立同名規則
+ * OB25：
+ * 1. 保留 OB1~OB24 全部仿正服設定
+ * 2. 新增格蘭肯神殿・長老之室與四軍王房
+ * 3. 長老之室定位為高風險高經驗區，金幣與掉寶進一步收斂
+ * 4. 四軍王依實際等級與技能分別設定回報
+ * 5. 8位長老＋4位軍王納入既有頭目稀有掉落分層
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB24',
+        version: 'OB25',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -505,6 +505,40 @@
                 exp: 1.18,
                 gold: 0.85,
                 drop: 0.57
+            },
+
+            // OB25：格蘭肯神殿・長老之室
+            elder_room: {
+                name: '格蘭肯神殿・長老之室',
+                exp: 1.24,
+                gold: 0.86,
+                drop: 0.54
+            },
+
+            // OB25：四軍王房
+            assassin_king_room: {
+                name: '暗殺軍王之室',
+                exp: 1.17,
+                gold: 0.85,
+                drop: 0.55
+            },
+            king_baranka_room: {
+                name: '魔獸軍王之室',
+                exp: 1.18,
+                gold: 0.86,
+                drop: 0.55
+            },
+            law_king_room: {
+                name: '法令軍王之室',
+                exp: 1.20,
+                gold: 0.86,
+                drop: 0.54
+            },
+            necro_king_room: {
+                name: '冥法軍王之室',
+                exp: 1.23,
+                gold: 0.88,
+                drop: 0.53
             }
         }
     };
@@ -745,7 +779,28 @@
         '歐姆戰士':            { exp: 1.15, gold: 1.07, drop: 1.06 },
         '闇黑君王':            { exp: 1.22, gold: 1.10, drop: 1.10 },
         '血騎士':              { exp: 1.20, gold: 1.10, drop: 1.09 },
-        '重裝歐姆戰士':        { exp: 1.18, gold: 1.08, drop: 1.08 }
+        '重裝歐姆戰士':        { exp: 1.18, gold: 1.08, drop: 1.08 },
+
+        // OB25：格蘭肯神殿一般怪
+        '拉斯塔巴德近衛隊':      { exp: 1.15, gold: 1.07, drop: 1.06 },
+        '拉斯塔巴德近衛隊隊長':  { exp: 1.22, gold: 1.10, drop: 1.09 },
+        '長老隨從':              { exp: 1.20, gold: 1.09, drop: 1.08 },
+
+        // OB25：8位長老
+        '長老．琪娜':    { exp: 1.35, gold: 1.00, drop: 1.20 },
+        '長老．艾迪爾':  { exp: 1.38, gold: 1.00, drop: 1.21 },
+        '長老．巴塔斯':  { exp: 1.42, gold: 1.00, drop: 1.23 },
+        '長老．巴洛斯':  { exp: 1.45, gold: 1.00, drop: 1.24 },
+        '長老．泰瑪斯':  { exp: 1.47, gold: 1.00, drop: 1.25 },
+        '長老．安迪斯':  { exp: 1.48, gold: 1.00, drop: 1.26 },
+        '長老．拉曼斯':  { exp: 1.50, gold: 1.00, drop: 1.27 },
+        '長老．巴陸德':  { exp: 1.52, gold: 1.00, drop: 1.28 },
+
+        // OB25：四軍王
+        '暗殺軍王史雷佛':  { exp: 1.33, gold: 1.17, drop: 1.20 },
+        '魔獸軍王巴蘭卡':  { exp: 1.35, gold: 1.18, drop: 1.22 },
+        '法令軍王蕾雅':    { exp: 1.38, gold: 1.18, drop: 1.23 },
+        '冥法軍王海露拜':  { exp: 1.42, gold: 1.20, drop: 1.25 }
     };
 
     // ===== OB8：頭目掉落分層 =====
@@ -790,7 +845,22 @@
                 'wpn_powerless_baphomet': 0.25,
                 'bk_elf_flamesoul': 0.35
             }
-        }
+        },
+
+        // OB25：長老之室／四軍王房
+        // special 留空：仍套用既有的通用 BOSS 稀有掉落分層。
+        '長老．琪娜': { special: {} },
+        '長老．艾迪爾': { special: {} },
+        '長老．巴塔斯': { special: {} },
+        '長老．巴洛斯': { special: {} },
+        '長老．泰瑪斯': { special: {} },
+        '長老．安迪斯': { special: {} },
+        '長老．拉曼斯': { special: {} },
+        '長老．巴陸德': { special: {} },
+        '暗殺軍王史雷佛': { special: {} },
+        '魔獸軍王巴蘭卡': { special: {} },
+        '法令軍王蕾雅': { special: {} },
+        '冥法軍王海露拜': { special: {} }
     };
 
     // ===== OB9：全服物品類型掉落分級 =====
