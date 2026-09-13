@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB17
+ * 放置天堂－仿正服平衡層 OB18
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB17：
- * 1. 保留 OB1~OB16 全部仿正服設定
- * 2. 新增伊娃王國、象牙塔4~8樓
- * 3. 水系魔法怪、高防高HP怪提高相對經驗回報
- * 4. 象牙塔越高樓層經驗提高、金幣與掉寶持續收斂
+ * OB18：
+ * 1. 保留 OB1~OB17 全部仿正服設定
+ * 2. 新增龍之谷野外、火龍窟、奇岩周邊
+ * 3. 中後期野外經驗提高，但金幣與掉寶持續收斂
+ * 4. 飛龍、黑長者、伊弗利特、不死鳥等高危險怪提高相對回報
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB17',
+        version: 'OB18',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -330,6 +330,26 @@
                 exp: 1.12,
                 gold: 0.84,
                 drop: 0.62
+            },
+
+            // OB18：中後期野外
+            dragon_valley: {
+                name: '龍之谷野外',
+                exp: 1.04,
+                gold: 0.78,
+                drop: 0.65
+            },
+            fire_dragon: {
+                name: '火龍窟',
+                exp: 1.10,
+                gold: 0.82,
+                drop: 0.61
+            },
+            giran: {
+                name: '奇岩周邊',
+                exp: 0.96,
+                gold: 0.75,
+                drop: 0.67
             }
         }
     };
@@ -410,7 +430,31 @@
         '影魔':        { exp: 1.16, gold: 1.08, drop: 1.08 },
         '鬼魂':        { exp: 1.14, gold: 1.06, drop: 1.07 },
         '紅鬼魂':      { exp: 1.18, gold: 1.08, drop: 1.09 },
-        '死神':        { exp: 1.20, gold: 1.10, drop: 1.10 }
+        '死神':        { exp: 1.20, gold: 1.10, drop: 1.10 },
+
+        // OB18：龍之谷野外
+        '亞力安':      { exp: 1.15, gold: 1.06, drop: 1.07 },
+        '飛龍':        { exp: 1.40, gold: 1.20, drop: 1.30 },
+        '黑長者':      { exp: 1.45, gold: 1.22, drop: 1.32 },
+
+        // OB18：火龍窟
+        '火焰弓箭手':  { exp: 1.08, gold: 1.03, drop: 1.04 },
+        '龍蠅':        { exp: 1.10, gold: 1.04, drop: 1.05 },
+        '火焰戰士':    { exp: 1.10, gold: 1.04, drop: 1.05 },
+        '火蜥蜴':      { exp: 1.12, gold: 1.05, drop: 1.06 },
+        '火炎蛋':      { exp: 1.14, gold: 1.06, drop: 1.07 },
+        '熔岩高崙':    { exp: 1.18, gold: 1.08, drop: 1.08 },
+        '阿西塔基奧':  { exp: 1.20, gold: 1.10, drop: 1.10 },
+        '伊弗利特':    { exp: 1.42, gold: 1.22, drop: 1.32 },
+        '烈炎獸':      { exp: 1.22, gold: 1.10, drop: 1.12 },
+        '不死鳥':      { exp: 1.55, gold: 1.30, drop: 1.42 },
+
+        // OB18：奇岩周邊
+        '強盜':        { exp: 1.08, gold: 1.04, drop: 1.04 },
+        '強盜頭目':    { exp: 1.15, gold: 1.08, drop: 1.08 },
+        '格利芬':      { exp: 1.10, gold: 1.05, drop: 1.05 },
+        '卡司特王':    { exp: 1.15, gold: 1.08, drop: 1.08 },
+        '獨眼巨人':    { exp: 1.18, gold: 1.10, drop: 1.10 }
     };
 
     // ===== OB8：頭目掉落分層 =====
