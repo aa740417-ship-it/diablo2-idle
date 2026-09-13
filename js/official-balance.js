@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB18
+ * 放置天堂－仿正服平衡層 OB19
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB18：
- * 1. 保留 OB1~OB17 全部仿正服設定
- * 2. 新增龍之谷野外、火龍窟、奇岩周邊
- * 3. 中後期野外經驗提高，但金幣與掉寶持續收斂
- * 4. 飛龍、黑長者、伊弗利特、不死鳥等高危險怪提高相對回報
+ * OB19：
+ * 1. 保留 OB1~OB18 全部仿正服設定
+ * 2. 新增鏡子森林、黃昏山脈、肯特周邊、銀騎士村周邊
+ * 3. 早中期野外保持平穩，中後期巨人／變形怪區提高經驗價值
+ * 4. 古代巨人、變形怪首領等高危險頭目提高相對回報
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB18',
+        version: 'OB19',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -350,6 +350,32 @@
                 exp: 0.96,
                 gold: 0.75,
                 drop: 0.67
+            },
+
+            // OB19：主要野外區
+            silver_knight: {
+                name: '銀騎士村周邊',
+                exp: 0.84,
+                gold: 0.70,
+                drop: 0.72
+            },
+            kent: {
+                name: '肯特周邊',
+                exp: 0.88,
+                gold: 0.72,
+                drop: 0.70
+            },
+            mirror_forest: {
+                name: '鏡子森林',
+                exp: 1.01,
+                gold: 0.77,
+                drop: 0.65
+            },
+            twilight_mt: {
+                name: '黃昏山脈',
+                exp: 1.08,
+                gold: 0.80,
+                drop: 0.63
             }
         }
     };
@@ -454,7 +480,23 @@
         '強盜頭目':    { exp: 1.15, gold: 1.08, drop: 1.08 },
         '格利芬':      { exp: 1.10, gold: 1.05, drop: 1.05 },
         '卡司特王':    { exp: 1.15, gold: 1.08, drop: 1.08 },
-        '獨眼巨人':    { exp: 1.18, gold: 1.10, drop: 1.10 }
+        '獨眼巨人':    { exp: 1.18, gold: 1.10, drop: 1.10 },
+
+        // OB19：銀騎士村／肯特
+        '黑騎士':      { exp: 1.05, gold: 1.02, drop: 1.03 },
+        '龍龜':        { exp: 1.12, gold: 1.05, drop: 1.06 },
+        '哈維':        { exp: 1.12, gold: 1.06, drop: 1.06 },
+        '歐吉':        { exp: 1.15, gold: 1.08, drop: 1.08 },
+
+        // OB19：鏡子森林
+        '變形怪':      { exp: 1.10, gold: 1.05, drop: 1.06 },
+        '變形怪首領':  { exp: 1.45, gold: 1.22, drop: 1.32 },
+
+        // OB19：黃昏山脈
+        '巨人':        { exp: 1.10, gold: 1.05, drop: 1.05 },
+        '巨人戰士':    { exp: 1.14, gold: 1.07, drop: 1.07 },
+        '巨人長老':    { exp: 1.18, gold: 1.09, drop: 1.09 },
+        '古代巨人':    { exp: 1.50, gold: 1.28, drop: 1.38 }
     };
 
     // ===== OB8：頭目掉落分層 =====
