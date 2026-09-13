@@ -283,3 +283,114 @@
     console.info('[official-balance] enabled', CFG);
 })();
 
+/* ===== 仿正服模式：暫停專武系統 =====
+ * 原版 class-artifact-system.js 完整保留。
+ * official.html 載入此平衡層時：
+ * - 隱藏右下「專武」按鈕與面板
+ * - 移除「神器聖域」地圖入口
+ * - 停用 artifact_sanctum 地圖資料
+ */
+(function officialDisableArtifactSystem(){
+    if (!window.OFFICIAL_BALANCE_MODE) return;
+
+    const ARTIFACT_MAP_ID = 'artifact_sanctum';
+
+    function disableArtifactUIAndMap() {
+        try {
+            let st = document.getElementById('official-disable-artifact-style');
+            if (!st) {
+                st = document.createElement('style');
+                st.id = 'official-disable-artifact-style';
+                st.textContent = `
+                    #artifact-open-btn,
+                    #artifact-panel {
+                        display: none !important;
+                        visibility: hidden !important;
+                        pointer-events: none !important;
+                    }
+                `;
+                document.head.appendChild(st);
+            }
+
+            const btn = document.getElementById('artifact-open-btn');
+            if (btn) btn.remove();
+
+            const panel = document.getElementById('artifact-panel');
+            if (panel) panel.remove();
+        } catch (e) {
+            console.warn('[official] hide artifact UI failed', e);
+        }
+
+        try {
+            if (typeof MAP_CATEGORIES !== 'undefined' &&
+                MAP_CATEGORIES &&
+                Array.isArray(MAP_CATEGORIES.special)) {
+                MAP_CATEGORIES.special = MAP_CATEGORIES.special.filter(
+                    x => x && x.v !== ARTIFACT_MAP_ID
+                );
+            }
+        } catch (e) {
+            console.warn('[official] remove artifact category failed', e);
+        }
+
+        try {
+            if (typeof MAP_REGIONS !== 'undefined' && Array.isArray(MAP_REGIONS)) {
+                for (let i = MAP_REGIONS.length - 1; i >= 0; i--) {
+                    const r = MAP_REGIONS[i];
+                    if (!r) continue;
+
+                    if (r.key === 'artifact') {
+                        MAP_REGIONS.splice(i, 1);
+                        continue;
+                    }
+
+                    if (Array.isArray(r.maps)) {
+                        r.maps = r.maps.filter(m => m && m.v !== ARTIFACT_MAP_ID);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[official] remove artifact region failed', e);
+        }
+
+        try {
+            if (typeof DB !== 'undefined' && DB && DB.maps && DB.maps[ARTIFACT_MAP_ID]) {
+                delete DB.maps[ARTIFACT_MAP_ID];
+            }
+        } catch (e) {
+            console.warn('[official] disable artifact map failed', e);
+        }
+
+        try {
+            if (typeof rebuildMapCategoryOptions === 'function') {
+                rebuildMapCategoryOptions();
+            }
+        } catch (e) {}
+
+        try {
+            if (typeof mapState !== 'undefined' &&
+                mapState &&
+                mapState.current === ARTIFACT_MAP_ID) {
+                if (typeof setMapSelectors === 'function') {
+                    setMapSelectors('town_talking');
+                }
+                if (typeof changeMap === 'function') {
+                    changeMap(true);
+                } else {
+                    mapState.current = 'town_talking';
+                }
+            }
+        } catch (e) {
+            console.warn('[official] artifact map fallback failed', e);
+        }
+    }
+
+    disableArtifactUIAndMap();
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', disableArtifactUIAndMap, { once:true });
+    }
+
+    setTimeout(disableArtifactUIAndMap, 500);
+    setTimeout(disableArtifactUIAndMap, 1500);
+})();
