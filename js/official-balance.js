@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB25
+ * 放置天堂－仿正服平衡層 OB26
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB25：
- * 1. 保留 OB1~OB24 全部仿正服設定
- * 2. 新增格蘭肯神殿・長老之室與四軍王房
- * 3. 長老之室定位為高風險高經驗區，金幣與掉寶進一步收斂
- * 4. 四軍王依實際等級與技能分別設定回報
- * 5. 8位長老＋4位軍王納入既有頭目稀有掉落分層
+ * OB26：
+ * 1. 保留 OB1~OB25 全部仿正服設定
+ * 2. 新增黑暗妖精聖地、受詛咒的黑暗妖精聖地、崩壞的長老會議廳
+ * 3. 吉爾塔斯與真‧死亡騎士 冥皇丹特斯納入 BOSS 稀有掉落分層
+ * 4. 吉爾塔斯的封印維持原始100%進度掉落，不受區域掉寶倍率降低
+ * 5. 最終區維持高經驗、高風險，金幣與一般掉寶持續收斂
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB25',
+        version: 'OB26',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -539,6 +539,28 @@
                 exp: 1.23,
                 gold: 0.88,
                 drop: 0.53
+            },
+
+            // OB26：黑暗妖精聖地
+            dark_elf_sanctuary: {
+                name: '黑暗妖精聖地',
+                exp: 1.22,
+                gold: 0.85,
+                drop: 0.55
+            },
+
+            // OB26：最終頭目區
+            cursed_dark_elf_sanctuary: {
+                name: '受詛咒的黑暗妖精聖地',
+                exp: 1.30,
+                gold: 0.80,
+                drop: 0.48
+            },
+            collapsed_elder_council_hall: {
+                name: '崩壞的長老會議廳',
+                exp: 1.28,
+                gold: 0.80,
+                drop: 0.49
             }
         }
     };
@@ -800,7 +822,22 @@
         '暗殺軍王史雷佛':  { exp: 1.33, gold: 1.17, drop: 1.20 },
         '魔獸軍王巴蘭卡':  { exp: 1.35, gold: 1.18, drop: 1.22 },
         '法令軍王蕾雅':    { exp: 1.38, gold: 1.18, drop: 1.23 },
-        '冥法軍王海露拜':  { exp: 1.42, gold: 1.20, drop: 1.25 }
+        '冥法軍王海露拜':  { exp: 1.42, gold: 1.20, drop: 1.25 },
+
+        // OB26：黑暗妖精聖地一般怪
+        '地獄奴隸':              { exp: 1.16, gold: 1.07, drop: 1.06 },
+        '受詛咒的黑暗妖精鬥士':  { exp: 1.18, gold: 1.08, drop: 1.07 },
+        '受詛咒的黑暗妖精法師':  { exp: 1.20, gold: 1.09, drop: 1.08 },
+        '受詛咒的黑暗妖精騎士':  { exp: 1.22, gold: 1.10, drop: 1.09 },
+        '食腐獸':                { exp: 1.22, gold: 1.10, drop: 1.09 },
+        '特提斯':                { exp: 1.25, gold: 1.11, drop: 1.10 },
+        '翼龍':                  { exp: 1.28, gold: 1.12, drop: 1.11 },
+
+        // 重裝歐姆戰士沿用 OB24 既有設定，不建立重複規則。
+
+        // OB26：最終頭目
+        '吉爾塔斯':                  { exp: 1.70, gold: 1.00, drop: 1.30 },
+        '真‧死亡騎士 冥皇丹特斯':  { exp: 1.60, gold: 1.00, drop: 1.28 }
     };
 
     // ===== OB8：頭目掉落分層 =====
@@ -860,7 +897,11 @@
         '暗殺軍王史雷佛': { special: {} },
         '魔獸軍王巴蘭卡': { special: {} },
         '法令軍王蕾雅': { special: {} },
-        '冥法軍王海露拜': { special: {} }
+        '冥法軍王海露拜': { special: {} },
+
+        // OB26：最終頭目
+        '吉爾塔斯': { special: {} },
+        '真‧死亡騎士 冥皇丹特斯': { special: {} }
     };
 
     // ===== OB9：全服物品類型掉落分級 =====
@@ -1047,7 +1088,13 @@
                         const itemId = String(copy[0] || '');
                         const bossFactor = bossDropItemFactor(key, itemId, rate);
                         const globalFactor = globalDropItemFactor(itemId, rate);
-                        copy[1] = rate * mult * bossFactor * globalFactor;
+
+                        // OB26：吉爾塔斯的封印是後續劇情進度道具，
+                        // 原始設定100%，不可被區域掉寶倍率一起壓低。
+                        const keepProgressDrop = (itemId === 'item_giltas_seal');
+                        const zoneDropFactor = keepProgressDrop ? 1 : mult;
+
+                        copy[1] = rate * zoneDropFactor * bossFactor * globalFactor;
                     }
                     return copy;
                 });
