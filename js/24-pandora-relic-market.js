@@ -13,7 +13,7 @@
     const GOLD_BROADCAST_OFFSET_MS = 1 * 60 * 1000;   // 龍鑽先喊；金幣延後 1 分鐘，兩者仍各自每 5 分鐘廣播
     const BROADCAST_PIN_MAX = 2;   // 📌 v3.5.77 叫賣訊息常駐在「系統與物品日誌」頂端的最大條數（超出者排隊，前面的人被互動/離場後自動遞補）
     const BOARD_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-    const RELIC_SEARCH_COST = 100;
+    const RELIC_SEARCH_COST = (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) ? 150 : 100;
     const WANDERER_CHANCE = 0.50;
     const GOLD_WANDERER_CHANCE = 0.30;
     const WANDERER_CARD_CHANCE = 0.10;
@@ -626,7 +626,23 @@
     }
 
     function _goldBuyerPrice(w) {
-        return Math.max(1, Math.floor(Number(w && w.price) || 1));
+        let raw = Math.max(1, Math.floor(Number(w && w.price) || 1));
+
+        // 仿正服：安全區玩家金幣收購不再出現過高的 50 倍行情。
+        // 先取原報價 60%，再依物品定價限制最高回收價；
+        // 超過安定值的裝備仍保留合理的強化溢價。
+        if (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) {
+            let d = (typeof DB !== 'undefined' && DB.items && w) ? DB.items[w.itemId] : null;
+            let base = Math.max(1, Math.floor(Number(d && d.p) || 1));
+            let safe = Math.max(0, Math.floor(Number(d && d.safe) || 0));
+            let en = (w && w.en != null) ? Math.max(0, Math.floor(Number(w.en) || 0)) : safe;
+            let over = Math.max(0, en - safe);
+            let enhanceMult = over === 1 ? 1.2 : over === 2 ? 1.5 : over >= 3 ? 2.0 : 1.0;
+            let cap = Math.max(1, Math.floor(base * 8 * enhanceMult));
+            raw = Math.max(1, Math.min(Math.floor(raw * 0.60), cap));
+        }
+
+        return raw;
     }
 
     function _makeGoldBuyerPrice(st, d, mult, alignmentValue) {
@@ -750,7 +766,11 @@
         if (currency === 'gold') {
             buyer.price = _makeGoldBuyerPrice(st, d, mult, buyer.alignmentValue);
         } else {
-            buyer.reward = Math.max(1, Math.ceil((11 - weight) * mult));
+            let reward = Math.max(1, Math.ceil((11 - weight) * mult));
+            if (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) {
+                reward = Math.max(1, Math.floor(reward * 0.80));
+            }
+            buyer.reward = reward;
         }
         return buyer;
     }

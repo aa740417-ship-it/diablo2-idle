@@ -1,5 +1,5 @@
 /*
- * 放置天堂－仿正服平衡層 OB11
+ * 放置天堂－仿正服平衡層 OB12
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
  * OB10：
@@ -13,7 +13,7 @@
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB11',
+        version: 'OB12',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
