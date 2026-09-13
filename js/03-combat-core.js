@@ -34,14 +34,9 @@ function magicTierMult(tier) {
     return 1 + Math.max(0, Number(tier) || 0) / 10;
 }
 
-// 舊服職業平衡測試：非 mage 玩家最終輸出 ×1.60。
-// 仿正服完全不套；傭兵／寵物／召喚不藉此偷吃倍率。
-function legacyNonMagePlayerDamageMult(dStats) {
-    if (
-        typeof window !== 'undefined' &&
-        window.OFFICIAL_BALANCE_MODE
-    ) return 1;
-
+// OB59 職業平衡：非 mage 主玩家最終輸出 ×1.60。
+// 舊服實測後正式同步到仿正服；傭兵／寵物／召喚不藉此偷吃倍率。
+function balancedNonMagePlayerDamageMult(dStats) {
     if (
         typeof player === 'undefined' ||
         !player ||
@@ -49,6 +44,7 @@ function legacyNonMagePlayerDamageMult(dStats) {
     ) return 1;
 
     // 魔法公式傳入 dStats 時，只接受主玩家自己的 d。
+    // 避免傭兵或其他獨立施法者誤吃玩家職業倍率。
     if (
         dStats &&
         player.d &&
@@ -74,9 +70,9 @@ function magicDamageCoef(dStats, attrDefense, spellTier) {
     let base = Math.max(0, 1 - attr + _spWeight * sp / 32);
     let coef = base * (spellTier == null ? 1 : magicTierMult(spellTier));
 
-    // 舊服測試：非 mage 主玩家魔法傷害同步 ×1.60。
+    // OB59：非 mage 主玩家魔法傷害正式 ×1.60。
     // 只在 dStats === player.d 時成立，不會提高傭兵或其他獨立角色。
-    coef *= legacyNonMagePlayerDamageMult(dStats);
+    coef *= balancedNonMagePlayerDamageMult(dStats);
 
     return coef;
 }
@@ -2641,11 +2637,11 @@ function getPhysicalDmg(diceStr, target, wpn, arrowData, forceHeavy, forceHit, f
     if (heavy && _cw && _cw.heavyBonusDmg) _outDmg += _cw.heavyBonusDmg;   // 🌅 遺物 牛鬼的斷角：觸發重擊時額外傷害 +N（固定值·倍率後加算）
     if (player.statuses && player.statuses.broken > 0) _outDmg = Math.max(1, Math.floor(_outDmg * 0.8));   // 🐍 壞物術（特產易碎泥偶自傷）：期間玩家一般攻擊物理傷害 -20%
 
-    // 舊服職業平衡測試：非 mage 的物理核心最終傷害 ×1.60。
+    // OB59：非 mage 的物理核心最終傷害正式 ×1.60。
     // getPhysicalDmg 同時涵蓋普攻與大量物理技能，因此放在最終收口避免漏職業。
     _outDmg = Math.max(
         1,
-        Math.floor(_outDmg * legacyNonMagePlayerDamageMult())
+        Math.floor(_outDmg * balancedNonMagePlayerDamageMult())
     );
 
     let _dualX2 = false;   // ⚔️ 雙刀內建特性：一般攻擊命中(非擦傷) 5% 機率最終傷害×2（🎮 經典模式停用）

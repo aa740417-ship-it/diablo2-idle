@@ -20,9 +20,9 @@ function officialWikiVersion(){
         return (
             window.OFFICIAL_BALANCE &&
             window.OFFICIAL_BALANCE.version
-        ) || 'OB57';
+        ) || 'OB59';
     }catch(e){
-        return 'OB57';
+        return 'OB59';
     }
 }
 let cache=null;
@@ -5760,7 +5760,7 @@ function qEquipDexList(){
 
 
 
-/* ===== 🏛️ 仿正服規則百科（OB58） ===== */
+/* ===== 🏛️ 仿正服規則百科（OB59） ===== */
 
 function qOfficialRuleRow(title, text){
     return `
@@ -5843,8 +5843,12 @@ function qOfficialRulesList(){
                 '公開服高階法系的主要膨脹來源是 SP 乘區。原本為 1－屬性防禦＋3×SP/32；仿正服改為 1－屬性防禦＋1.5×SP/32。法術階級倍率仍照原本另外乘算。'
             )}
             ${qOfficialRuleRow(
-                '這次沒有改的項目',
-                'magicDmg 固定加值、魔法爆擊、目標 MR、屬性剋制、法術階級與治癒公式全部維持；近戰與弓系物理傷害也沒有改動。'
+                '非 法師職業輸出（OB59）',
+                '依公開服實測結果，非 mage 主玩家的物理核心與玩家SP魔法核心最終傷害統一 ×1.60。法師本身不吃這個倍率，維持 OB58 的 SP 1.5 設定。'
+            )}
+            ${qOfficialRuleRow(
+                '不受 OB59 影響的來源',
+                '傭兵、寵物、召喚物、治癒與怪物傷害都不吃 ×1.60；這次只調整主玩家職業輸出。'
             )}
             ${qOfficialRuleRow(
                 '為什麼調 SP',

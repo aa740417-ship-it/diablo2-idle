@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB58
+ * 放置天堂－仿正服平衡層 OB59
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB58：
- * 1. 法系／物理職業公開服傷害差距總稽核
- * 2. 確認 INT SP 沒有重複計算 bug，但 SP 本身屬於額外乘區，且再與法術階級倍率相乘
- * 3. 仿正服魔法傷害係數的 SP 權重由 3×SP/32 調整為 1.5×SP/32
- * 4. magicDmg固定加值、法術階級、魔爆、MR、屬性剋制、治癒全部不變
- * 5. 測試期間原版 index.html 也同步使用 1.5×SP/32，方便直接比較職業DPS
+ * OB59：
+ * 1. 依公開測試結果完成法師與其他職業DPS第二階段平衡
+ * 2. 法師維持OB58：SP傷害權重1.5×SP/32，不再額外調整
+ * 3. 非mage主玩家的物理核心最終傷害×1.60
+ * 4. 非mage主玩家走SP公式的魔法傷害同步×1.60，避免妖精／幻術等混合職業漏補
+ * 5. 傭兵、寵物、召喚物、治癒與原有怪物數值全部不受此倍率影響
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB58',
+        version: 'OB59',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3624,3 +3624,55 @@
     }, 0);
 })();
 /* ===== 仿正服 OB58：法系 SP 傷害平衡 END ===== */
+
+/* ===== 仿正服 OB59：非法師職業傷害平衡 START ===== */
+(function officialNonMageDamageBalanceOB59(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialNonMageDamageBalanceOB59) return;
+    window.__officialNonMageDamageBalanceOB59 = true;
+
+    const CLASS59 = {
+        mageDamageMultiplier: 1.00,
+        nonMagePlayerDamageMultiplier: 1.60,
+
+        physicalCoreCovered: true,
+        playerSpMagicCoreCovered: true,
+
+        mageOb58SpWeightKept: 1.5,
+        healingUnchanged: true,
+
+        allyDamageUnchanged: true,
+        petDamageUnchanged: true,
+        summonDamageUnchanged: true,
+
+        basedOnLegacyPublicTest: true
+    };
+
+    window.OFFICIAL_CLASS_BALANCE = Object.assign(
+        {},
+        window.OFFICIAL_CLASS_BALANCE || {},
+        CLASS59
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_CLASS_BALANCE.runtimeOB59 = {
+                helper:
+                    typeof balancedNonMagePlayerDamageMult === 'function',
+                currentClass:
+                    (typeof player !== 'undefined' && player) ? player.cls : null,
+                currentMultiplier:
+                    typeof balancedNonMagePlayerDamageMult === 'function'
+                        ? balancedNonMagePlayerDamageMult(
+                            (typeof player !== 'undefined' && player) ? player.d : null
+                          )
+                        : null
+            };
+
+            console.info(
+                '[official-OB59] non-mage class damage balance',
+                window.OFFICIAL_CLASS_BALANCE
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB59：非法師職業傷害平衡 END ===== */
