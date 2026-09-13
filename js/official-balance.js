@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB61
+ * 放置天堂－仿正服平衡層 OB62
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB61：
- * 1. 仿正服所有怪物戰鬥掉落全面移除 relic 類遺物
- * 2. 潘朵拉搜尋／交換、製作等非戰鬥取得方式不受影響
- * 3. 所有 BOSS 擊殺各有 20% 機率獲得龍之鑽石 ×1
- * 4. BOSS 龍鑽依本機自然日共用，每日最多 50 顆
- * 5. 原版 index.html 的遺物與 BOSS 掉落規則完全不變
+ * OB62：
+ * 1. 仿正服遺物黑市每輪直接陳列 4 件不同遺物
+ * 2. 每件固定售價 200 龍之鑽石
+ * 3. 每 12 小時整批輪換，一天可看到 8 件
+ * 4. 每格每輪只能購買 1 次
+ * 5. OB61 戰鬥遺物禁掉與 BOSS 龍鑽規則全部保留
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB61',
+        version: 'OB62',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3718,3 +3718,338 @@
     });
 })();
 /* ===== 仿正服 OB61：遺物／BOSS 龍鑽經濟規則 END ===== */
+
+/* ===== 仿正服 OB62：四格遺物黑市 START ===== */
+(function officialRelicShopFourSlotsOB62(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialRelicShopFourSlotsOB62) return;
+    window.__officialRelicShopFourSlotsOB62 = true;
+
+    const PRICE = 200;
+    const SLOT_COUNT = 4;
+    const ROTATE_MS = 12 * 60 * 60 * 1000;
+    const STORE_KEY = 'official_relic_shop_ob62_4slot_v1';
+
+    function esc(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+        });
+    }
+
+    function readState() {
+        try {
+            const raw = localStorage.getItem(STORE_KEY);
+            const st = raw ? JSON.parse(raw) : null;
+            return st && typeof st === 'object' ? st : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function writeState(st) {
+        try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(st));
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function relicKnown(id, d) {
+        try {
+            if (d && d.type === 'etc' && typeof miscDexHas === 'function') {
+                return !!miscDexHas(id);
+            }
+            if (typeof relicDexHas === 'function') {
+                return !!relicDexHas(id);
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function allRelics() {
+        if (typeof DB === 'undefined' || !DB.items) return [];
+        return Object.keys(DB.items).filter(function(id) {
+            const d = DB.items[id];
+            return !!(d && d.relic && d.n);
+        });
+    }
+
+    function candidatePool() {
+        const all = allRelics();
+        const fresh = all.filter(function(id) {
+            return !relicKnown(id, DB.items[id]);
+        });
+        return fresh.length >= SLOT_COUNT ? fresh : all;
+    }
+
+    function shuffle(arr) {
+        arr = arr.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = arr[i];
+            arr[i] = arr[j];
+            arr[j] = t;
+        }
+        return arr;
+    }
+
+    function makeItems(previousIds) {
+        let pool = candidatePool();
+        if (!pool.length) return [];
+
+        const prev = new Set(Array.isArray(previousIds) ? previousIds : []);
+        let preferred = pool.filter(function(id) { return !prev.has(id); });
+
+        // 優先整批換新；若遺物總數不足，再回補上一輪商品。
+        let ordered = shuffle(preferred);
+        if (ordered.length < SLOT_COUNT) {
+            const rest = shuffle(pool.filter(function(id) {
+                return ordered.indexOf(id) === -1;
+            }));
+            ordered = ordered.concat(rest);
+        }
+
+        return ordered.slice(0, SLOT_COUNT).map(function(id) {
+            return { id: id, bought: false, boughtAt: 0 };
+        });
+    }
+
+    function validState(st) {
+        return !!(
+            st &&
+            Array.isArray(st.items) &&
+            st.items.length === SLOT_COUNT &&
+            st.items.every(function(x) {
+                return x && x.id && DB.items[x.id] && DB.items[x.id].relic;
+            })
+        );
+    }
+
+    function ensureOffer() {
+        const now = Date.now();
+        let st = readState();
+
+        if (!validState(st)) {
+            const items = makeItems([]);
+            if (!items.length) return null;
+            st = {
+                items: items,
+                listedAt: now,
+                expiresAt: now + ROTATE_MS,
+                cycle: 1
+            };
+            writeState(st);
+            return st;
+        }
+
+        if (!(Number(st.expiresAt) > now)) {
+            let nextAt = Number(st.expiresAt) || now;
+            let skipped = 0;
+            while (nextAt <= now) {
+                nextAt += ROTATE_MS;
+                skipped++;
+            }
+
+            const previousIds = st.items.map(function(x) { return x.id; });
+            st = {
+                items: makeItems(previousIds),
+                listedAt: nextAt - ROTATE_MS,
+                expiresAt: nextAt,
+                cycle: Math.max(1, Math.floor(Number(st.cycle) || 1) + Math.max(1, skipped))
+            };
+            writeState(st);
+        }
+
+        return st;
+    }
+
+    function remainText(ms) {
+        ms = Math.max(0, Math.floor(Number(ms) || 0));
+        const totalSec = Math.floor(ms / 1000);
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const sec = totalSec % 60;
+        return String(h).padStart(2, '0') + ':' +
+               String(m).padStart(2, '0') + ':' +
+               String(sec).padStart(2, '0');
+    }
+
+    function diamondBalance() {
+        try {
+            return (typeof pandoraGetSharedDiamonds === 'function')
+                ? Math.max(0, Math.floor(Number(pandoraGetSharedDiamonds()) || 0))
+                : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    function cardHtml(slot, index, diamonds) {
+        const d = DB.items[slot.id];
+        let icon = '';
+        try { icon = (typeof getIconUrl === 'function') ? getIconUrl(d) : ''; } catch (e) {}
+
+        const canBuy = !slot.bought && diamonds >= PRICE;
+        const btnText = slot.bought
+            ? '本輪已購買'
+            : (diamonds >= PRICE ? `購買・${PRICE} 龍鑽` : `龍鑽不足・需要 ${PRICE}`);
+
+        return `<div class="pandora-relic-slot active ${slot.bought ? 'opacity-70' : ''}">
+            <div class="pandora-relic-slot-no">商品 ${index + 1}</div>
+            <div class="pandora-relic-target"
+                onmouseenter="pandoraRelicTipShow(event,'${esc(slot.id)}')"
+                onmousemove="pandoraTipMove(event)"
+                onmouseleave="pandoraTipHide()">
+                <div class="pandora-collection-icon pandora-relic-icon-wrap">
+                    ${icon ? `<img src="${esc(icon)}" alt="">` : ''}
+                </div>
+                <div class="min-w-0">
+                    <div class="text-purple-300 font-bold">${esc(d.n)}</div>
+                    <div class="text-amber-300 text-sm">售價：${PRICE} 龍之鑽石</div>
+                </div>
+            </div>
+            <button
+                class="btn mt-2 w-full py-2 px-3 font-bold ${canBuy ? 'bg-purple-800 hover:bg-purple-700 border-purple-500 text-purple-100' : 'bg-slate-700 border-slate-600 text-slate-400'}"
+                ${canBuy ? '' : 'disabled'}
+                onclick="pandoraOfficialBuyRelicOB62(${index})">${btnText}</button>
+            ${slot.bought
+                ? '<div class="text-emerald-300 text-xs mt-2">已購買，下一輪補新貨。</div>'
+                : ''}
+        </div>`;
+    }
+
+    function renderBoard() {
+        const st = ensureOffer();
+        if (!st) {
+            return `<section class="pandora-relic-board">
+                <div class="pandora-relic-board-head"><b>💎 遺物黑市</b></div>
+                <div class="text-slate-500 text-sm p-3">目前沒有可上架的遺物。</div>
+            </section>`;
+        }
+
+        const diamonds = diamondBalance();
+        const cards = st.items.map(function(slot, index) {
+            return cardHtml(slot, index, diamonds);
+        }).join('');
+
+        return `<section class="pandora-relic-board">
+            <div class="pandora-relic-board-head">
+                <b>💎 遺物黑市</b>
+                <span>每輪 4 件・每件 ${PRICE} 龍之鑽石・12 小時整批輪換</span>
+            </div>
+            <div class="text-xs text-slate-400 mb-2">
+                目前持有：<b class="text-cyan-300">${diamonds.toLocaleString()}</b> 龍之鑽石
+                ｜距離下次換貨：
+                <b id="official-relic-rotate-countdown" class="text-sky-300">${remainText(st.expiresAt - Date.now())}</b>
+            </div>
+            <div class="pandora-relic-grid">${cards}</div>
+        </section>`;
+    }
+
+    function rerenderMarket() {
+        try {
+            const div = document.getElementById('interaction-content');
+            if (div && div.querySelector('#pandora-msg') && typeof pandoraRenderMarket === 'function') {
+                pandoraRenderMarket(div);
+            }
+        } catch (e) {}
+    }
+
+    function buyRelic(index) {
+        index = Math.floor(Number(index));
+        if (index < 0 || index >= SLOT_COUNT) return;
+
+        const st = ensureOffer();
+        if (!st || !st.items[index] || st.items[index].bought) return;
+
+        const slot = st.items[index];
+        const d = DB.items[slot.id];
+        if (!d || !d.relic) return;
+
+        if (diamondBalance() < PRICE) {
+            alert(`龍之鑽石不足，需要 ${PRICE} 顆。`);
+            rerenderMarket();
+            return;
+        }
+
+        let paid = false;
+        try {
+            const res = pandoraAdjustSharedDiamonds(-PRICE);
+            paid = !!(res && res.ok !== false);
+        } catch (e) {}
+
+        if (!paid) {
+            alert('扣除龍之鑽石失敗，請重新開啟黑市。');
+            return;
+        }
+
+        try {
+            let oldTrad = (typeof _tradLootCtx !== 'undefined') ? _tradLootCtx : false;
+            if (typeof _tradLootCtx !== 'undefined') _tradLootCtx = true;
+            try {
+                gainItem(slot.id, 1, true, true, false);
+            } finally {
+                if (typeof _tradLootCtx !== 'undefined') _tradLootCtx = oldTrad;
+            }
+        } catch (e) {
+            try { pandoraAdjustSharedDiamonds(PRICE); } catch (_) {}
+            alert('遺物加入背包失敗，已退還龍之鑽石。');
+            return;
+        }
+
+        slot.bought = true;
+        slot.boughtAt = Date.now();
+        writeState(st);
+
+        try {
+            if (typeof logSys === 'function') {
+                logSys(
+                    `<span class="text-purple-300 font-bold">💎 遺物黑市：花費 ${PRICE} 龍之鑽石，購買 ${esc(d.n)}。</span>`
+                );
+            }
+        } catch (e) {}
+
+        try { saveGame(); } catch (e) {}
+        try { updateUI(); } catch (e) {}
+        try { renderTabs(); } catch (e) {}
+        rerenderMarket();
+    }
+
+    // 仿正服停用舊的搜尋＋委託入口。
+    window.pandoraRelicBoardHTML = renderBoard;
+    window.pandoraRelicSuggestionHTML = function() { return ''; };
+    window.pandoraRelicOnSearchInput = function() {};
+    window.pandoraTryRelicSearchFromInputs = function() { return false; };
+    window.pandoraOfficialBuyRelicOB62 = buyRelic;
+    window.pandoraOfficialRelicShopStateOB62 = ensureOffer;
+
+    let lastCycle = null;
+    setInterval(function() {
+        try {
+            const st = ensureOffer();
+            if (!st) return;
+
+            if (lastCycle == null) lastCycle = st.cycle;
+            if (st.cycle !== lastCycle) {
+                lastCycle = st.cycle;
+                rerenderMarket();
+                return;
+            }
+
+            const el = document.getElementById('official-relic-rotate-countdown');
+            if (el) el.textContent = remainText(st.expiresAt - Date.now());
+        } catch (e) {}
+    }, 1000);
+
+    window.OFFICIAL_RELIC_DIRECT_SHOP = {
+        price: PRICE,
+        slots: SLOT_COUNT,
+        rotateHours: 12,
+        choicesPerDay: 8,
+        eachSlotOnePurchasePerRotation: true,
+        oldSearchContractDisabled: true
+    };
+
+    console.info('[official-OB62] 4-slot relic shop', window.OFFICIAL_RELIC_DIRECT_SHOP);
+})();
+/* ===== 仿正服 OB62：四格遺物黑市 END ===== */
