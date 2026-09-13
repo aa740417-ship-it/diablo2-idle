@@ -1,24 +1,31 @@
 /*
- * 放置天堂－仿正服平衡層 OB38
+ * 放置天堂－仿正服平衡層 OB39
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB38：
- * 1. 納入傲慢之塔91~100樓攀登地圖與91~100樓自由狩獵地圖
- * 2. 四大精靈王／艾莉絲／木乃伊王／騎士范德加入塔內個別回報
- * 3. 100F 邪惡的鐮刀死神納入 BOSS 稀有掉落分層
- * 4. 鐮刀死神原始金幣10000~20000，仿正服版額外壓低其金幣收益
- * 5. 多層封印傳送符與高階掉落沿用 OB27 正式掉寶管線
+ * OB39：
+ * 1. 全服平衡稽核第一輪：主線／拉斯塔巴德／龍巢／傲慢塔既有曲線保留
+ * 2. 補上先前未納入的底比斯沙漠／金字塔／歐西里斯祭壇
+ * 3. 補上先前未納入的提卡爾區域／深處／庫庫爾坎祭壇
+ * 4. 底比斯／提卡爾 Lv70 頭目納入 BOSS 稀有掉落分層
+ * 5. 高級寶箱與龜裂之核等原始100%頭目獎勵維持必掉
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB38',
+        version: 'OB39',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
         baseGoldMult: 0.70,
+
+        // OB39 稽核：目前確認仍待後續分批平衡的特殊內容。
+        pendingBalanceMaps: [
+            'sunrise_castle', 'sunrise_east', 'sunrise_west', 'sunrise_north',
+            'oblivion_travel', 'oblivion_island',
+            'antharas_nest_1', 'antharas_nest_2', 'antharas_nest_3', 'antharas_lair'
+        ],
 
         // 升級需求倍率（Lv1~29 不額外拉長）
         expReqMult: {
@@ -1275,6 +1282,46 @@
                 exp: 1.80,
                 gold: 0.98,
                 drop: 0.15
+            },
+
+            // OB39：底比斯
+            thebes_desert: {
+                name: '底比斯沙漠',
+                exp: 0.95,
+                gold: 0.70,
+                drop: 0.66
+            },
+            thebes_pyramid: {
+                name: '底比斯金字塔內部',
+                exp: 1.05,
+                gold: 0.74,
+                drop: 0.60
+            },
+            thebes_temple: {
+                name: '底比斯歐西里斯祭壇',
+                exp: 1.18,
+                gold: 0.78,
+                drop: 0.52
+            },
+
+            // OB39：提卡爾
+            tikal_area: {
+                name: '提卡爾區域',
+                exp: 0.96,
+                gold: 0.70,
+                drop: 0.66
+            },
+            tikal_deep: {
+                name: '提卡爾深處',
+                exp: 1.06,
+                gold: 0.74,
+                drop: 0.60
+            },
+            tikal_altar: {
+                name: '提卡爾庫庫爾坎祭壇',
+                exp: 1.20,
+                gold: 0.78,
+                drop: 0.52
             }
         }
     };
@@ -1649,7 +1696,15 @@
         '騎士范德':          { exp: 1.25, gold: 1.08, drop: 1.09 },
 
         // 原始金幣 10000~20000，故額外壓低金幣倍率。
-        '邪惡的鐮刀死神':    { exp: 1.80, gold: 0.50, drop: 1.32 }
+        '邪惡的鐮刀死神':    { exp: 1.80, gold: 0.50, drop: 1.32 },
+
+        // OB39：底比斯祭壇
+        '底比斯 阿努比斯':      { exp: 1.35, gold: 1.00, drop: 1.20 },
+        '底比斯 賀洛斯':        { exp: 1.35, gold: 1.00, drop: 1.20 },
+
+        // OB39：提卡爾祭壇
+        '提卡爾杰弗雷庫(雄)':   { exp: 1.38, gold: 1.00, drop: 1.22 },
+        '提卡爾杰弗雷庫(雌)':   { exp: 1.38, gold: 1.00, drop: 1.22 }
     };
 
     // ===== OB8：頭目掉落分層 =====
@@ -1749,7 +1804,13 @@
         '不滅的巫妖': { special: {} },
 
         // OB38：傲慢之塔100樓
-        '邪惡的鐮刀死神': { special: {} }
+        '邪惡的鐮刀死神': { special: {} },
+
+        // OB39：底比斯／提卡爾祭壇
+        '底比斯 阿努比斯': { special: {} },
+        '底比斯 賀洛斯': { special: {} },
+        '提卡爾杰弗雷庫(雄)': { special: {} },
+        '提卡爾杰弗雷庫(雌)': { special: {} }
     };
 
     // ===== OB9：全服物品類型掉落分級 =====
@@ -1942,7 +2003,12 @@
 
                         // OB26：吉爾塔斯的封印是後續劇情進度道具，
                         // 原始設定100%，不可被區域掉寶倍率一起壓低。
-                        const keepProgressDrop = (itemId === 'item_giltas_seal');
+                        const keepProgressDrop = (
+                            itemId === 'item_giltas_seal' ||
+                            itemId === 'item_osiris_box_high' ||
+                            itemId === 'item_kukulkan_box_high' ||
+                            itemId === 'mat_crack_core'
+                        );
                         const zoneDropFactor = keepProgressDrop ? 1 : mult;
 
                         copy[1] = rate * zoneDropFactor * bossFactor * globalFactor;
