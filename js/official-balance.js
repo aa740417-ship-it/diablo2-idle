@@ -1,28 +1,27 @@
 /*
- * 放置天堂－仿正服平衡層 OB39
+ * 放置天堂－仿正服平衡層 OB40
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB39：
- * 1. 全服平衡稽核第一輪：主線／拉斯塔巴德／龍巢／傲慢塔既有曲線保留
- * 2. 補上先前未納入的底比斯沙漠／金字塔／歐西里斯祭壇
- * 3. 補上先前未納入的提卡爾區域／深處／庫庫爾坎祭壇
- * 4. 底比斯／提卡爾 Lv70 頭目納入 BOSS 稀有掉落分層
- * 5. 高級寶箱與龜裂之核等原始100%頭目獎勵維持必掉
+ * OB40：
+ * 1. 納入日出之國城區／東部／西部／北部四張特殊地圖
+ * 2. 依 Lv65~99 怪物強度建立四區遞進收益
+ * 3. 九尾狐三段型態、牛鬼、巨大骷髏納入 BOSS 稀有掉落分層
+ * 4. 三隻主頭目原始金幣偏高，仿正服版額外壓低頭目金幣收益
+ * 5. OB39 待平衡清單移除日出之國，保留遺忘之島與侵蝕安塔瑞斯副本
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB39',
+        version: 'OB40',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
         baseGoldMult: 0.70,
 
-        // OB39 稽核：目前確認仍待後續分批平衡的特殊內容。
+        // OB40 稽核：日出之國已完成；以下特殊內容仍待後續分批平衡。
         pendingBalanceMaps: [
-            'sunrise_castle', 'sunrise_east', 'sunrise_west', 'sunrise_north',
             'oblivion_travel', 'oblivion_island',
             'antharas_nest_1', 'antharas_nest_2', 'antharas_nest_3', 'antharas_lair'
         ],
@@ -1322,6 +1321,32 @@
                 exp: 1.20,
                 gold: 0.78,
                 drop: 0.52
+            },
+
+            // OB40：日出之國四區
+            sunrise_castle: {
+                name: '日出之國（城區）',
+                exp: 0.88,
+                gold: 0.74,
+                drop: 0.62
+            },
+            sunrise_east: {
+                name: '日出之國（東部）',
+                exp: 0.96,
+                gold: 0.77,
+                drop: 0.58
+            },
+            sunrise_west: {
+                name: '日出之國（西部）',
+                exp: 1.04,
+                gold: 0.80,
+                drop: 0.54
+            },
+            sunrise_north: {
+                name: '日出之國（北部）',
+                exp: 1.12,
+                gold: 0.82,
+                drop: 0.50
             }
         }
     };
@@ -1704,7 +1729,32 @@
 
         // OB39：提卡爾祭壇
         '提卡爾杰弗雷庫(雄)':   { exp: 1.38, gold: 1.00, drop: 1.22 },
-        '提卡爾杰弗雷庫(雌)':   { exp: 1.38, gold: 1.00, drop: 1.22 }
+        '提卡爾杰弗雷庫(雌)':   { exp: 1.38, gold: 1.00, drop: 1.22 },
+
+        // OB40：日出之國一般怪
+        '嗚釜':                  { exp: 1.00, gold: 1.00, drop: 1.00 },
+        '鎌鼬':                  { exp: 1.00, gold: 1.00, drop: 1.00 },
+        '轆轤首':                { exp: 1.03, gold: 1.01, drop: 1.02 },
+        '唐傘小僧':              { exp: 1.03, gold: 1.01, drop: 1.02 },
+        '牛鬼之子':              { exp: 1.00, gold: 1.00, drop: 1.00 },
+        '憤怒的嗚釜':            { exp: 1.06, gold: 1.03, drop: 1.04 },
+        '鎌鼬長兄':              { exp: 1.06, gold: 1.03, drop: 1.04 },
+        '河童':                  { exp: 1.08, gold: 1.04, drop: 1.05 },
+        '赤鬼':                  { exp: 1.08, gold: 1.04, drop: 1.05 },
+        '青鬼':                  { exp: 1.08, gold: 1.04, drop: 1.05 },
+        '鵺':                    { exp: 1.10, gold: 1.05, drop: 1.06 },
+        '天狗':                  { exp: 1.12, gold: 1.06, drop: 1.07 },
+        '阿修羅像':              { exp: 1.15, gold: 1.07, drop: 1.08 },
+
+        // OB40：九尾狐三段頭目。
+        // 前兩段為變身階段，最終殺生石才會完成擊殺；仍保留規則以防其他入口直接生成。
+        '白面金毛九尾狐・玉藻':  { exp: 1.20, gold: 0.75, drop: 1.15 },
+        '白面金毛九尾狐・九尾':  { exp: 1.25, gold: 0.60, drop: 1.18 },
+        '白面金毛九尾狐・殺生石':{ exp: 1.30, gold: 0.55, drop: 1.20 },
+
+        // 牛鬼原始金幣15400~47000；巨大骷髏40000~80000，額外壓低。
+        '牛鬼':                  { exp: 1.40, gold: 0.42, drop: 1.23 },
+        '巨大骷髏':              { exp: 1.50, gold: 0.28, drop: 1.26 }
     };
 
     // ===== OB8：頭目掉落分層 =====
@@ -1810,7 +1860,14 @@
         '底比斯 阿努比斯': { special: {} },
         '底比斯 賀洛斯': { special: {} },
         '提卡爾杰弗雷庫(雄)': { special: {} },
-        '提卡爾杰弗雷庫(雌)': { special: {} }
+        '提卡爾杰弗雷庫(雌)': { special: {} },
+
+        // OB40：日出之國頭目
+        '白面金毛九尾狐・玉藻': { special: {} },
+        '白面金毛九尾狐・九尾': { special: {} },
+        '白面金毛九尾狐・殺生石': { special: {} },
+        '牛鬼': { special: {} },
+        '巨大骷髏': { special: {} }
     };
 
     // ===== OB9：全服物品類型掉落分級 =====
