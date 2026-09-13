@@ -532,11 +532,17 @@ function killMob(idx) {
 
     // === 🐉 v3.7.56 四大龍：擊敗各有 10% 機率掉落「頑皮幼龍蛋」／「淘氣幼龍蛋」（兩顆獨立判定・不受經典掉率影響・可重複取得）===
     if (['安塔瑞斯', '法利昂', '巴拉卡斯', '林德拜爾'].includes(mob.n)) {
-        if (Math.random() < partyDropRate(0.10)) {
+        // OB28：幼龍蛋是四大龍獨立獎勵，不與一般裝備掉寶倍率混算。
+        // 仿正服固定維持原始每顆10%；原版仍保留原 partyDropRate 行為。
+        let _dragonEggRate = (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE)
+            ? 0.10
+            : partyDropRate(0.10);
+
+        if (Math.random() < _dragonEggRate) {
             gainItem('item_dragon_egg', 1);
             logSys('<span class="text-amber-300 font-bold">✦ 你從巨龍的殘骸中拾起了一顆「頑皮幼龍蛋」——它似乎在呼喚著什麼……</span>');
         }
-        if (Math.random() < partyDropRate(0.10)) {
+        if (Math.random() < _dragonEggRate) {
             gainItem('item_dragon_egg2', 1);
             logSys('<span class="text-sky-300 font-bold">✦ 你從巨龍的殘骸中拾起了一顆「淘氣幼龍蛋」——蛋殼裡傳來調皮的騷動……</span>');
         }

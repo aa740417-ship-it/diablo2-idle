@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB27
+ * 放置天堂－仿正服平衡層 OB28
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB27：
- * 1. 掉寶倍率總稽核：修正部分額外掉落 55%×55%=30.25% 的重複乘算
- * 2. partyDropRate 專責仿正服全服55%；classicDropMult 恢復1
- * 3. 黑妖／水晶／戰士／幻術／區域額外掉落由核心補一次仿正服55%
- * 4. 龍騎士獨立掉落表補上原本漏掉的仿正服55%
- * 5. 吉爾塔斯的封印真正維持原始100%進度掉落
+ * OB28：
+ * 1. 新增安塔瑞斯、法利昂、巴拉卡斯三座現有龍巢的仿正服倍率
+ * 2. 四大龍全部納入 BOSS 稀有掉落分層
+ * 3. 林德拜爾目前沒有獨立可選地圖，不擅自建立不存在的地圖
+ * 4. 四大龍幼龍蛋維持原始獨立10%機率，不吃仿正服全服55%掉寶倍率
+ * 5. 一般裝備／技能書仍沿用 OB27 全服掉寶管線與區域倍率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB27',
+        version: 'OB28',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -561,6 +561,26 @@
                 exp: 1.28,
                 gold: 0.80,
                 drop: 0.49
+            },
+
+            // OB28：三座目前實際存在的四大龍巢穴
+            antaras_lair: {
+                name: '安塔瑞斯巢穴',
+                exp: 1.28,
+                gold: 0.82,
+                drop: 0.48
+            },
+            fafurion_lair: {
+                name: '法利昂巢穴',
+                exp: 1.30,
+                gold: 0.82,
+                drop: 0.47
+            },
+            valakas_lair: {
+                name: '巴拉卡斯巢穴',
+                exp: 1.32,
+                gold: 0.83,
+                drop: 0.46
             }
         }
     };
@@ -837,7 +857,12 @@
 
         // OB26：最終頭目
         '吉爾塔斯':                  { exp: 1.70, gold: 1.00, drop: 1.30 },
-        '真‧死亡騎士 冥皇丹特斯':  { exp: 1.60, gold: 1.00, drop: 1.28 }
+        '真‧死亡騎士 冥皇丹特斯':  { exp: 1.60, gold: 1.00, drop: 1.28 },
+
+        // OB28：三座現有龍巢
+        '安塔瑞斯':  { exp: 1.50, gold: 1.00, drop: 1.25 },
+        '法利昂':    { exp: 1.52, gold: 1.00, drop: 1.26 },
+        '巴拉卡斯':  { exp: 1.55, gold: 1.00, drop: 1.28 }
     };
 
     // ===== OB8：頭目掉落分層 =====
@@ -901,7 +926,13 @@
 
         // OB26：最終頭目
         '吉爾塔斯': { special: {} },
-        '真‧死亡騎士 冥皇丹特斯': { special: {} }
+        '真‧死亡騎士 冥皇丹特斯': { special: {} },
+
+        // OB28：四大龍（林德拜爾雖尚無獨立地圖，若由其他機制出現仍套此掉落分層）
+        '安塔瑞斯': { special: {} },
+        '法利昂': { special: {} },
+        '巴拉卡斯': { special: {} },
+        '林德拜爾': { special: {} }
     };
 
     // ===== OB9：全服物品類型掉落分級 =====
