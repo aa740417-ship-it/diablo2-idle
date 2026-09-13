@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB57
+ * 放置天堂－仿正服平衡層 OB58
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB57：
- * 1. 寵物死亡／安全區復活資源總稽核
- * 2. 仿正服倒地寵物回到安全區不再免費復活
- * 3. 安全區若持有復活卷軸，立即消耗1張後復活；沒有卷軸則維持倒地
- * 4. 返生術、野外5秒自動復活卷軸、存活寵物回村補滿HP/MP全部保留
- * 5. 原版 index.html 維持安全區／回村免費復活
+ * OB58：
+ * 1. 法系／物理職業公開服傷害差距總稽核
+ * 2. 確認 INT SP 沒有重複計算 bug，但 SP 本身屬於額外乘區，且再與法術階級倍率相乘
+ * 3. 仿正服魔法傷害係數的 SP 權重由 3×SP/32 調整為 1.5×SP/32
+ * 4. magicDmg固定加值、法術階級、魔爆、MR、屬性剋制、治癒全部不變
+ * 5. 原版 index.html 維持原本 3×SP/32
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB57',
+        version: 'OB58',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3566,3 +3566,60 @@
     }, 0);
 })();
 /* ===== 仿正服 OB57：寵物復活經濟稽核 END ===== */
+
+/* ===== 仿正服 OB58：法系 SP 傷害平衡 START ===== */
+(function officialMagicSpBalanceOB58(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialMagicSpBalanceOB58) return;
+    window.__officialMagicSpBalanceOB58 = true;
+
+    const MAGIC58 = {
+        originalSpWeight: 3.0,
+        officialSpWeight: 1.5,
+        spDivisor: 32,
+
+        intSpCapUnchanged: 33,
+        itemSpStillScales: true,
+
+        spellTierMultiplierUnchanged: true,
+        magicDmgFlatUnchanged: true,
+        magicCritUnchanged: true,
+        magicResistanceUnchanged: true,
+        elementCounterUnchanged: true,
+        healingUnchanged: true,
+
+        meleeDamageUnchanged: true,
+        rangedDamageUnchanged: true,
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_CLASS_BALANCE = Object.assign(
+        {},
+        window.OFFICIAL_CLASS_BALANCE || {},
+        MAGIC58
+    );
+
+    setTimeout(function(){
+        try {
+            const sampleSp = 33;
+            const oldBase = 1 + 3 * sampleSp / 32;
+            const newBase = 1 + 1.5 * sampleSp / 32;
+
+            window.OFFICIAL_CLASS_BALANCE.runtimeOB58 = {
+                magicDamageCoef:
+                    typeof magicDamageCoef === 'function',
+                sampleSp33OldBase:
+                    Math.round(oldBase * 1000) / 1000,
+                sampleSp33OfficialBase:
+                    Math.round(newBase * 1000) / 1000,
+                sampleReductionPct:
+                    Math.round((1 - newBase / oldBase) * 1000) / 10
+            };
+
+            console.info(
+                '[official-OB58] magic SP class balance',
+                window.OFFICIAL_CLASS_BALANCE
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB58：法系 SP 傷害平衡 END ===== */

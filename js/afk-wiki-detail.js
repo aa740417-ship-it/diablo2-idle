@@ -5760,7 +5760,7 @@ function qEquipDexList(){
 
 
 
-/* ===== 🏛️ 仿正服規則百科（OB57） ===== */
+/* ===== 🏛️ 仿正服規則百科（OB58） ===== */
 
 function qOfficialRuleRow(title, text){
     return `
@@ -5834,6 +5834,22 @@ function qOfficialRulesList(){
             ${qOfficialRuleRow('玩家＋傭兵組隊經驗','玩家與未倒地傭兵共享同一個角色經驗池。一般隊長每名存活傭兵 +1% 組隊加成；王族每名 +2%；總加成最高 +10%。')}
             ${qOfficialRuleRow('寵物經驗','所有可獲得經驗的出戰寵物共享同一份寵物經驗池；1 隻時不變，多隻時平均分配。倒地與已達玩家等級上限的寵物不占分母。')}
             ${qOfficialRuleRow('寵物升級需求','寵物升級需求為玩家同級需求的 1/4。既有寵物由舊制轉換時保留目前等級內的經驗完成百分比。')}
+        </section>
+
+        <section>
+            <h3>⚔️ 職業傷害平衡</h3>
+            ${qOfficialRuleRow(
+                '法系 SP 傷害係數（OB58）',
+                '公開服高階法系的主要膨脹來源是 SP 乘區。原本為 1－屬性防禦＋3×SP/32；仿正服改為 1－屬性防禦＋1.5×SP/32。法術階級倍率仍照原本另外乘算。'
+            )}
+            ${qOfficialRuleRow(
+                '這次沒有改的項目',
+                'magicDmg 固定加值、魔法爆擊、目標 MR、屬性剋制、法術階級與治癒公式全部維持；近戰與弓系物理傷害也沒有改動。'
+            )}
+            ${qOfficialRuleRow(
+                '為什麼調 SP',
+                'INT 提供的 SP 與道具 SP 在程式內已拆開，並沒有同一份 INT 被重複計算兩次；問題是 SP 本身是額外乘區，與法術階級、魔爆等效果再疊乘後，高階成長過快。'
+            )}
         </section>
 
         <section>
