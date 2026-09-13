@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>放置天堂 - 仿正服版載入中</title>
+</head>
+<body style="background:#020617;color:#e2e8f0;font-family:sans-serif;padding:24px">
+    <div id="official-loading">仿正服版載入中…</div>
+
+    <script>
+    (async function () {
+        try {
+            const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
+            if (!res.ok) throw new Error('index.html 載入失敗：HTTP ' + res.status);
+
+            let html = await res.text();
+            const inject =
+                '<script>window.OFFICIAL_BALANCE_MODE=true;<\/script>\\n' +
+                '<script src="js/official-balance.js?v=OB1"><\/script>';
+
+            if (!html.includes('</body>')) {
+                throw new Error('找不到 </body>，無法載入仿正服平衡層');
+            }
+
+            html = html.replace('</body>', inject + '\\n</body>');
+            document.open();
+            document.write(html);
+            document.close();
+        } catch (err) {
+            document.getElementById('official-loading').innerHTML =
+                '<b style="color:#fca5a5">仿正服版載入失敗</b><br><br>' +
+                String(err && err.message ? err.message : err);
+            console.error(err);
+        }
+    })();
+    </script>
+</body>
+</html>
+
