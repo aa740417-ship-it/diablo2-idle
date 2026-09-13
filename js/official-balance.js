@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB43
+ * 放置天堂－仿正服平衡層 OB44
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB43：
- * 1. 全服經濟／掉落總稽核第一輪
- * 2. 確認一般NPC商店買價+10%與賣店回收約15%皆實際生效
- * 3. 修正BOSS通用稀有掉落分層，使掉率越稀有、倍率越低且順序一致
- * 4. 普通武／防卷轉祝福卷改為0.35%，轉詛咒卷改為0.50%
- * 5. 明確納入詛咒武／防卷的全服物品類型掉落倍率
+ * OB44：
+ * 1. 全服金幣來源／自動販賣／潘朵拉經濟總稽核
+ * 2. 確認自動販賣與手動販賣共用 getSellPrice，不存在額外高價旁路
+ * 3. 仿正服 NPC 賣店最高回收價封頂為物品原定價100%
+ * 4. 一般白板仍維持約15%回收；祝福／屬性／古代裝備保留較高回收但不再無限疊乘
+ * 5. 潘朵拉黑市維持金幣回收口；玩家收購／龍鑽／遺物搜尋沿用既有仿正服限制
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB43',
+        version: 'OB44',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -2715,3 +2715,86 @@
     }, 0);
 })();
 /* ===== 仿正服 OB43：經濟／掉落總稽核 END ===== */
+
+/* ===== 仿正服 OB44：金幣經濟安全閥 START ===== */
+(function officialGoldEconomyAuditOB44(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialGoldEconomyAuditOB44) return;
+    window.__officialGoldEconomyAuditOB44 = true;
+
+    const ECON44 = {
+        // NPC 回收最高不超過物品資料表原定價。
+        // OB10 之後一般白板仍約15%，特殊狀態仍有溢價，
+        // 只是祝福×10、屬性×10、古代×10不再造成數十～數百倍金幣來源。
+        sellPriceCapMult: 1.00,
+
+        // 稽核結果：以下系統已確認不需再額外削弱。
+        autoSellUsesGetSellPrice: true,
+        pandoraIsGoldSink: true,
+        wanderGoldOfferMult: 0.60,
+        wanderGoldBaseCapMult: 8.00,
+        diamondBuyerRewardMult: 0.80,
+        relicSearchCost: 150
+    };
+
+    window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY_AUDIT || {},
+        ECON44
+    );
+
+    // ===== NPC 賣店最高回收價 =====
+    try {
+        if (typeof getSellPrice === 'function' && !window.__officialSellPriceCapWrapped) {
+            window.__officialSellPriceCapWrapped = true;
+            const _officialBaseGetSellPriceOB44 = getSellPrice;
+
+            getSellPrice = function(item) {
+                const raw = Math.max(0, Math.floor(Number(
+                    _officialBaseGetSellPriceOB44(item)
+                ) || 0));
+
+                if (raw <= 0) return 0;
+
+                let d = null;
+                try {
+                    d = (typeof DB !== 'undefined' && DB.items && item)
+                        ? DB.items[item.id]
+                        : null;
+                } catch (e) {}
+
+                const base = Math.max(0, Math.floor(Number(d && d.p) || 0));
+
+                // 無原定價的特殊／任務物品沿用原結果；
+                // 正常可賣商品則最高封頂為原定價100%。
+                if (base <= 0) return raw;
+
+                const cap = Math.max(
+                    1,
+                    Math.floor(base * ECON44.sellPriceCapMult)
+                );
+
+                return Math.min(raw, cap);
+            };
+
+            try { window.getSellPrice = getSellPrice; } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('[official-OB44] sell price cap failed', e);
+    }
+
+    // ===== 執行期稽核資訊 =====
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_ECONOMY_AUDIT.runtimeOB44 = {
+                getSellPrice: typeof getSellPrice === 'function',
+                sellPriceCapWrapped: !!window.__officialSellPriceCapWrapped,
+                getAutoSellRules: typeof getAutoSellRules === 'function'
+            };
+            console.info(
+                '[official-OB44] gold economy audit',
+                window.OFFICIAL_ECONOMY_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB44：金幣經濟安全閥 END ===== */
