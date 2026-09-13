@@ -1,8 +1,8 @@
 /*
- * 放置天堂－仿正服平衡層 OB59
+ * 放置天堂－仿正服平衡層 OB60
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB59：
+ * OB60：
  * 1. 依公開測試結果完成法師與其他職業DPS第二階段平衡
  * 2. 法師維持OB58：SP傷害權重1.5×SP/32，不再額外調整
  * 3. 非mage主玩家的物理核心最終傷害×1.60
@@ -14,7 +14,7 @@
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB59',
+        version: 'OB60',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3676,3 +3676,19 @@
     }, 0);
 })();
 /* ===== 仿正服 OB59：非法師職業傷害平衡 END ===== */
+
+/* ===== 仿正服 OB60：5 人隊伍上限 START ===== */
+(function officialPartyCapOB60(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialPartyCapOB60) return;
+    window.__officialPartyCapOB60 = true;
+
+    window.OFFICIAL_PARTY_LIMIT = {
+        player: 1,
+        mercenaries: 4,
+        total: 5,
+        royalCharmBonusDisabledForMercCount: true
+    };
+
+    console.info('[official-OB60] party cap', window.OFFICIAL_PARTY_LIMIT);
+})();
+/* ===== 仿正服 OB60：5 人隊伍上限 END ===== */

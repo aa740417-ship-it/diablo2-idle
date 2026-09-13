@@ -121,10 +121,10 @@
                 'js/22-pets.js?v=OB57-pet-revive-economy'
             );
 
-            // OB54：傭兵試煉獎勵路徑加入仿正服 forceNormal 規則。
+            // OB60：傭兵核心加入仿正服 4 名上限（含隊長共 5 人），並保留既有試煉修正。
             html = html.replace(
                 /js\/06-status-allies\.js(?:\?[^"'<>\s]*)?/g,
-                'js/06-status-allies.js?v=OB54-merc-trial-reward'
+                'js/06-status-allies.js?v=OB60-party-cap'
             );
 
             // OB55：召喚控制戒指數量上限加入仿正服條件式。
@@ -148,7 +148,7 @@
             // 在所有原版 JS 跑完後才載入仿正服平衡層；
             // 儲存隔離則已在上方先安裝，所以遊戲初始化讀到的就是獨立存檔。
             const inject =
-                '<script src="js/official-balance.js?v=OB59-class-balance-audit"><\/script>';
+                '<script src="js/official-balance.js?v=OB60-party-cap"><\/script>';
 
             if (!html.includes('</body>')) {
                 throw new Error('找不到 </body>，無法載入仿正服平衡層');
