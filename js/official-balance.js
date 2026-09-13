@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB3
+ * 放置天堂－仿正服平衡層 OB4
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB3：
- * 1. 保留 OB2 全部平衡
- * 2. 新增說話之島地監 1~2 樓
- * 3. 新增古魯丁地監 1~2 樓
- * 4. 地監保留較好的練功價值，但金幣與掉寶仍受控
+ * OB4：
+ * 1. 保留 OB3 全部平衡
+ * 2. 新增古魯丁地監 3~7 樓
+ * 3. 深層地監逐步提高練功價值
+ * 4. 金幣與掉寶仍維持仿正服收斂節奏
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB3',
+        version: 'OB4',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -80,6 +80,36 @@
                 exp: 0.84,
                 gold: 0.72,
                 drop: 0.74
+            },
+            zone_08: {
+                name: '古魯丁地監3樓',
+                exp: 0.83,
+                gold: 0.70,
+                drop: 0.72
+            },
+            zone_09: {
+                name: '古魯丁地監4樓',
+                exp: 0.82,
+                gold: 0.69,
+                drop: 0.70
+            },
+            zone_10: {
+                name: '古魯丁地監5樓',
+                exp: 0.84,
+                gold: 0.70,
+                drop: 0.69
+            },
+            zone_11: {
+                name: '古魯丁地監6樓',
+                exp: 0.86,
+                gold: 0.72,
+                drop: 0.68
+            },
+            zone_12: {
+                name: '古魯丁地監7樓',
+                exp: 0.89,
+                gold: 0.75,
+                drop: 0.67
             }
         }
     };
