@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB42
+ * 放置天堂－仿正服平衡層 OB43
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB42：
- * 1. 納入侵蝕的安塔瑞斯巢穴四區：入口／通道／深處／棲息地
- * 2. 保留每日一次、固定推進、三段變身與通關回村等副本機制
- * 3. 喀瑪三王與最終瘋狂安塔瑞斯建立個別收益
- * 4. 最終安塔瑞斯原始金幣15000~25000，仿正服版額外壓低金幣收益
- * 5. 全服待平衡地圖清單清空，完成 OB39~OB42 特殊區域總稽核
+ * OB43：
+ * 1. 全服經濟／掉落總稽核第一輪
+ * 2. 確認一般NPC商店買價+10%與賣店回收約15%皆實際生效
+ * 3. 修正BOSS通用稀有掉落分層，使掉率越稀有、倍率越低且順序一致
+ * 4. 普通武／防卷轉祝福卷改為0.35%，轉詛咒卷改為0.50%
+ * 5. 明確納入詛咒武／防卷的全服物品類型掉落倍率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB42',
+        version: 'OB43',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -1966,6 +1966,10 @@
         // 祝武／祝防：真正稀有。
         if (itemId === 'scroll_weapon_b' || itemId === 'scroll_armor_b') return 0.35;
 
+        // OB43：詛咒武／防卷也正式納入稀有分類。
+        // 用途比祝福卷窄，因此略高於祝福卷，但仍明顯低於普通卷。
+        if (itemId === 'scroll_weapon_c' || itemId === 'scroll_armor_c') return 0.50;
+
         // 飾品強化卷：比一般武防卷稀有。
         if (itemId === 'scroll_acc') return 0.55;
 
@@ -2006,9 +2010,12 @@
 
         rate = Number(rate) || 0;
         let tier = 1;
-        if (rate <= 0.001) tier = 0.50;
-        else if (rate <= 0.01) tier = 0.55;
-        else if (rate <= 0.10) tier = 0.45;
+
+        // OB43：倍率隨原始掉率單調遞增。
+        // 原先 0.01% 以下=0.55、0.10% 以下反而=0.45，稀有度順序顛倒。
+        if (rate <= 0.001) tier = 0.40;
+        else if (rate <= 0.01) tier = 0.45;
+        else if (rate <= 0.10) tier = 0.50;
         else if (rate <= 1.00) tier = 0.65;
 
         const special = cfg.special && cfg.special[itemId];
@@ -2642,3 +2649,69 @@
     console.info('[official-affix] OB11 random affixes disabled');
 })();
 /* ===== 仿正服 OB11：移除隨機詞綴 END ===== */
+
+/* ===== 仿正服 OB43：經濟／掉落總稽核 START ===== */
+(function officialEconomyDropAuditOB43(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialEconomyDropAuditOB43) return;
+    window.__officialEconomyDropAuditOB43 = true;
+
+    const AUDIT43 = {
+        scrollBlessRate: 0.0035,
+        scrollCurseRate: 0.0050,
+        shopPriceMultVerified: 1.10,
+        sellReturnMultVerified: 0.50
+    };
+
+    window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY_AUDIT || {},
+        AUDIT43
+    );
+
+    try {
+        if (typeof gainItem === 'function' && !window.__officialGainItemScrollVariantWrapped) {
+            window.__officialGainItemScrollVariantWrapped = true;
+            const _officialBaseGainItemOB43 = gainItem;
+
+            gainItem = function() {
+                const args = Array.prototype.slice.call(arguments);
+                const id = String(args[0] || '');
+                const forceNormal = !!args[3];
+
+                if (!forceNormal &&
+                    (id === 'scroll_weapon' || id === 'scroll_armor') &&
+                    typeof lootRng === 'function') {
+
+                    const r = lootRng('scrollvar');
+
+                    if (r < AUDIT43.scrollBlessRate) {
+                        args[0] = id + '_b';
+                    } else if (r < AUDIT43.scrollBlessRate + AUDIT43.scrollCurseRate) {
+                        args[0] = id + '_c';
+                    }
+
+                    args[3] = true;
+                }
+
+                return _officialBaseGainItemOB43.apply(this, args);
+            };
+
+            try { window.gainItem = gainItem; } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('[official-OB43] scroll variant wrapper failed', e);
+    }
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_ECONOMY_AUDIT.runtime = {
+                shopPrice: typeof shopPrice === 'function',
+                getSellPrice: typeof getSellPrice === 'function',
+                gainItem: typeof gainItem === 'function',
+                scrollVariantWrapped: !!window.__officialGainItemScrollVariantWrapped
+            };
+            console.info('[official-OB43] economy/drop audit', window.OFFICIAL_ECONOMY_AUDIT);
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB43：經濟／掉落總稽核 END ===== */
