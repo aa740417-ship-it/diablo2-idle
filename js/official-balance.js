@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB12
+ * 放置天堂－仿正服平衡層 OB13
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB10：
- * 1. 保留 OB9 全部平衡
- * 2. 降低賣店回收金幣，避免自動販賣成為主要金幣來源
- * 3. 一般 NPC 商店售價小幅提高，增加金幣消耗
- * 4. 潘朵拉／特殊市場留到下一版獨立調整
+ * OB13：
+ * 1. 保留 OB1~OB12 全部仿正服設定
+ * 2. 新增風木、沙漠、眠龍洞穴1~3樓、水晶洞穴1~3樓
+ * 3. 中期地圖逐步提高經驗價值，金幣與掉寶仍維持收斂
+ * 4. 冰魔、冰之女王等高危險怪物給予較高相對回報
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB12',
+        version: 'OB13',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -110,6 +110,54 @@
                 exp: 0.89,
                 gold: 0.75,
                 drop: 0.67
+            },
+            windwood: {
+                name: '風木',
+                exp: 0.84,
+                gold: 0.72,
+                drop: 0.72
+            },
+            desert: {
+                name: '沙漠',
+                exp: 0.88,
+                gold: 0.74,
+                drop: 0.70
+            },
+            zone_15: {
+                name: '眠龍洞穴1樓',
+                exp: 0.86,
+                gold: 0.71,
+                drop: 0.70
+            },
+            zone_16: {
+                name: '眠龍洞穴2樓',
+                exp: 0.88,
+                gold: 0.72,
+                drop: 0.69
+            },
+            zone_17: {
+                name: '眠龍洞穴3樓',
+                exp: 0.91,
+                gold: 0.74,
+                drop: 0.68
+            },
+            crystal_cave1: {
+                name: '水晶洞穴1樓',
+                exp: 0.89,
+                gold: 0.72,
+                drop: 0.69
+            },
+            crystal_cave2: {
+                name: '水晶洞穴2樓',
+                exp: 0.92,
+                gold: 0.74,
+                drop: 0.67
+            },
+            crystal_cave3: {
+                name: '水晶洞穴3樓',
+                exp: 0.95,
+                gold: 0.76,
+                drop: 0.65
             }
         }
     };
@@ -139,7 +187,13 @@
         '卡士柏':     { exp: 1.35, gold: 1.25, drop: 1.30 },
         '馬庫爾':     { exp: 1.40, gold: 1.30, drop: 1.35 },
         '死亡騎士':    { exp: 1.50, gold: 1.35, drop: 1.45 },
-        '巴風特':      { exp: 1.45, gold: 1.30, drop: 1.35 }
+        '巴風特':      { exp: 1.45, gold: 1.30, drop: 1.35 },
+
+        // OB13 中期代表怪物
+        '邪惡蜥蜴':    { exp: 1.12, gold: 1.05, drop: 1.05 },
+        '冰人':        { exp: 1.05, gold: 1.00, drop: 1.03 },
+        '冰魔':        { exp: 1.35, gold: 1.15, drop: 1.30 },
+        '冰之女王':    { exp: 1.45, gold: 1.20, drop: 1.35 }
     };
 
     // ===== OB8：頭目掉落分層 =====
