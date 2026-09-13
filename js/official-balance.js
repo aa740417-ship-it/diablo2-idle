@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB45
+ * 放置天堂－仿正服平衡層 OB46
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB45：
- * 1. 製作／強化／特殊移動／固定服務費的全服金幣消耗總稽核
- * 2. 製作既有金幣需求維持原值；仿正服已降低金幣收入，不再二次全面加價
- * 3. 裝備強化維持「消耗卷軸＋失敗風險」，不額外徵收金幣
- * 4. 遺忘之島搭船、魔物追蹤、屬性切換、淨化、精通等既有固定費維持
- * 5. 寵物自動補給仍走 shopPrice，會自然套用仿正服 NPC 買價倍率
+ * OB46：
+ * 1. 藥水／消耗品／卷軸／NPC 商店供需總稽核
+ * 2. 一般補給品維持既有定價；沿用 OB10 仿正服 shopPrice +10%，不再額外全面加價
+ * 3. 防爆卷改為專屬供應，不再出現在一般 fallback 商店
+ * 4. 修正持城堡 8 折 × 仿正服 1.10 後，防爆卷一般商店可低於專屬售價的旁路
+ * 5. 飾品強化卷原本就不在一般 SHOP_LISTS，本版不重複修改
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB45',
+        version: 'OB46',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -2860,3 +2860,90 @@
     }, 0);
 })();
 /* ===== 仿正服 OB45：固定金幣消耗總稽核 END ===== */
+
+/* ===== 仿正服 OB46：消耗品／NPC 商店供需稽核 START ===== */
+(function officialConsumableShopAuditOB46(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialConsumableShopAuditOB46) return;
+    window.__officialConsumableShopAuditOB46 = true;
+
+    const ECON46 = {
+        // OB10 已在中央 shopPrice 套用 +10%，本版不再疊第二層全面加價。
+        normalShopPriceMult: 1.10,
+
+        // 原核心：持城堡一般 NPC 商店先 8 折，再乘仿正服 1.10。
+        castleShopBaseDiscount: 0.80,
+        castleShopEffectiveOfBase: 0.88,
+
+        // 一般補給品維持既有供應。
+        ordinaryConsumablesKeepBaseSupply: true,
+
+        // 防爆卷只堵一般 SHOP_LISTS 的價格旁路；其他既有來源不動。
+        dedicatedGeneralShopBlockedIds: ['scroll_protect'],
+
+        // 飾品強化卷現行本來就不在一般 SHOP_LISTS。
+        accessoryScrollAlreadyDedicated: true,
+
+        generalShopProtectBypassBlocked: true,
+        extraBlanketConsumableMarkupNeeded: false
+    };
+
+    let removed = {};
+    try {
+        if (typeof SHOP_LISTS !== 'undefined' && SHOP_LISTS) {
+            const reserved = new Set(ECON46.dedicatedGeneralShopBlockedIds);
+
+            Object.keys(SHOP_LISTS).forEach(function(key){
+                if (!Array.isArray(SHOP_LISTS[key])) return;
+
+                const before = SHOP_LISTS[key].slice();
+                SHOP_LISTS[key] = before.filter(function(id){
+                    return !reserved.has(id);
+                });
+
+                const gone = before.filter(function(id){
+                    return reserved.has(id);
+                });
+
+                if (gone.length) removed[key] = gone;
+            });
+        }
+    } catch (e) {
+        console.warn('[official-OB46] SHOP_LISTS audit failed', e);
+    }
+
+    ECON46.removedFromOrdinaryShops = removed;
+
+    window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY_AUDIT || {},
+        ECON46
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_ECONOMY_AUDIT.runtimeOB46 = {
+                shopPrice: typeof shopPrice === 'function',
+                ordinaryShopHasProtect:
+                    (typeof SHOP_LISTS !== 'undefined' && SHOP_LISTS)
+                        ? Object.keys(SHOP_LISTS).some(function(k){
+                            return Array.isArray(SHOP_LISTS[k]) &&
+                                   SHOP_LISTS[k].includes('scroll_protect');
+                        })
+                        : null,
+                ordinaryShopHasAccessoryScroll:
+                    (typeof SHOP_LISTS !== 'undefined' && SHOP_LISTS)
+                        ? Object.keys(SHOP_LISTS).some(function(k){
+                            return Array.isArray(SHOP_LISTS[k]) &&
+                                   SHOP_LISTS[k].includes('scroll_acc');
+                        })
+                        : null
+            };
+
+            console.info(
+                '[official-OB46] consumable/shop audit',
+                window.OFFICIAL_ECONOMY_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB46：消耗品／NPC 商店供需稽核 END ===== */
