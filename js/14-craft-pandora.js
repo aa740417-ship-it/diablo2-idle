@@ -1131,11 +1131,16 @@ function doCraft(npcId, recipeIdx, sherine) {   // 🔮 sherine 參數保留簽�
     _tradLootCtx = true;   // 🏛️ 傳統模式：製作的武器/防具/飾品/寵物裝備隨機自帶強化值（材料非裝備→不受影響、恆 +0）
     let _isPetGear = !!(DB.items[recipe.result] && ['petwpn', 'petarm'].includes(DB.items[recipe.result].slot));   // 🦴 寵物裝備（之牙 petwpn／防具 petarm）＝白板
     _noAffixCtx = _isPetGear;   // 🦴 寵物裝備＝白板：擋詞綴/套裝效果
+    // OB50：原版製作維持 10%；仿正服製作隨機祝福率收斂為一般來源 1%。
+    // 祝福裝備當材料的 _forceBless 傳承仍完整保留。
+    let _craftRandomBlessRate = (
+        typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE
+    ) ? 0.01 : 0.10;
     try {
         for (let k = 0; k < makeCount; k++) {
             _forceSherineSet = !!sherine;   // 🔮 席琳製作：每件成品必定附帶隨機一種席琳套裝效果（寵物裝備 slot 非席琳適用部位，gainItem 自然不附）
-            _forceBless = (k < _craftBlessCount);   // 🔧 消耗幾件祝福裝備材料→前幾件成品必定祝福（其餘照製作 10% 擲）
-            gainItem(recipe.result, recipe.yield || 1, true, false, false, false, null, 0.10);   // 🦴 寵物裝備仍由 _noAffixCtx 維持白板
+            _forceBless = (k < _craftBlessCount);   // 🔧 消耗幾件祝福裝備材料→前幾件成品必定祝福；其餘照模式製作祝福率擲
+            gainItem(recipe.result, recipe.yield || 1, true, false, false, false, null, _craftRandomBlessRate);   // 🦴 寵物裝備仍由 _noAffixCtx 維持白板
             _forceSherineSet = false; _forceBless = false;
         }
     } finally { _tradLootCtx = false; _forceSherineSet = false; _noAffixCtx = false; _forceBless = false; }   // try/finally：例外也必清旗標，杜絕殘留洩漏

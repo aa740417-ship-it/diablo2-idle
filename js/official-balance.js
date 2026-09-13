@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB49
+ * 放置天堂－仿正服平衡層 OB50
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB49：
- * 1. 玩家／協力傭兵組隊經驗分配總稽核
- * 2. 仿正服改為玩家＋未倒地傭兵共享同一角色經驗池，不再每個角色各拿完整經驗
- * 3. 既有仿正服組隊加成保留：每名隊友1%／王族2%，最高10%
- * 4. 寵物屬獨立養成，本版維持原本完整經驗份額，不納入角色分母
- * 5. 原版 index.html 維持 v3.7.62 每名玩家／傭兵各得完整經驗
+ * OB50：
+ * 1. 製作裝備祝福率／祝福材料傳承總稽核
+ * 2. 仿正服一般製作的隨機祝福率由10%收斂為1%，與一般非頭目來源一致
+ * 3. 使用祝福裝備作為材料時，成品必定祝福的既有傳承規則完整保留
+ * 4. 寵物裝備白板規則、製作材料與金幣需求全部不變
+ * 5. 原版 index.html 維持原本製作10%隨機祝福率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB49',
+        version: 'OB50',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3167,3 +3167,49 @@
     }, 0);
 })();
 /* ===== 仿正服 OB49：組隊角色經驗分配稽核 END ===== */
+
+/* ===== 仿正服 OB50：製作祝福率稽核 START ===== */
+(function officialCraftBlessAuditOB50(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialCraftBlessAuditOB50) return;
+    window.__officialCraftBlessAuditOB50 = true;
+
+    const CRAFT50 = {
+        normalDropBlessRate: 0.01,
+        bossDropBlessRate: 0.10,
+
+        // 仿正服製作改與一般來源同級。
+        officialCraftRandomBlessRate: 0.01,
+
+        // 原版維持舊值。
+        originalCraftRandomBlessRate: 0.10,
+
+        // 高價值材料傳承不取消。
+        blessedMaterialForcesBlessedOutput: true,
+
+        petGearStillForcedNormal: true,
+        recipeCostsUnchanged: true,
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_CRAFT_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_CRAFT_AUDIT || {},
+        CRAFT50
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_CRAFT_AUDIT.runtimeOB50 = {
+                officialMode: !!window.OFFICIAL_BALANCE_MODE,
+                doCraft: typeof doCraft === 'function',
+                gainItem: typeof gainItem === 'function'
+            };
+
+            console.info(
+                '[official-OB50] craft blessing audit',
+                window.OFFICIAL_CRAFT_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB50：製作祝福率稽核 END ===== */
