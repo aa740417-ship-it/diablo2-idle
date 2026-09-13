@@ -1,28 +1,27 @@
 /*
- * 放置天堂－仿正服平衡層 OB40
+ * 放置天堂－仿正服平衡層 OB41
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB40：
- * 1. 納入日出之國城區／東部／西部／北部四張特殊地圖
- * 2. 依 Lv65~99 怪物強度建立四區遞進收益
- * 3. 九尾狐三段型態、牛鬼、巨大骷髏納入 BOSS 稀有掉落分層
- * 4. 三隻主頭目原始金幣偏高，仿正服版額外壓低頭目金幣收益
- * 5. OB39 待平衡清單移除日出之國，保留遺忘之島與侵蝕安塔瑞斯副本
+ * OB41：
+ * 1. 納入前往遺忘之島航路與遺忘之島本體
+ * 2. 航路維持前置區節奏；本島因特殊裝備／材料掉落而降低一般掉寶倍率
+ * 3. 遺忘之島高階怪加入個別回報，避免低階怪與高階怪收益完全相同
+ * 4. 遺忘之島巨大牛人納入 BOSS 稀有掉落分層
+ * 5. OB40 待平衡清單移除遺忘之島，僅保留侵蝕安塔瑞斯副本
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB40',
+        version: 'OB41',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
         baseGoldMult: 0.70,
 
-        // OB40 稽核：日出之國已完成；以下特殊內容仍待後續分批平衡。
+        // OB41 稽核：遺忘之島已完成；剩侵蝕安塔瑞斯副本待平衡。
         pendingBalanceMaps: [
-            'oblivion_travel', 'oblivion_island',
             'antharas_nest_1', 'antharas_nest_2', 'antharas_nest_3', 'antharas_lair'
         ],
 
@@ -1347,6 +1346,20 @@
                 exp: 1.12,
                 gold: 0.82,
                 drop: 0.50
+            },
+
+            // OB41：遺忘之島
+            oblivion_travel: {
+                name: '前往遺忘之島',
+                exp: 0.92,
+                gold: 0.72,
+                drop: 0.64
+            },
+            oblivion_island: {
+                name: '遺忘之島',
+                exp: 1.04,
+                gold: 0.76,
+                drop: 0.56
             }
         }
     };
@@ -1754,7 +1767,24 @@
 
         // 牛鬼原始金幣15400~47000；巨大骷髏40000~80000，額外壓低。
         '牛鬼':                  { exp: 1.40, gold: 0.42, drop: 1.23 },
-        '巨大骷髏':              { exp: 1.50, gold: 0.28, drop: 1.26 }
+        '巨大骷髏':              { exp: 1.50, gold: 0.28, drop: 1.26 },
+
+        // OB41：遺忘之島
+        '遺忘之島亞力安':        { exp: 1.08, gold: 1.02, drop: 1.03 },
+        '遺忘之島黑暗精靈':      { exp: 1.05, gold: 1.01, drop: 1.02 },
+        '遺忘之島蛇女':          { exp: 1.06, gold: 1.01, drop: 1.02 },
+        '遺忘之島楊果里恩':      { exp: 1.07, gold: 1.02, drop: 1.03 },
+        '遺忘之島格利芬':        { exp: 1.08, gold: 1.02, drop: 1.03 },
+        '遺忘之島哈維':          { exp: 1.10, gold: 1.03, drop: 1.04 },
+        '遺忘之島卡司特王':      { exp: 1.10, gold: 1.03, drop: 1.04 },
+        '遺忘之島阿魯巴':        { exp: 1.12, gold: 1.04, drop: 1.05 },
+        '遺忘之島食人妖精王':    { exp: 1.14, gold: 1.05, drop: 1.06 },
+        '遺忘之島邪惡蜥蜴':      { exp: 1.18, gold: 1.06, drop: 1.07 },
+        '遺忘之島獨眼巨人':      { exp: 1.20, gold: 1.07, drop: 1.08 },
+        '遺忘之島飛龍':          { exp: 1.25, gold: 1.08, drop: 1.10 },
+
+        // 島上主要頭目
+        '遺忘之島巨大牛人':      { exp: 1.38, gold: 1.12, drop: 1.20 }
     };
 
     // ===== OB8：頭目掉落分層 =====
@@ -1867,7 +1897,10 @@
         '白面金毛九尾狐・九尾': { special: {} },
         '白面金毛九尾狐・殺生石': { special: {} },
         '牛鬼': { special: {} },
-        '巨大骷髏': { special: {} }
+        '巨大骷髏': { special: {} },
+
+        // OB41：遺忘之島頭目
+        '遺忘之島巨大牛人': { special: {} }
     };
 
     // ===== OB9：全服物品類型掉落分級 =====
