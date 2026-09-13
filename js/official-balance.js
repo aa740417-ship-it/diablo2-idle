@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB60
+ * 放置天堂－仿正服平衡層 OB61
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB60：
- * 1. 依公開測試結果完成法師與其他職業DPS第二階段平衡
- * 2. 法師維持OB58：SP傷害權重1.5×SP/32，不再額外調整
- * 3. 非mage主玩家的物理核心最終傷害×1.60
- * 4. 非mage主玩家走SP公式的魔法傷害同步×1.60，避免妖精／幻術等混合職業漏補
- * 5. 傭兵、寵物、召喚物、治癒與原有怪物數值全部不受此倍率影響
+ * OB61：
+ * 1. 仿正服所有怪物戰鬥掉落全面移除 relic 類遺物
+ * 2. 潘朵拉搜尋／交換、製作等非戰鬥取得方式不受影響
+ * 3. 所有 BOSS 擊殺各有 20% 機率獲得龍之鑽石 ×1
+ * 4. BOSS 龍鑽依本機自然日共用，每日最多 50 顆
+ * 5. 原版 index.html 的遺物與 BOSS 掉落規則完全不變
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB60',
+        version: 'OB61',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3692,3 +3692,29 @@
     console.info('[official-OB60] party cap', window.OFFICIAL_PARTY_LIMIT);
 })();
 /* ===== 仿正服 OB60：5 人隊伍上限 END ===== */
+
+/* ===== 仿正服 OB61：遺物／BOSS 龍鑽經濟規則 START ===== */
+(function officialRelicBossDiamondOB61(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialRelicBossDiamondOB61) return;
+    window.__officialRelicBossDiamondOB61 = true;
+
+    window.OFFICIAL_BOSS_DIAMOND_CONFIG = {
+        chance: 0.20,
+        perDrop: 1,
+        dailyCap: 50,
+        appliesToAllBosses: true,
+        sharedPandoraCurrency: true
+    };
+
+    window.OFFICIAL_RELIC_DROP_CONFIG = {
+        combatDropsDisabled: true,
+        nonCombatAcquisitionUnchanged: true,
+        holyRelicMaterialUnaffectedByName: true
+    };
+
+    console.info('[official-OB61] relic drops / boss diamonds', {
+        relic: window.OFFICIAL_RELIC_DROP_CONFIG,
+        bossDiamond: window.OFFICIAL_BOSS_DIAMOND_CONFIG
+    });
+})();
+/* ===== 仿正服 OB61：遺物／BOSS 龍鑽經濟規則 END ===== */

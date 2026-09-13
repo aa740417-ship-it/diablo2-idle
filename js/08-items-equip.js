@@ -193,6 +193,21 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false, de
         d = DB.items[id];
     }
 
+    /* ===== 仿正服 OB61：戰鬥遺物掉落封鎖 ===== */
+    // 只封鎖「怪物擊殺掉落」上下文；潘朵拉搜尋／交換、製作、任務交付等非戰鬥來源不受影響。
+    // 用 d.relic 判斷真正的遺物類物品，不用名稱 contains('遺物')，避免誤殺「聖地遺物」等一般材料。
+    if (
+        typeof window !== 'undefined' &&
+        window.OFFICIAL_BALANCE_MODE &&
+        typeof _vfxLootCtx !== 'undefined' &&
+        _vfxLootCtx &&
+        d &&
+        d.relic
+    ) {
+        return null;
+    }
+    /* ===== 仿正服 OB61：戰鬥遺物掉落封鎖 END ===== */
+
     /* 掛機詳細結算：記錄怪物實際掉出的物品數量 */
     if (
         typeof state !== 'undefined' &&

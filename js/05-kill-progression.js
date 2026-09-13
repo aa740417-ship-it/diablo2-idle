@@ -194,7 +194,7 @@ function toggleAuditView() { _auditView = (_auditView === 'stats') ? 'drops' : '
 // 彙整某怪物的掉落物 ID（合併一般/黑暗武器/黑暗水晶三表，去重；不顯示機率）
 function _auditMobDrops(mobName) {
     let ids = [];
-    let push = (tbl) => { if (tbl && tbl[mobName]) tbl[mobName].forEach(e => { let id = Array.isArray(e) ? e[0] : e; if (id && DB.items[id] && ids.indexOf(id) === -1 && !trialDropBlocked(id)) ids.push(id); }); };   // 🔒 非本職試煉兌換道具不顯示
+    let push = (tbl) => { if (tbl && tbl[mobName]) tbl[mobName].forEach(e => { let id = Array.isArray(e) ? e[0] : e; let _d = id && DB.items[id]; let _officialRelicBlocked = !!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE && _d && _d.relic); if (id && _d && !_officialRelicBlocked && ids.indexOf(id) === -1 && !trialDropBlocked(id)) ids.push(id); }); };   // 🔒 非本職試煉兌換道具不顯示；OB61 仿正服 relic 不顯示
     if (typeof MOB_DROPS !== 'undefined') push(MOB_DROPS);
     if (typeof DARK_WEAPON_DROPS !== 'undefined') push(DARK_WEAPON_DROPS);
     if (typeof DARK_CRYSTAL_DROPS !== 'undefined') push(DARK_CRYSTAL_DROPS);
@@ -365,6 +365,84 @@ function monsterGoldRange(mob) {
     }
     return { min: Math.max(1, gMin), max: Math.max(Math.max(1, gMin), gMax) };
 }
+/* ===== 仿正服 OB61：BOSS 龍之鑽石掉落 START ===== */
+const OFFICIAL_BOSS_DIAMOND_STATE_KEY = 'official_boss_dragon_diamond_ob61_v1';
+
+function _officialBossDiamondLocalDayKey() {
+    const d = new Date();
+    return String(d.getFullYear()) + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+}
+
+function _officialBossDiamondReadState() {
+    const day = _officialBossDiamondLocalDayKey();
+    let rec = null;
+    try { rec = JSON.parse(localStorage.getItem(OFFICIAL_BOSS_DIAMOND_STATE_KEY) || 'null'); } catch (e) {}
+    if (!rec || rec.day !== day) rec = { day: day, bossKills: 0, drops: 0 };
+    rec.bossKills = Math.max(0, Math.floor(Number(rec.bossKills) || 0));
+    rec.drops = Math.max(0, Math.floor(Number(rec.drops) || 0));
+    return rec;
+}
+
+function _officialBossDiamondWriteState(rec) {
+    try { localStorage.setItem(OFFICIAL_BOSS_DIAMOND_STATE_KEY, JSON.stringify(rec)); } catch (e) {}
+}
+
+function officialBossDragonDiamondDrop(mob) {
+    if (
+        typeof window === 'undefined' ||
+        !window.OFFICIAL_BALANCE_MODE ||
+        !mob ||
+        !mob.boss
+    ) return false;
+
+    // 龍鑽是潘朵拉帳號共用貨幣，不是一般 DB.items 背包物品。
+    if (typeof pandoraAdjustSharedDiamonds !== 'function') return false;
+
+    const cfg = window.OFFICIAL_BOSS_DIAMOND_CONFIG || {};
+    const chanceRaw = Number(cfg.chance);
+    const capRaw = Number(cfg.dailyCap);
+    const chance = Number.isFinite(chanceRaw) ? Math.max(0, Math.min(1, chanceRaw)) : 0.20;
+    const dailyCap = Number.isFinite(capRaw) ? Math.max(0, Math.floor(capRaw)) : 50;
+
+    const rec = _officialBossDiamondReadState();
+    rec.bossKills++;
+
+    if (rec.drops >= dailyCap) {
+        _officialBossDiamondWriteState(rec);
+        return false;
+    }
+
+    if (Math.random() >= chance) {
+        _officialBossDiamondWriteState(rec);
+        return false;
+    }
+
+    const add = pandoraAdjustSharedDiamonds(1);
+    if (!add || add.ok === false) {
+        _officialBossDiamondWriteState(rec);
+        return false;
+    }
+
+    rec.drops++;
+    _officialBossDiamondWriteState(rec);
+
+    try {
+        logSys(
+            `<span class="text-cyan-300 font-bold">💎 ${mob.n} 掉落 龍之鑽石 ×1</span>` +
+            `<span class="text-slate-400">（今日 BOSS 龍鑽 ${rec.drops}/${dailyCap}）</span>`
+        );
+    } catch (e) {}
+
+    return true;
+}
+
+function officialBossDragonDiamondToday() {
+    return _officialBossDiamondReadState();
+}
+/* ===== 仿正服 OB61：BOSS 龍之鑽石掉落 END ===== */
+
 function killMob(idx) {
     let mob = mapState.mobs[idx];
     if (!mob || mob._dead) return;        // 冪等保護：同一隻怪只結算一次獎勵
@@ -421,6 +499,8 @@ function killMob(idx) {
     _tradLootCtx = traditionalActive();   // 🏛️ 傳統模式：本次擊殺掉落的裝備隨機自帶強化值＋抑制施法卷軸（於 _sherineLootCtx 清除處一併關閉）
     _vfxLootCtx = true;   // ✨ VFX：本次擊殺掉落期間→gainItem 對潘朵拉權重=1 物品閃光
     _lootMobInfo = { n: mob.n, lv: mob.lv, boss: !!mob.boss };   // 🐾 本次擊殺掉落來源；頭目裝備由 gainItem 套用 10% 祝福率
+    /* ===== 仿正服 OB61：BOSS 龍鑽結算掛點 ===== */
+    try { officialBossDragonDiamondDrop(mob); } catch (e) {}
     // 🩹 v3.3.25 擊殺／掉落訊息一律歸「玩家」來源：寵物/召喚/傭兵補刀時 _combatSrc 為 'pet'/'summon'/'mercenary'，
     //   killMob 的「擊敗了…」與 gainItem 掉落訊息若繼承該來源，會被戰鬥日誌「來源過濾」隱藏 → 玩家把該來源關掉時，
     //   頭目被寵物/召喚補刀致死看起來就像「無訊息直接消失、又沒掉落」。擊殺是全隊事件，強制以 'player' 記錄（不影響 DPS，

@@ -91,10 +91,10 @@
                 'js/24-pandora-relic-market.js?v=OB12-market'
             );
 
-            // OB27：掉寶核心管線有更新，只在仿正服頁強制抓新版。
+            // OB61：掉寶核心加入所有 BOSS 龍鑽機率／每日上限，並同步隱藏已封鎖的遺物掉落清單。
             html = html.replace(
                 /js\/05-kill-progression\.js(?:\?[^"'<>\s]*)?/g,
-                'js/05-kill-progression.js?v=OB49-party-exp'
+                'js/05-kill-progression.js?v=OB61-boss-diamond'
             );
 
             // OB48：試煉／NPC 兌換獎勵核心有仿正服條件式修正。
@@ -109,10 +109,10 @@
                 'js/14-craft-pandora.js?v=OB50-craft-bless'
             );
 
-            // OB51：gainItem 頭目隨機祝福率加入仿正服條件式。
+            // OB61：gainItem 在仿正服戰鬥掉落上下文全面封鎖 relic 類遺物。
             html = html.replace(
                 /js\/08-items-equip\.js(?:\?[^"'<>\s]*)?/g,
-                'js/08-items-equip.js?v=OB51-boss-bless'
+                'js/08-items-equip.js?v=OB61-no-relic-drop'
             );
 
             // OB52：寵物經驗分配核心加入仿正服共享池條件式。
@@ -148,7 +148,7 @@
             // 在所有原版 JS 跑完後才載入仿正服平衡層；
             // 儲存隔離則已在上方先安裝，所以遊戲初始化讀到的就是獨立存檔。
             const inject =
-                '<script src="js/official-balance.js?v=OB60-party-cap"><\/script>';
+                '<script src="js/official-balance.js?v=OB61-relic-boss-diamond"><\/script>';
 
             if (!html.includes('</body>')) {
                 throw new Error('找不到 </body>，無法載入仿正服平衡層');
