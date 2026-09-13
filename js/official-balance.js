@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB51
+ * 放置天堂－仿正服平衡層 OB52
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB51：
- * 1. 頭目裝備隨機祝福率總稽核
- * 2. 仿正服一般頭目裝備的隨機祝福基準由10%收斂為3%
- * 3. 一般非頭目來源維持1%；OB50製作來源維持1%
- * 4. fixedAffixes、明確祝福物品、祝福材料傳承等固定來源全部不變
- * 5. 原版 index.html 維持一般頭目10%隨機祝福率
+ * OB52：
+ * 1. 出戰寵物經驗分配總稽核
+ * 2. 仿正服所有未倒地、未達玩家等級上限的出戰寵物共享同一份寵物經驗池
+ * 3. 1隻寵物時經驗不變；多寵時不再讓同一擊殺複製2～4份寵物經驗
+ * 4. 已達玩家等級上限與倒地寵物不占分母；餘數精確分配、不浪費經驗
+ * 5. 原版 index.html 維持每隻合格寵物各拿完整經驗
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB51',
+        version: 'OB52',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3254,3 +3254,59 @@
     }, 0);
 })();
 /* ===== 仿正服 OB51：頭目祝福率稽核 END ===== */
+
+/* ===== 仿正服 OB52：寵物經驗共享稽核 START ===== */
+(function officialPetExpAuditOB52(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialPetExpAuditOB52) return;
+    window.__officialPetExpAuditOB52 = true;
+
+    const PETEXP52 = {
+        eligiblePetsShareSinglePool: true,
+        downedPetsExcluded: true,
+        playerLevelCappedPetsExcluded: true,
+
+        // 只有 1 隻合格寵物時，與舊版完全相同。
+        singlePetFullPool: true,
+
+        // 2～4 隻時只分配同一份總池，不複製總經驗。
+        duplicatePetExpRemoved: true,
+        remainderConserved: true,
+
+        petExpRequirementStillPlayerTableDiv10: true,
+        originalModeFullExpPerPet: true
+    };
+
+    window.OFFICIAL_PET_EXP_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_PET_EXP_AUDIT || {},
+        PETEXP52
+    );
+
+    setTimeout(function(){
+        try {
+            let outs = (typeof petsOutList === 'function')
+                ? petsOutList().filter(p => p && !p._downed)
+                : [];
+
+            let cap = (
+                typeof player !== 'undefined' &&
+                player
+            ) ? Math.min(100, Number(player.lv || 1)) : 1;
+
+            let elig = outs.filter(p => Number(p.lv || 1) < cap);
+
+            window.OFFICIAL_PET_EXP_AUDIT.runtimeOB52 = {
+                petsGainExp: typeof petsGainExp === 'function',
+                activeAlivePets: outs.length,
+                eligibleExpPets: elig.length,
+                currentShareDivisor: Math.max(1, elig.length)
+            };
+
+            console.info(
+                '[official-OB52] pet EXP sharing audit',
+                window.OFFICIAL_PET_EXP_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB52：寵物經驗共享稽核 END ===== */

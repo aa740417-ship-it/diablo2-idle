@@ -807,19 +807,37 @@ function petGearUnequip(uidv, key) {
     try { renderSquadPanel(); } catch (e) {}
 }
 
-// ---------- 六、經驗（每隻未倒地出戰寵物各得玩家完整份額·需求=玩家1/10；玩家滿等仍可養寵）----------
+// ---------- 六、經驗（原版每隻完整份額；OB52 仿正服由合格出戰寵物共享同一池·需求=玩家1/10）----------
 function petsGainExp(playerGain) {
     if (!(playerGain > 0)) return;
     let outs = petsOutList().filter(p => !p._downed);
     if (!outs.length) return;
     let _cap = Math.min(100, (player.lv || 1));   // 🐾 v3.2.40 用戶指定：寵物等級不得超過玩家等級（達上限比照 Lv100 不累積經驗·玩家升級後恢復成長）
     outs.forEach(p => { if ((p.lv || 1) >= _cap) p.exp = 0; });   // 滿等者不囤經驗（原規則）
-    // 🐾 v3.7.62 經驗不再由寵物平分：每隻未滿等且未倒地的出戰寵物都拿完整份額。
+    // 🐾 原版 v3.7.62：每隻合格出戰寵物都拿完整份額。
+    // OB52 仿正服：所有合格寵物共享同一份 playerGain；滿玩家等級／倒地者不占分母。
     let elig = outs.filter(p => (p.lv || 1) < _cap);
     if (!elig.length) { petMarkDirty(); return; }
-    let each = Math.floor(playerGain);
-    if (each <= 0) return;
-    elig.forEach(p => {
+
+    let _petExpPool = Math.floor(playerGain);
+    if (_petExpPool <= 0) return;
+
+    let _officialPetShare = !!(
+        typeof window !== 'undefined' &&
+        window.OFFICIAL_BALANCE_MODE
+    );
+
+    // 仿正服用商數＋餘數精確分配，總和不會憑空增加，也不會因 floor 遺失。
+    let _petShareDiv = _officialPetShare ? Math.max(1, elig.length) : 1;
+    let _petBaseEach = Math.floor(_petExpPool / _petShareDiv);
+    let _petRemainder = _officialPetShare ? (_petExpPool % _petShareDiv) : 0;
+
+    elig.forEach((p, _petIdx) => {
+        let each = _officialPetShare
+            ? (_petBaseEach + (_petIdx < _petRemainder ? 1 : 0))
+            : _petExpPool;
+        if (each <= 0) return;
+
         p.exp = (p.exp || 0) + each;
         let up = 0;
         while (p.lv < _cap && p.exp >= petExpReq(p.lv)) {
