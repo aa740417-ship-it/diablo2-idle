@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB7
+ * 放置天堂－仿正服平衡層 OB8
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB7：
- * 1. 保留 OB6 全部平衡
- * 2. 新增古魯丁地監菁英與頭目收益分級
- * 3. 食人妖精／長老為進階怪；食人妖精王／巫師為菁英；四色／死亡騎士為頭目
- * 4. 頭目掉寶雖提高相對權重，但仍會乘全服與地圖掉寶倍率
+ * OB8：
+ * 1. 保留 OB7 全部平衡
+ * 2. 四色／死亡騎士／巴風特套用頭目掉落分層
+ * 3. 普通戰利品保留；1%以下稀有物逐級降低
+ * 4. 王專屬裝備與傳說再額外降低，強化打寶稀有感
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB7',
+        version: 'OB8',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -138,8 +138,70 @@
         '巴土瑟':     { exp: 1.35, gold: 1.25, drop: 1.30 },
         '卡士柏':     { exp: 1.35, gold: 1.25, drop: 1.30 },
         '馬庫爾':     { exp: 1.40, gold: 1.30, drop: 1.35 },
-        '死亡騎士':    { exp: 1.50, gold: 1.35, drop: 1.45 }
+        '死亡騎士':    { exp: 1.50, gold: 1.35, drop: 1.45 },
+        '巴風特':      { exp: 1.45, gold: 1.30, drop: 1.35 }
     };
+
+    // ===== OB8：頭目掉落分層 =====
+    // rate 是原始掉率（百分比）。先依原始掉率分層，再對王專屬寶物額外降低。
+    const BOSS_DROP_REBALANCE = {
+        '西瑪': {
+            special: {
+                'arm_57': 0.22,
+                'acc_sima_ring': 0.35,
+                'acc_orin_amulet': 0.35
+            }
+        },
+        '巴土瑟': {
+            special: {
+                'arm_54': 0.22
+            }
+        },
+        '卡士柏': {
+            special: {
+                'arm_55': 0.22,
+                'wpn_mana_orb': 0.40
+            }
+        },
+        '馬庫爾': {
+            special: {
+                'arm_56': 0.22
+            }
+        },
+        '死亡騎士': {
+            special: {
+                'hlm_dk': 0.18,
+                'amr_dk': 0.18,
+                'glv_dk': 0.18,
+                'bot_dk': 0.18,
+                'wpn_dk_flameblade': 0.20,
+                'bk_counter_barrier': 0.35
+            }
+        },
+        '巴風特': {
+            special: {
+                'amr_baphomet': 0.18,
+                'wpn_powerless_baphomet': 0.25,
+                'bk_elf_flamesoul': 0.35
+            }
+        }
+    };
+
+    function bossDropItemFactor(monsterName, itemId, rate) {
+        const cfg = BOSS_DROP_REBALANCE[monsterName];
+        if (!cfg) return 1;
+
+        rate = Number(rate) || 0;
+        let tier = 1;
+        if (rate <= 0.001) tier = 0.50;
+        else if (rate <= 0.01) tier = 0.55;
+        else if (rate <= 0.10) tier = 0.45;
+        else if (rate <= 1.00) tier = 0.65;
+
+        const special = cfg.special && cfg.special[itemId];
+        if (Number.isFinite(Number(special))) tier *= Number(special);
+        return tier;
+    }
 
     function monsterCfg(mob) {
         try {
@@ -258,7 +320,10 @@
                     if (!Array.isArray(entry) || entry.length < 2) return entry;
                     const copy = entry.slice();
                     const rate = Number(copy[1]);
-                    if (Number.isFinite(rate)) copy[1] = rate * mult;
+                    if (Number.isFinite(rate)) {
+                        const bossFactor = bossDropItemFactor(key, String(copy[0] || ''), rate);
+                        copy[1] = rate * mult * bossFactor;
+                    }
                     return copy;
                 });
 
