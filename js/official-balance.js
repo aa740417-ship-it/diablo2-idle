@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB48
+ * 放置天堂－仿正服平衡層 OB49
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB48：
- * 1. 職業試煉／NPC 兌換獎勵總稽核
- * 2. 15/30/45 級職業試煉獎勵在仿正服固定為普通版本
- * 3. 50 級職業試煉最終獎勵在仿正服固定為普通版本
- * 4. trialRun 重複兌換獎勵在仿正服固定普通版本，避免反覆洗祝福／屬性／遠古變化
- * 5. 原版 index.html 完全維持原本 forceNormal=false 的隨機變化
+ * OB49：
+ * 1. 玩家／協力傭兵組隊經驗分配總稽核
+ * 2. 仿正服改為玩家＋未倒地傭兵共享同一角色經驗池，不再每個角色各拿完整經驗
+ * 3. 既有仿正服組隊加成保留：每名隊友1%／王族2%，最高10%
+ * 4. 寵物屬獨立養成，本版維持原本完整經驗份額，不納入角色分母
+ * 5. 原版 index.html 維持 v3.7.62 每名玩家／傭兵各得完整經驗
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB48',
+        version: 'OB49',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3120,3 +3120,50 @@
     }, 0);
 })();
 /* ===== 仿正服 OB48：試煉／兌換獎勵稽核 END ===== */
+
+/* ===== 仿正服 OB49：組隊角色經驗分配稽核 START ===== */
+(function officialPartyExpAuditOB49(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialPartyExpAuditOB49) return;
+    window.__officialPartyExpAuditOB49 = true;
+
+    const EXP49 = {
+        playerAndMercSharePool: true,
+        aliveMercsCountInDivisor: true,
+        downedMercsExcludedFromDivisor: true,
+
+        // 既有仿正服 partyExpBonusPct：
+        normalLeaderBonusPerMercPct: 1,
+        royalLeaderBonusPerMercPct: 2,
+        partyBonusCapPct: 10,
+
+        // 寵物仍走自身獨立養成，不跟帳號角色分同一池。
+        petExpUnchanged: true,
+
+        originalModeFullExpPerCharacter: true
+    };
+
+    window.OFFICIAL_EXP_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_EXP_AUDIT || {},
+        EXP49
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_EXP_AUDIT.runtimeOB49 = {
+                partyCharacterExpShareDiv:
+                    typeof partyCharacterExpShareDiv === 'function',
+                currentShareDiv:
+                    typeof partyCharacterExpShareDiv === 'function'
+                        ? partyCharacterExpShareDiv()
+                        : null
+            };
+
+            console.info(
+                '[official-OB49] party character EXP audit',
+                window.OFFICIAL_EXP_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB49：組隊角色經驗分配稽核 END ===== */

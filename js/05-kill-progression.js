@@ -85,7 +85,9 @@ function auditTrackKill(mob) {
     // 📊 v3.6.58 刻意**不乘** getExpGainMult(player.lv)：該倍率在 Lv100 為 0（滿等不入帳），統計頁會整片歸零、
     //    連「這張圖效率如何」都看不出來。此處改記「同條件下應得的經驗」＝練功效率指標（Lv<100 時倍率恆 1，數字與實得完全相同）。
     //    ⚠️ 實際入帳仍在 killMob :320（照樣乘 getExpGainMult）——統計是參考值，不是經驗來源，勿把這裡當入帳口徑。
-    let g = Math.floor((mob.exp || 0) * (1 + partyExpBonusPct() / 100) * (1 + (typeof dollFieldVal === 'function' ? dollFieldVal('expBonus') : 0) / 100));   // 🤝 v3.7.62 組隊不再拆分經驗；統計記主玩家完整應得值
+    let _auditPartyPool = (mob.exp || 0) * (1 + partyExpBonusPct() / 100);
+    let _auditCharShare = _auditPartyPool / partyCharacterExpShareDiv();
+    let g = Math.floor(_auditCharShare * (1 + (typeof dollFieldVal === 'function' ? dollFieldVal('expBonus') : 0) / 100));   // OB49：仿正服統計顯示主玩家實際分配份額；原版分母=1
     if (g > 0) _audit.exp += g;
     _audit.kills++;
 }
@@ -308,11 +310,18 @@ function partyQuestDropSubject(result) {
     if (result && result.main) return names.length ? `你與隊員 ${names.join('、')}` : '你';
     return names.length ? `隊長（隊員 ${names.join('、')}）` : '你';
 }
-// 🤝 組隊經驗加成保留：每名未倒地隊友使每位存活成員取得的完整怪物經驗再增加（王族隊長 8%／非王族 4%）。
+// 🤝 組隊經驗加成保留：每名未倒地隊友使存活成員的總經驗池增加（王族隊長 8%／非王族 4%）。
 function partyExpBonusPct() {
     let _mates = (player.allies || []).filter(a => a && !a._downed).length;
     if (_mates <= 0) return 0;
-    return _mates * ((player && player.cls === 'royal') ? 8 : 4);   // 👑 王族隊長每隊友 +8%；其餘職業每隊友 +4%（減半）
+    return _mates * ((player && player.cls === 'royal') ? 8 : 4);   // 👑 原版：王族每隊友 +8%；其餘 +4%；仿正服會由 official-balance 再收斂
+}
+// OB49：仿正服「玩家＋存活傭兵」共享同一經驗池；原版仍每人完整經驗。
+// 寵物是獨立養成系統，不納入角色分母。
+function partyCharacterExpShareDiv() {
+    if (!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE)) return 1;
+    let _mates = (player && player.allies ? player.allies : []).filter(a => a && !a._downed).length;
+    return Math.max(1, 1 + _mates);
 }
 // ===== 🌅 三段變身頭目（依《日出之國.md》·玉藻→九尾→殺生石）=====
 //  怪物欄位 transformTo（下一階 mob id）＋transformHpPct（HP 門檻·預設 0.5）。兩個觸發點：
@@ -427,16 +436,22 @@ function killMob(idx) {
     // 🔧 轉場建築（往上層的樓梯 / 遺忘之島傳送門）：擊敗即進入下一層/島，不顯示「擊敗了…」戰鬥訊息（race 建築且 noAutoTeleport，排除攻城塔/城門）
     let _hideKillMsg = (mob.race === '建築' && mob.noAutoTeleport);
     if(!_hideKillMsg) logCombat(`擊敗了 <span class="${getMobColor(mob.lv)}">${mob.n}</span>！`, 'player-heavy');  // 👈 新增
-    // 🤝 v3.7.62 組隊經驗不再拆分：主玩家、每名未倒地傭兵、每隻未倒地寵物各取得完整經驗；既有組隊加成保留。
-    let _expEach = mob.exp * (1 + partyExpBonusPct() / 100);
-    let _petExpGain = Math.floor(_expEach * (1 + dollFieldVal('expBonus') / 100));   // 🐾 每隻存活寵物各得完整玩家份額；玩家滿等不影響養寵
-    let _playerExpGain = Math.floor(_petExpGain * getExpGainMult(player.lv));
+    // 🤝 組隊經驗池：原版仍維持 v3.7.62「每人完整經驗」；
+    // OB49 仿正服則由玩家＋未倒地傭兵平均分配同一角色經驗池。
+    let _partyExpPool = mob.exp * (1 + partyExpBonusPct() / 100);
+    let _expEach = _partyExpPool / partyCharacterExpShareDiv();
+
+    // 🐾 寵物是獨立養成：OB49 不納入角色分母，仍取得完整組隊池經驗。
+    let _petExpGain = Math.floor(_partyExpPool * (1 + dollFieldVal('expBonus') / 100));
+    let _playerExpGain = Math.floor(_expEach * (1 + dollFieldVal('expBonus') / 100) * getExpGainMult(player.lv));
     player.exp += _playerExpGain;
     checkLvUp();
+
     // 🐾 寵物經驗：每隻未倒地出戰寵物各得完整份額；不受玩家 Lv100 經驗封頂影響（升級需求＝玩家表 1/10）
     try { if (typeof petsGainExp === 'function') petsGainExp(_petExpGain); }
     catch (e) { console.warn('[killMob] petsGainExp failed', e); }
-    // 🤝 協力傭兵各得完整份額（以自身等級計 getExpGainMult·滿等歸0·不減其他人）。
+
+    // 🤝 協力傭兵：原版分母=1；仿正服與玩家共享同一角色經驗池。
     if (player.allies && player.allies.length && mob.exp) {
         player.allies.forEach(a => {
             if (!a || a._downed) return;
