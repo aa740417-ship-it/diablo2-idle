@@ -640,6 +640,11 @@ function trialQtyBar() {
         <button class="btn px-3 py-1 text-sm font-bold bg-amber-800 border-amber-600 text-amber-100" onclick="document.getElementById('trial-qty').value=999" title="設為最大；兌換時自動以可負擔上限為準">全部</button>
     </div>`;
 }
+// 仿正服：職業試煉／NPC 兌換裝備固定為普通版本；原版維持既有隨機變化。
+function officialTrialRewardForceNormal(){
+    return !!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE);
+}
+
 function trialQtyAdj(d) { let el = document.getElementById('trial-qty'); if (!el) return; el.value = Math.max(1, (parseInt(el.value) || 1) + d); }
 function trialQtyVal() { let el = document.getElementById('trial-qty'); let v = el ? parseInt(el.value) : 1; return (!v || v < 1) ? 1 : v; }
 // 🗑️ v3.5.94 第三參數 sherine 移除：原本函式一進來就 sherine=false，扣結晶＋_forceSherineSet 兩個分支永遠跑不到
@@ -655,7 +660,7 @@ function trialRun(reqs, rewardId) {
     let _savedTrad = _tradLootCtx; _tradLootCtx = true;   // 🏛️ 傳統模式：試煉／任務「兌換」物品比照製作／掉落，裝備隨機自帶強化值（2026-06 用戶更正：原誤設 +0；非傳統模式由 gainItem 的 traditionalActive() 閘恆 +0）
     try {
         for (let i = 0; i < qty; i++) {
-            gainItem(rewardId, 1, false, false);   // forceNormal=false：詞綴機率同一般兌換
+            gainItem(rewardId, 1, false, officialTrialRewardForceNormal());   // 仿正服固定普通版本；原版維持既有隨機變化
         }
     } finally { _tradLootCtx = _savedTrad; }
     return qty;
@@ -872,7 +877,7 @@ function trialQComplete(key, rr) {   // 🚫 v3.2.16 移除席琳完成：原第
     c.reqs.forEach(p => questConsumeId(p[0], p[1]));
     let _sv = _tradLootCtx; _tradLootCtx = true;   // 🏛️ 傳統模式：試煉獎勵裝備隨機自帶強化值
     try {
-        c.rewards.forEach(id => { gainItem(id, 1, false, false); });
+        c.rewards.forEach(id => { gainItem(id, 1, false, officialTrialRewardForceNormal()); });
     } finally { _tradLootCtx = _sv; }
     player.trialQ[key] = 2;
     logSys(`<span class="c-legend font-bold">${c.npc}：試煉通過！</span><span class="text-amber-200">你獲得了 ${c.rewards.map(id => DB.items[id].n).join('、')}。（此試煉已完成，無法再次接取）</span>`);
@@ -1136,7 +1141,7 @@ function trial50Complete() {   // 🔥 v3.0.78 最終兌換一次性·全拿；�
     questConsumeId(cfg.exMat, need);
     let _sv = _tradLootCtx; _tradLootCtx = true;   // 🏛️ 傳統模式：獎勵裝備隨機自帶強化值
     try {
-        cfg.rewards.forEach(r => { gainItem(r.id, 1, false, false); });
+        cfg.rewards.forEach(r => { gainItem(r.id, 1, false, officialTrialRewardForceNormal()); });
     } finally { _tradLootCtx = _sv; }
     player.trialStage = nStages + 2;   // ✅ 全數完成（demonTempleOpen 維持 true）
     saveGame();

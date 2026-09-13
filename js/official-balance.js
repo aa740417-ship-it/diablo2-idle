@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB47
+ * 放置天堂－仿正服平衡層 OB48
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB47：
- * 1. 非戰鬥收益／攻城經濟總稽核
- * 2. 確認真正離線收益目前已停用，不存在離線繞過仿正服倍率
- * 3. 確認 PvP 僅記榮譽戰績，不發裝備、經驗或金幣
- * 4. 新制攻城維持 1,000,000 金幣入場費
- * 5. 仿正服舊制肯特／風木／海音攻城同步收取 1,000,000 金幣，堵住免費入口旁路
+ * OB48：
+ * 1. 職業試煉／NPC 兌換獎勵總稽核
+ * 2. 15/30/45 級職業試煉獎勵在仿正服固定為普通版本
+ * 3. 50 級職業試煉最終獎勵在仿正服固定為普通版本
+ * 4. trialRun 重複兌換獎勵在仿正服固定普通版本，避免反覆洗祝福／屬性／遠古變化
+ * 5. 原版 index.html 完全維持原本 forceNormal=false 的隨機變化
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB47',
+        version: 'OB48',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3075,3 +3075,48 @@
     }, 0);
 })();
 /* ===== 仿正服 OB47：非戰鬥收益／攻城經濟稽核 END ===== */
+
+/* ===== 仿正服 OB48：試煉／兌換獎勵稽核 START ===== */
+(function officialTrialExchangeAuditOB48(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialTrialExchangeAuditOB48) return;
+    window.__officialTrialExchangeAuditOB48 = true;
+
+    const ECON48 = {
+        trial15to45FixedNormal: true,
+        trial50FixedNormal: true,
+        repeatableNpcExchangeFixedNormal: true,
+
+        // forceNormal=true 會略過 gainItem 的裝備隨機變化流程。
+        randomBlessOnTrialReward: false,
+        randomAttributeOnTrialReward: false,
+        randomAncientOnTrialReward: false,
+
+        // OB11 隨機詞綴停用仍維持。
+        randomLootAffixDisabled: true,
+
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY_AUDIT || {},
+        ECON48
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_ECONOMY_AUDIT.runtimeOB48 = {
+                rewardForceNormalHelper:
+                    typeof officialTrialRewardForceNormal === 'function',
+                officialMode:
+                    !!window.OFFICIAL_BALANCE_MODE
+            };
+
+            console.info(
+                '[official-OB48] trial/exchange reward audit',
+                window.OFFICIAL_ECONOMY_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB48：試煉／兌換獎勵稽核 END ===== */
