@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB8
+ * 放置天堂－仿正服平衡層 OB9
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB8：
- * 1. 保留 OB7 全部平衡
- * 2. 四色／死亡騎士／巴風特套用頭目掉落分層
- * 3. 普通戰利品保留；1%以下稀有物逐級降低
- * 4. 王專屬裝備與傳說再額外降低，強化打寶稀有感
+ * OB9：
+ * 1. 保留 OB8 全部平衡
+ * 2. 新增全服物品類型掉落分級
+ * 3. 祝武／祝防、飾品卷、稀有魔法書、低機率裝備進一步稀有化
+ * 4. 一般武防卷、任務道具、藥水與材料先維持原有供應
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB8',
+        version: 'OB9',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -187,6 +187,53 @@
         }
     };
 
+    // ===== OB9：全服物品類型掉落分級 =====
+    // 此倍率作用於 MOB_DROPS 與各職業技能掉落表。
+    // 任務強制掉落／程式另行給予的物品不會被這裡處理。
+    function globalDropItemFactor(itemId, rate) {
+        itemId = String(itemId || '');
+        rate = Number(rate) || 0;
+
+        // 一般武卷／防卷保留，避免基本強化節奏過度卡住。
+        if (itemId === 'scroll_weapon' || itemId === 'scroll_armor') return 1.00;
+
+        // 祝武／祝防：真正稀有。
+        if (itemId === 'scroll_weapon_b' || itemId === 'scroll_armor_b') return 0.35;
+
+        // 飾品強化卷：比一般武防卷稀有。
+        if (itemId === 'scroll_acc') return 0.55;
+
+        let item = null;
+        try { item = (typeof DB !== 'undefined' && DB.items) ? DB.items[itemId] : null; } catch (e) {}
+        if (!item) return 1.00;
+
+        // 遺物已有自己的極低掉率，OB9 暫不重複壓低。
+        if (item.relic) return 1.00;
+
+        // 魔法書／技能書：依原始掉率分層。
+        if (item.type === 'skillbk') {
+            if (rate <= 0.01) return 0.40;
+            if (rate <= 0.10) return 0.50;
+            if (rate <= 1.00) return 0.65;
+            if (rate <= 5.00) return 0.80;
+            return 0.90;
+        }
+
+        // 傳說裝備：不論原始表給多少，再壓一層。
+        if (item.legend) return 0.35;
+
+        // 一般武器／防具／飾品：依原始掉率分層。
+        if (item.type === 'wpn' || item.type === 'arm' || item.type === 'acc') {
+            if (rate <= 0.01) return 0.60;
+            if (rate <= 0.10) return 0.70;
+            if (rate <= 1.00) return 0.80;
+            if (rate <= 5.00) return 0.90;
+            return 0.95;
+        }
+
+        return 1.00;
+    }
+
     function bossDropItemFactor(monsterName, itemId, rate) {
         const cfg = BOSS_DROP_REBALANCE[monsterName];
         if (!cfg) return 1;
@@ -321,8 +368,10 @@
                     const copy = entry.slice();
                     const rate = Number(copy[1]);
                     if (Number.isFinite(rate)) {
-                        const bossFactor = bossDropItemFactor(key, String(copy[0] || ''), rate);
-                        copy[1] = rate * mult * bossFactor;
+                        const itemId = String(copy[0] || '');
+                        const bossFactor = bossDropItemFactor(key, itemId, rate);
+                        const globalFactor = globalDropItemFactor(itemId, rate);
+                        copy[1] = rate * mult * bossFactor * globalFactor;
                     }
                     return copy;
                 });
@@ -336,19 +385,21 @@
                     : null;
                 const z = zoneCfg();
 
-                if (!mob || !z) return _baseKillMob(idx);
+                if (!mob) return _baseKillMob(idx);
 
-                const m = monsterCfg(mob);
+                // 怪物個別收益仍只在已納入仿正服平衡的地圖生效；
+                // OB9 的物品類型掉率則全服生效。
+                const m = z ? monsterCfg(mob) : null;
                 const originalExp = mob.exp;
                 const restores = [];
 
                 // 區域經驗：只在結算這一刻調整，不永久改 DB 怪物資料。
-                if (Number.isFinite(Number(originalExp)) && Number(originalExp) > 0) {
+                if (z && Number.isFinite(Number(originalExp)) && Number(originalExp) > 0) {
                     const monsterExp = m ? m.exp : 1;
                     mob.exp = Math.max(1, Math.floor(Number(originalExp) * z.exp * monsterExp));
                 }
 
-                const effectiveDrop = z.drop * (m ? m.drop : 1);
+                const effectiveDrop = (z ? z.drop : 1) * (m ? m.drop : 1);
 
                 // 區域主要掉寶：
                 // 只調整目前這隻怪的各職業/一般掉落表，結算後立即恢復。
