@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB9
+ * 放置天堂－仿正服平衡層 OB10
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB9：
- * 1. 保留 OB8 全部平衡
- * 2. 新增全服物品類型掉落分級
- * 3. 祝武／祝防、飾品卷、稀有魔法書、低機率裝備進一步稀有化
- * 4. 一般武防卷、任務道具、藥水與材料先維持原有供應
+ * OB10：
+ * 1. 保留 OB9 全部平衡
+ * 2. 降低賣店回收金幣，避免自動販賣成為主要金幣來源
+ * 3. 一般 NPC 商店售價小幅提高，增加金幣消耗
+ * 4. 潘朵拉／特殊市場留到下一版獨立調整
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB9',
+        version: 'OB10',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -581,3 +581,62 @@
     setTimeout(disableArtifactUIAndMap, 500);
     setTimeout(disableArtifactUIAndMap, 1500);
 })();
+
+/* ===== 仿正服 OB10：經濟平衡 START ===== */
+(function officialEconomyOB10(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialEconomyOB10) return;
+    window.__officialEconomyOB10 = true;
+
+    const ECON = {
+        // 原版 getSellPrice 為定價約 30% 起跳；再乘 50% => 基礎約 15%。
+        sellReturnMult: 0.50,
+
+        // NPC 一般商店只小幅提高，避免前期補給太痛苦。
+        shopPriceMult: 1.10
+    };
+
+    window.OFFICIAL_ECONOMY = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY || {},
+        ECON
+    );
+
+    // ===== 賣店回收 =====
+    try {
+        if (typeof getSellPrice === 'function') {
+            const _officialBaseGetSellPrice = getSellPrice;
+
+            getSellPrice = function(item) {
+                const raw = Number(_officialBaseGetSellPrice(item)) || 0;
+                if (raw <= 0) return 0;
+                return Math.max(1, Math.floor(raw * ECON.sellReturnMult));
+            };
+        } else {
+            console.warn('[official-economy] getSellPrice not found');
+        }
+    } catch (e) {
+        console.warn('[official-economy] sell price patch failed', e);
+    }
+
+    // ===== 一般 NPC 商店 =====
+    // 包在既有 shopPrice 外面，保留原本所有折扣／特殊價格邏輯，
+    // 最後才加仿正服 10% 經濟倍率。
+    try {
+        if (typeof shopPrice === 'function') {
+            const _officialBaseShopPrice = shopPrice;
+
+            shopPrice = function() {
+                const raw = Number(_officialBaseShopPrice.apply(this, arguments)) || 0;
+                if (raw <= 0) return 0;
+                return Math.max(1, Math.ceil(raw * ECON.shopPriceMult));
+            };
+        } else {
+            console.warn('[official-economy] shopPrice not found');
+        }
+    } catch (e) {
+        console.warn('[official-economy] shop price patch failed', e);
+    }
+
+    console.info('[official-economy] OB10 enabled', ECON);
+})();
+/* ===== 仿正服 OB10：經濟平衡 END ===== */
