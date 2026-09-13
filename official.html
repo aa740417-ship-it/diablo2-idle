@@ -10,28 +10,102 @@
     <div id="official-loading">仿正服版載入中…</div>
 
     <script>
+    // ===== 仿正服版獨立儲存空間 =====
+    // 所有 localStorage key 自動加上固定前綴。
+    // 原版 index.html 仍使用原始 key；official.html 使用 lineage_official::key。
+    (function installOfficialStorageNamespace() {
+        const PREFIX = 'lineage_official::';
+        window.OFFICIAL_BALANCE_MODE = true;
+        window.OFFICIAL_STORAGE_PREFIX = PREFIX;
+
+        if (window.__officialStoragePatched) return;
+        window.__officialStoragePatched = true;
+
+        const ls = window.localStorage;
+        const proto = Storage.prototype;
+        const rawGet = proto.getItem;
+        const rawSet = proto.setItem;
+        const rawRemove = proto.removeItem;
+        const rawClear = proto.clear;
+        const rawKey = proto.key;
+
+        function scopedKey(key) {
+            return PREFIX + String(key);
+        }
+
+        proto.getItem = function(key) {
+            if (this === ls) return rawGet.call(this, scopedKey(key));
+            return rawGet.call(this, key);
+        };
+
+        proto.setItem = function(key, value) {
+            if (this === ls) return rawSet.call(this, scopedKey(key), value);
+            return rawSet.call(this, key, value);
+        };
+
+        proto.removeItem = function(key) {
+            if (this === ls) return rawRemove.call(this, scopedKey(key));
+            return rawRemove.call(this, key);
+        };
+
+        // 仿正服版若呼叫 clear()，只清除仿正服自己的資料，不會刪到原版。
+        proto.clear = function() {
+            if (this !== ls) return rawClear.call(this);
+
+            const targets = [];
+            for (let i = 0; i < this.length; i++) {
+                const k = rawKey.call(this, i);
+                if (k && k.startsWith(PREFIX)) targets.push(k);
+            }
+            targets.forEach(k => rawRemove.call(this, k));
+        };
+
+        // 若遊戲用 localStorage.key(n) 掃描資料，只讓它看到仿正服自己的鍵。
+        proto.key = function(index) {
+            if (this !== ls) return rawKey.call(this, index);
+
+            const wanted = Number(index) || 0;
+            let seen = 0;
+            for (let i = 0; i < this.length; i++) {
+                const k = rawKey.call(this, i);
+                if (!k || !k.startsWith(PREFIX)) continue;
+                if (seen === wanted) return k.slice(PREFIX.length);
+                seen++;
+            }
+            return null;
+        };
+
+        console.info('[official-storage] namespace enabled:', PREFIX);
+    })();
+
     (async function () {
         try {
             const res = await fetch('index.html?v=' + Date.now(), { cache: 'no-store' });
             if (!res.ok) throw new Error('index.html 載入失敗：HTTP ' + res.status);
 
             let html = await res.text();
+
+            // 在所有原版 JS 跑完後才載入仿正服平衡層；
+            // 儲存隔離則已在上方先安裝，所以遊戲初始化讀到的就是獨立存檔。
             const inject =
-                '<script>window.OFFICIAL_BALANCE_MODE=true;<\/script>\\n' +
-                '<script src="js/official-balance.js?v=OB1"><\/script>';
+                '<script src="js/official-balance.js?v=OB1-storage2"><\/script>';
 
             if (!html.includes('</body>')) {
                 throw new Error('找不到 </body>，無法載入仿正服平衡層');
             }
 
-            html = html.replace('</body>', inject + '\\n</body>');
+            html = html.replace('</body>', inject + '\n</body>');
+
             document.open();
             document.write(html);
             document.close();
         } catch (err) {
-            document.getElementById('official-loading').innerHTML =
-                '<b style="color:#fca5a5">仿正服版載入失敗</b><br><br>' +
-                String(err && err.message ? err.message : err);
+            const el = document.getElementById('official-loading');
+            if (el) {
+                el.innerHTML =
+                    '<b style="color:#fca5a5">仿正服版載入失敗</b><br><br>' +
+                    String(err && err.message ? err.message : err);
+            }
             console.error(err);
         }
     })();
