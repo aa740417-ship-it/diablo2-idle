@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB54
+ * 放置天堂－仿正服平衡層 OB55
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB54：
- * 1. 協力傭兵職業試煉獎勵旁路稽核
- * 2. 仿正服傭兵15/30/45級試煉獎勵固定普通版本
- * 3. 仿正服傭兵50級最終試煉獎勵固定普通版本
- * 4. 與OB48一般角色試煉採完全一致的forceNormal規則
- * 5. 原版 index.html 維持傭兵試煉獎勵原本的隨機變化
+ * OB55：
+ * 1. 召喚控制戒指／召喚數量總稽核
+ * 2. 仿正服保留召喚控制戒指的指定召喚物功能
+ * 3. 仿正服Lv28~48召喚上限維持5隻，不再因戒指額外增加第6隻全額輸出
+ * 4. Lv52以上原本5/4/2/1隻上限完全不變
+ * 5. 原版 index.html 維持Lv28~48持戒時最多6隻的既有設定
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB54',
+        version: 'OB55',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3409,3 +3409,65 @@
     }, 0);
 })();
 /* ===== 仿正服 OB54：傭兵試煉獎勵旁路稽核 END ===== */
+
+/* ===== 仿正服 OB55：召喚數量稽核 START ===== */
+(function officialSummonCountAuditOB55(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialSummonCountAuditOB55) return;
+    window.__officialSummonCountAuditOB55 = true;
+
+    const SUM55 = {
+        controlRingSelectionKept: true,
+
+        earlyTierBaseCap: 5,
+        earlyTierOriginalRingCap: 6,
+        officialEarlyTierRingCap: 5,
+
+        extraSixthFullDamageRemoved: true,
+
+        level52CapUnchanged: 5,
+        level56to60CapUnchanged: 4,
+        level64CapUnchanged: 2,
+        level68plusCapUnchanged: 1,
+
+        playerSummonsCovered: true,
+        mercSummonPlanCovered: true,
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_SUMMON_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_SUMMON_AUDIT || {},
+        SUM55
+    );
+
+    setTimeout(function(){
+        try {
+            let probe = null;
+            if (
+                typeof SUMMON_TIERS !== 'undefined' &&
+                SUMMON_TIERS &&
+                SUMMON_TIERS.length &&
+                typeof _sumCountCapFor === 'function'
+            ) {
+                probe = {
+                    tier28BaseCap: SUMMON_TIERS[0].cap,
+                    tier28StoredRingCap: SUMMON_TIERS[0].ringCap,
+                    effectiveCap:
+                        _sumCountCapFor(SUMMON_TIERS[0], player)
+                };
+            }
+
+            window.OFFICIAL_SUMMON_AUDIT.runtimeOB55 = {
+                sumCountCapHelper:
+                    typeof _sumCountCapFor === 'function',
+                tier28Probe: probe
+            };
+
+            console.info(
+                '[official-OB55] summon count audit',
+                window.OFFICIAL_SUMMON_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB55：召喚數量稽核 END ===== */

@@ -84,13 +84,31 @@ function _sumDefaultForm(owner) {   // 無戒指（或未選擇）的預設：�
     }
     return best;
 }
-function _sumCountFor(name, owner) {   // 數量：floor((魅力+6)/div)·上限 cap（28~48 階有戒指 ringCap=6）；68/72 階固定 1
+function _sumCountCapFor(tier, owner) {
+    owner = owner || player;
+    if (!tier) return 0;
+
+    const hasCtrl = hasSummonCtrlRing(owner);
+
+    // OB55：仿正服的召喚控制戒指保留「可指定召喚物」功能，
+    // 但不再把 Lv28~48 的數量上限由 5 額外提高到 6。
+    // 原版仍完整保留 ringCap。
+    if (
+        hasCtrl &&
+        !(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE)
+    ) {
+        return Math.max(1, tier.ringCap || tier.cap || 1);
+    }
+
+    return Math.max(1, tier.cap || 1);
+}
+function _sumCountFor(name, owner) {   // 數量：floor((魅力+6)/div)；仿正服 OB55 戒指不額外加第6隻；68/72 階固定 1
     owner = owner || player;
     const e = _sumTierOf(name); if (!e) return 0;
     if (e.tier.fixedCount) return e.tier.fixedCount;
     const cha = (owner.d && owner.d.cha) || 0;
     const n = Math.floor((cha + 6) / e.tier.div);
-    const cap = hasSummonCtrlRing(owner) ? e.tier.ringCap : e.tier.cap;
+    const cap = _sumCountCapFor(e.tier, owner);
     return Math.max(0, Math.min(cap, n));
 }
 // 傷害設計：整隊基準 DPS 由「魅力×玩家等級」連續成長，再由召喚階級按比例逐階增加。
@@ -782,7 +800,7 @@ function renderSummonPanel(force) {
         if (typeof renderSquadPanel === 'function') renderSquadPanel();
     } catch (e) {}
 }
-setInterval(() => { try { renderSummonPanel(); } catch (e) {} }, 500);
+setInterval(() => { if (document.hidden) return; try { renderSummonPanel(); } catch (e) {} }, 1500);
 
 // ---------- 五、召喚選單（有召喚控制戒指才可開）----------
 function openSummonSelect() {
@@ -806,7 +824,7 @@ function openSummonSelect() {
                 <span class="text-slate-400" style="font-size:11px;white-space:nowrap;">${usable ? `×${cnt}·攻1D${d.dice}+${d.flat}·${(m.aspd / 10).toFixed(1)}s` : (ok ? `魅力不足（數量 0·需(魅力+6)/${t.div}≥1）` : (t.reqCha && (player.d.cha || 0) < t.reqCha ? `需魅力${t.reqCha}` : '未解鎖'))}</span>
             </button>`;
         }).join('');
-        return `<div style="margin-bottom:6px;"><div class="text-amber-300 font-bold" style="font-size:12px;">${t.reqLv} 級以上${t.reqCha ? '·魅力 ' + t.reqCha : ''}<span class="text-slate-500">（數量 ${t.fixedCount ? '固定 1 隻' : `(魅力+6)/${t.div}·最多 ${t.cap}${t.ringCap > t.cap ? '（戒指 ' + t.ringCap + '）' : ''} 隻`}）</span></div>${mobs}</div>`;
+        return `<div style="margin-bottom:6px;"><div class="text-amber-300 font-bold" style="font-size:12px;">${t.reqLv} 級以上${t.reqCha ? '·魅力 ' + t.reqCha : ''}<span class="text-slate-500">（數量 ${t.fixedCount ? '固定 1 隻' : `(魅力+6)/${t.div}·最多 ${_sumCountCapFor(t, player)}${(!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) && t.ringCap > t.cap) ? '（戒指 ' + t.ringCap + '）' : ''} 隻`}）</span></div>${mobs}</div>`;
     }).join('');
     ov.innerHTML = `<div style="width:460px;max-height:82vh;overflow-y:auto;background:#0b1220;border:1px solid #6d28d9;border-radius:8px;padding:12px;font-size:13px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
