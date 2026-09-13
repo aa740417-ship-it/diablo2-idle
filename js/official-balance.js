@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB52
+ * 放置天堂－仿正服平衡層 OB53
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB52：
- * 1. 出戰寵物經驗分配總稽核
- * 2. 仿正服所有未倒地、未達玩家等級上限的出戰寵物共享同一份寵物經驗池
- * 3. 1隻寵物時經驗不變；多寵時不再讓同一擊殺複製2～4份寵物經驗
- * 4. 已達玩家等級上限與倒地寵物不占分母；餘數精確分配、不浪費經驗
- * 5. 原版 index.html 維持每隻合格寵物各拿完整經驗
+ * OB53：
+ * 1. 寵物升級需求曲線總稽核
+ * 2. 仿正服寵物升級需求由玩家需求1/10調整為1/4
+ * 3. 既有仿正服寵物保留目前等級內的經驗完成百分比，不因更新掉進度
+ * 4. OB52多寵共享經驗池、玩家等級上限與倒地排除規則全部保留
+ * 5. 原版 index.html 維持玩家需求1/10的寵物升級曲線
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB52',
+        version: 'OB53',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3310,3 +3310,54 @@
     }, 0);
 })();
 /* ===== 仿正服 OB52：寵物經驗共享稽核 END ===== */
+
+/* ===== 仿正服 OB53：寵物升級需求稽核 START ===== */
+(function officialPetExpRequirementAuditOB53(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialPetExpRequirementAuditOB53) return;
+    window.__officialPetExpRequirementAuditOB53 = true;
+
+    const PETREQ53 = {
+        officialPetExpReqDivisor: 4,
+        originalPetExpReqDivisor: 10,
+
+        // 需求提高時保留當級百分比，不把已累積努力直接清掉。
+        preserveCurrentLevelProgressPct: true,
+
+        petExpReqVersion: 4,
+
+        // 前一版規則完整保留。
+        ob52SharedPetExpPoolKept: true,
+        downedPetsExcluded: true,
+        playerLevelCapKept: true,
+
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_PET_EXP_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_PET_EXP_AUDIT || {},
+        PETREQ53
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_PET_EXP_AUDIT.runtimeOB53 = {
+                petExpReq: typeof petExpReq === 'function',
+                petExpReqDivisor:
+                    typeof petExpReqDivisor === 'function'
+                        ? petExpReqDivisor()
+                        : null,
+                petExpReqVersion:
+                    typeof PET_EXP_REQ_VERSION !== 'undefined'
+                        ? PET_EXP_REQ_VERSION
+                        : null
+            };
+
+            console.info(
+                '[official-OB53] pet EXP requirement audit',
+                window.OFFICIAL_PET_EXP_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB53：寵物升級需求稽核 END ===== */

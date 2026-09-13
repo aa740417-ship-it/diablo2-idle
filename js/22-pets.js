@@ -154,19 +154,58 @@ function petDerive(p) {
         stunTicks: Math.round((def.stun || 0.58) * 10)
     };
 }
-function petExpReq(lv) { return Math.max(1, Math.floor(getExpReq(lv) / 10)); }   // 升級需求＝玩家的 1/10（v3.2.71 用戶調整·原 1/4）
-const PET_EXP_REQ_VERSION = 3;
-function petMigrateExpReqV3(p) {   // Lv70+ 玩家需求改版時，寵物同樣保留當級進度百分比
-    if (!p || (p.expReqV || 0) >= PET_EXP_REQ_VERSION) return false;
+function petExpReqDivisor() {
+    // OB53：仿正服寵物需求回到玩家表 1/4；原版維持 v3.2.71 的 1/10。
+    return (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) ? 4 : 10;
+}
+function petExpReq(lv) {
+    return Math.max(1, Math.floor(getExpReq(lv) / petExpReqDivisor()));
+}
+const PET_EXP_REQ_VERSION = 4;
+function petMigrateExpReqV3(p) {
+    if (!p) return false;
+
+    let changed = false;
     let lv = Math.max(1, Math.min(100, Math.floor(p.lv || 1)));
-    if (lv >= 100) p.exp = 0;
-    else if (lv >= 70) {
-        let oldReq = Math.max(1, Math.floor(_expReqClassicV2(lv) / 10));
-        let newReq = petExpReq(lv);
-        p.exp = Math.min(Math.floor(Math.max(0, p.exp || 0) / oldReq * newReq), newReq - 1);
+    let v = Math.max(0, Math.floor(p.expReqV || 0));
+
+    // 舊 V2 → V3：先照原本 1/10 刻度完成 Lv70+ 玩家需求表遷移，
+    // 不能直接用 petExpReq()，否則仿正服會把 OB53 的 1/4 一次混進舊遷移。
+    if (v < 3) {
+        if (lv >= 100) {
+            p.exp = 0;
+        } else if (lv >= 70) {
+            let oldReqV2 = Math.max(1, Math.floor(_expReqClassicV2(lv) / 10));
+            let reqV3 = Math.max(1, Math.floor(getExpReq(lv) / 10));
+            p.exp = Math.min(
+                Math.floor(Math.max(0, p.exp || 0) / oldReqV2 * reqV3),
+                reqV3 - 1
+            );
+        }
+        v = 3;
+        p.expReqV = 3;
+        changed = true;
     }
-    p.expReqV = PET_EXP_REQ_VERSION;
-    return true;
+
+    // OB53 V3 → V4：
+    // 仿正服 1/10 → 1/4，但保留當級完成百分比；
+    // 原版只升版本標記，不改經驗值，仍維持 1/10。
+    if (v < PET_EXP_REQ_VERSION) {
+        if (lv >= 100) {
+            p.exp = 0;
+        } else if (typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE) {
+            let oldReq = Math.max(1, Math.floor(getExpReq(lv) / 10));
+            let newReq = Math.max(1, Math.floor(getExpReq(lv) / 4));
+            p.exp = Math.min(
+                Math.floor(Math.max(0, p.exp || 0) / oldReq * newReq),
+                newReq - 1
+            );
+        }
+        p.expReqV = PET_EXP_REQ_VERSION;
+        changed = true;
+    }
+
+    return changed;
 }
 function petCharmCombatBonus() {
     // 🐾 v3.2.24 每一隻獨立計算：移除 /sqrt(出戰隻數) 稀釋——每隻寵物都拿完整魅力加成（隻數多寡不影響個體）
