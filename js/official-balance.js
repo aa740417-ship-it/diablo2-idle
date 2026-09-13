@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB26
+ * 放置天堂－仿正服平衡層 OB27
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB26：
- * 1. 保留 OB1~OB25 全部仿正服設定
- * 2. 新增黑暗妖精聖地、受詛咒的黑暗妖精聖地、崩壞的長老會議廳
- * 3. 吉爾塔斯與真‧死亡騎士 冥皇丹特斯納入 BOSS 稀有掉落分層
- * 4. 吉爾塔斯的封印維持原始100%進度掉落，不受區域掉寶倍率降低
- * 5. 最終區維持高經驗、高風險，金幣與一般掉寶持續收斂
+ * OB27：
+ * 1. 掉寶倍率總稽核：修正部分額外掉落 55%×55%=30.25% 的重複乘算
+ * 2. partyDropRate 專責仿正服全服55%；classicDropMult 恢復1
+ * 3. 黑妖／水晶／戰士／幻術／區域額外掉落由核心補一次仿正服55%
+ * 4. 龍騎士獨立掉落表補上原本漏掉的仿正服55%
+ * 5. 吉爾塔斯的封印真正維持原始100%進度掉落
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB26',
+        version: 'OB27',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -1026,8 +1026,11 @@
             };
         }
 
+        // OB27：不要在這裡再乘55%。
+        // 會經 partyDropRate 的掉落由 partyDropRate 負責一次；
+        // 不經 partyDropRate 的獨立表由 js/05 的 officialBaseDropMult() 負責一次。
         if (typeof classicDropMult === 'function') {
-            classicDropMult = function () { return CFG.baseDropMult; };
+            classicDropMult = function () { return 1; };
         }
     } catch (e) {
         console.warn('[official-balance] party/drop patch failed', e);
