@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB4
+ * 放置天堂－仿正服平衡層 OB5
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB4：
- * 1. 保留 OB3 全部平衡
- * 2. 新增古魯丁地監 3~7 樓
- * 3. 深層地監逐步提高練功價值
- * 4. 金幣與掉寶仍維持仿正服收斂節奏
+ * OB5：
+ * 1. 保留 OB4 全部平衡
+ * 2. 新增常見怪物個別收益差異
+ * 3. 骷髏偏低收益；食屍鬼／史巴托／萊肯依危險度提高回報
+ * 4. 個別倍率只套用在已納入仿正服平衡的地圖
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB4',
+        version: 'OB5',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -114,6 +114,24 @@
         }
     };
 
+    // ===== OB5：常見怪物個別收益 =====
+    // 只在 CFG.zones 已納入的仿正服地圖生效。
+    // 這些倍率會再乘上各地圖的 exp/gold/drop 倍率。
+    const MONSTER_BALANCE = {
+        '骷髏':   { exp: 0.95, gold: 0.90, drop: 0.90 },
+        '食屍鬼': { exp: 1.08, gold: 1.00, drop: 1.03 },
+        '史巴托': { exp: 1.10, gold: 1.05, drop: 1.08 },
+        '萊肯':   { exp: 1.12, gold: 1.08, drop: 1.05 }
+    };
+
+    function monsterCfg(mob) {
+        try {
+            return mob && mob.n ? (MONSTER_BALANCE[mob.n] || null) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     function zoneCfg() {
         try {
             return (typeof mapState !== 'undefined' && mapState)
@@ -196,7 +214,9 @@
                 const r = _baseMonsterGoldRange(mob) || { min: 1, max: 1 };
                 const z = zoneCfg();
                 const zoneGold = z ? z.gold : 1;
-                const mult = CFG.baseGoldMult * zoneGold;
+                const m = z ? monsterCfg(mob) : null;
+                const monsterGold = m ? m.gold : 1;
+                const mult = CFG.baseGoldMult * zoneGold * monsterGold;
 
                 const min = Math.max(1, Math.floor((Number(r.min) || 1) * mult));
                 const max = Math.max(min, Math.floor((Number(r.max) || min) * mult));
@@ -236,35 +256,39 @@
 
                 if (!mob || !z) return _baseKillMob(idx);
 
+                const m = monsterCfg(mob);
                 const originalExp = mob.exp;
                 const restores = [];
 
                 // 區域經驗：只在結算這一刻調整，不永久改 DB 怪物資料。
                 if (Number.isFinite(Number(originalExp)) && Number(originalExp) > 0) {
-                    mob.exp = Math.max(1, Math.floor(Number(originalExp) * z.exp));
+                    const monsterExp = m ? m.exp : 1;
+                    mob.exp = Math.max(1, Math.floor(Number(originalExp) * z.exp * monsterExp));
                 }
+
+                const effectiveDrop = z.drop * (m ? m.drop : 1);
 
                 // 區域主要掉寶：
                 // 只調整目前這隻怪的各職業/一般掉落表，結算後立即恢復。
                 // 任務另行強制 100% 的掉落邏輯不會被這裡破壞。
                 try {
                     if (typeof MOB_DROPS !== 'undefined') {
-                        scaleTable(MOB_DROPS, mob.n, z.drop, restores);
+                        scaleTable(MOB_DROPS, mob.n, effectiveDrop, restores);
                     }
                     if (typeof DARK_WEAPON_DROPS !== 'undefined') {
-                        scaleTable(DARK_WEAPON_DROPS, mob.n, z.drop, restores);
+                        scaleTable(DARK_WEAPON_DROPS, mob.n, effectiveDrop, restores);
                     }
                     if (typeof DARK_CRYSTAL_DROPS !== 'undefined') {
-                        scaleTable(DARK_CRYSTAL_DROPS, mob.n, z.drop, restores);
+                        scaleTable(DARK_CRYSTAL_DROPS, mob.n, effectiveDrop, restores);
                     }
                     if (typeof DRAGON_DROPS !== 'undefined') {
-                        scaleTable(DRAGON_DROPS, mob.n, z.drop, restores);
+                        scaleTable(DRAGON_DROPS, mob.n, effectiveDrop, restores);
                     }
                     if (typeof WARRIOR_DROPS !== 'undefined') {
-                        scaleTable(WARRIOR_DROPS, mob.n, z.drop, restores);
+                        scaleTable(WARRIOR_DROPS, mob.n, effectiveDrop, restores);
                     }
                     if (typeof MEM_DROPS !== 'undefined') {
-                        scaleTable(MEM_DROPS, mob.n, z.drop, restores);
+                        scaleTable(MEM_DROPS, mob.n, effectiveDrop, restores);
                     }
 
                     return _baseKillMob(idx);
