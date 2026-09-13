@@ -130,13 +130,19 @@
             // OB55：召喚控制戒指數量上限加入仿正服條件式。
             html = html.replace(
                 /js\/23-summons\.js(?:\?[^"'<>\s]*)?/g,
-                'js/23-summons.js?v=OB55-summon-count'
+                'js/23-summons.js?v=OB56-summon-proc'
+            );
+
+            // OB56：傭兵抽象召喚把本輪召喚數量交給proc正規化。
+            html = html.replace(
+                /js\/07-skills-cast\.js(?:\?[^"'<>\s]*)?/g,
+                'js/07-skills-cast.js?v=OB56-summon-proc'
             );
 
             // 在所有原版 JS 跑完後才載入仿正服平衡層；
             // 儲存隔離則已在上方先安裝，所以遊戲初始化讀到的就是獨立存檔。
             const inject =
-                '<script src="js/official-balance.js?v=OB55-summon-count-audit"><\/script>';
+                '<script src="js/official-balance.js?v=OB56-summon-proc-audit"><\/script>';
 
             if (!html.includes('</body>')) {
                 throw new Error('找不到 </body>，無法載入仿正服平衡層');

@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB55
+ * 放置天堂－仿正服平衡層 OB56
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB55：
- * 1. 召喚控制戒指／召喚數量總稽核
- * 2. 仿正服保留召喚控制戒指的指定召喚物功能
- * 3. 仿正服Lv28~48召喚上限維持5隻，不再因戒指額外增加第6隻全額輸出
- * 4. Lv52以上原本5/4/2/1隻上限完全不變
- * 5. 原版 index.html 維持Lv28~48持戒時最多6隻的既有設定
+ * OB56：
+ * 1. 多召喚物特殊技能觸發率總稽核
+ * 2. 仿正服召喚普攻原本已依整隊設計值拆成單隻份額，本版同步正規化proc觸發率
+ * 3. 同型態存活N隻時，每隻proc機率改為原始機率÷N，整隊平均觸發次數維持基準
+ * 4. 傭兵抽象召喚依_v2count套用同一規則；造屍術無SUMMON_TIERS proc故不受影響
+ * 5. 原版 index.html 維持每隻召喚物各自完整proc機率
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB55',
+        version: 'OB56',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -3471,3 +3471,53 @@
     }, 0);
 })();
 /* ===== 仿正服 OB55：召喚數量稽核 END ===== */
+
+/* ===== 仿正服 OB56：召喚技能觸發率稽核 START ===== */
+(function officialSummonProcAuditOB56(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialSummonProcAuditOB56) return;
+    window.__officialSummonProcAuditOB56 = true;
+
+    const SUM56 = {
+        procExpectedValueNormalized: true,
+
+        // N 隻同型態存活召喚物 → 每隻原始 proc / N。
+        procDividesByAliveGroupCount: true,
+
+        playerSummonProcCovered: true,
+        mercAbstractSummonProcCovered: true,
+
+        // 只有 SUMMON_TIERS 內原本帶 proc 的召喚物受影響。
+        zombieProcUnchanged: true,
+        spiritKingAoeUnchanged: true,
+
+        // OB55 數量規則完整保留。
+        ob55EarlyTierCapKept: true,
+
+        originalModeUnchanged: true
+    };
+
+    window.OFFICIAL_SUMMON_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_SUMMON_AUDIT || {},
+        SUM56
+    );
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_SUMMON_AUDIT.runtimeOB56 = {
+                procHelper:
+                    typeof officialSummonProcChance === 'function',
+                exampleTenPctAtFive:
+                    typeof officialSummonProcChance === 'function'
+                        ? officialSummonProcChance(0.10, { _v2GroupCount: 5 }, {})
+                        : null
+            };
+
+            console.info(
+                '[official-OB56] summon proc audit',
+                window.OFFICIAL_SUMMON_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB56：召喚技能觸發率稽核 END ===== */

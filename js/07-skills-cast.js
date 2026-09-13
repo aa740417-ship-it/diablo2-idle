@@ -52,6 +52,9 @@ function summonAttack(sm, owner) {
             _d = _sumDerive({ form: sm._v2form, n: sm._v2form }, owner);
         }
         let _cnt = Math.max(1, sm._v2count || 1);
+        // OB56：傭兵抽象召喚雖不建立多個實體，仍會逐隻呼叫 summonV2AttackOnce。
+        // 把本輪群組數量附在暫時物件上，供仿正服 proc 機率正規化；原版 helper 會直接回傳原機率。
+        _s0._v2GroupCount = _cnt;
         for(let i = 0; i < _cnt; i++) { let _t = getTarget(); if(!_t) break; summonV2AttackOnce(_s0, _d, _t, owner); }
         return;
     }

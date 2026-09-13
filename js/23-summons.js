@@ -137,6 +137,41 @@ function _sumSkillPower(s, owner) {
     const cha = Math.max(0, (owner.d && owner.d.cha) || 0);
     return Math.max(1, Math.floor((s && s.lv || 1) + (owner.lv || 1) * 0.35 + tierIdx * 2 + cha * 0.5));
 }
+// OB56：仿正服把多隻召喚物的特殊技能 proc 視為「整隊共享期望值」。
+// 普攻本來已按 designCount 切成單隻份額；proc 若每隻仍完整擲 pr.p，會再隨隻數成倍膨脹。
+// 原版完全不變。
+function officialSummonProcChance(baseP, s, owner) {
+    let p = Math.max(0, Math.min(1, Number(baseP) || 0));
+    if (!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE)) return p;
+
+    owner = owner || player;
+    let groupCount = 1;
+
+    // 傭兵抽象召喚：js/07 會把本輪 _v2count 寫進暫時攻擊物件。
+    if (s && Number(s._v2GroupCount) > 1) {
+        groupCount = Math.max(1, Math.floor(Number(s._v2GroupCount) || 1));
+    }
+    // 玩家實體召喚：只計算同型態、仍存活的召喚物。
+    else if (
+        owner === player &&
+        typeof player !== 'undefined' &&
+        player &&
+        Array.isArray(player.summonsV2)
+    ) {
+        let form = s && s.form;
+        let skId = s && s.skId;
+        let live = player.summonsV2.filter(x =>
+            x &&
+            !x._downed &&
+            (x.hp == null || x.hp > 0) &&
+            (!form || x.form === form) &&
+            (!skId || x.skId === skId)
+        ).length;
+        groupCount = Math.max(1, live);
+    }
+
+    return p / groupCount;
+}
 function _sumHpDpsMult(t, m) {   // 同階生存力換輸出：低血較痛、高血較坦；0.35 次方避免血量差距被放大成失衡
     const hps = ((t && t.mobs) || []).map(x => Math.max(1, x.hp || 1)).sort((a, b) => a - b);
     if (!hps.length) return 1;
@@ -602,7 +637,8 @@ function summonV2AttackOnce(s, d, t, owner) {
     if (e && e.mob.proc && t.curHp > 0) {
         const skillPower = _sumSkillPower(s, owner);
         for (const pr of e.mob.proc) {
-            if (Math.random() >= pr.p) continue;
+            const _procChance = officialSummonProcChance(pr.p, s, owner);
+            if (Math.random() >= _procChance) continue;
             _petAnimAct(s, 'skill');
             if (pr.kind === 'poison') {   // 單體中毒（比照技能類中毒：單層固定 DoT）
                 t.st = t.st || newMobStatus();
