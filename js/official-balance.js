@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB19
+ * 放置天堂－仿正服平衡層 OB20
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB19：
- * 1. 保留 OB1~OB18 全部仿正服設定
- * 2. 新增鏡子森林、黃昏山脈、肯特周邊、銀騎士村周邊
- * 3. 早中期野外保持平穩，中後期巨人／變形怪區提高經驗價值
- * 4. 古代巨人、變形怪首領等高危險頭目提高相對回報
+ * OB20：
+ * 1. 保留 OB1~OB19 全部仿正服設定
+ * 2. 新增妖魔森林、妖精森林、風木地監
+ * 3. 前中期地區維持平順成長，不重複修改已完成的說話之島區域
+ * 4. 妖魔法師、卡司特系與巴列斯依危險度提高相對回報
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB19',
+        version: 'OB20',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -376,6 +376,26 @@
                 exp: 1.08,
                 gold: 0.80,
                 drop: 0.63
+            },
+
+            // OB20：前中期世界區域
+            zone_01: {
+                name: '妖魔森林',
+                exp: 0.86,
+                gold: 0.71,
+                drop: 0.72
+            },
+            elf_forest: {
+                name: '妖精森林',
+                exp: 0.92,
+                gold: 0.74,
+                drop: 0.69
+            },
+            windwood_dungeon: {
+                name: '風木地監',
+                exp: 0.96,
+                gold: 0.76,
+                drop: 0.66
             }
         }
     };
@@ -496,7 +516,18 @@
         '巨人':        { exp: 1.10, gold: 1.05, drop: 1.05 },
         '巨人戰士':    { exp: 1.14, gold: 1.07, drop: 1.07 },
         '巨人長老':    { exp: 1.18, gold: 1.09, drop: 1.09 },
-        '古代巨人':    { exp: 1.50, gold: 1.28, drop: 1.38 }
+        '古代巨人':    { exp: 1.50, gold: 1.28, drop: 1.38 },
+
+        // OB20：妖魔森林／妖精森林
+        '甘地妖魔':    { exp: 1.03, gold: 1.00, drop: 1.02 },
+        '妖魔法師':    { exp: 1.08, gold: 1.03, drop: 1.04 },
+        '羅孚妖魔':    { exp: 1.05, gold: 1.02, drop: 1.03 },
+        '妖魔巡守':    { exp: 1.08, gold: 1.04, drop: 1.04 },
+        '那魯加妖魔':  { exp: 1.10, gold: 1.05, drop: 1.05 },
+
+        // OB20：風木地監
+        '怪手':        { exp: 1.05, gold: 1.02, drop: 1.03 },
+        '巴列斯':      { exp: 1.48, gold: 1.25, drop: 1.36 }
     };
 
     // ===== OB8：頭目掉落分層 =====
