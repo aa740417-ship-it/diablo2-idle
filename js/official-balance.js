@@ -1,19 +1,19 @@
 /*
- * 放置天堂－仿正服平衡層 OB15
+ * 放置天堂－仿正服平衡層 OB16
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB15：
- * 1. 保留 OB1~OB14 全部仿正服設定
- * 2. 新增龍之谷地監1~6樓
- * 3. 深樓層逐步提高經驗價值，金幣與掉寶仍維持收斂
- * 4. 骷髏神射手、骷髏警衛、多羅、骷髏鬥士、莫妮亞、阿魯巴依危險度提高回報
+ * OB16：
+ * 1. 保留 OB1~OB15 全部仿正服設定
+ * 2. 新增螞蟻洞窟1~2樓、地下通道1~3樓、海音周邊
+ * 3. 異常狀態怪與高HP怪提高相對經驗回報
+ * 4. 金幣與掉寶持續維持仿正服收斂節奏
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB15',
+        version: 'OB16',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -248,6 +248,48 @@
                 exp: 1.06,
                 gold: 0.81,
                 drop: 0.63
+            },
+
+            // OB16：螞蟻洞窟
+            zone_32: {
+                name: '螞蟻洞窟1樓',
+                exp: 0.96,
+                gold: 0.74,
+                drop: 0.67
+            },
+            zone_33: {
+                name: '螞蟻洞窟2樓',
+                exp: 1.00,
+                gold: 0.77,
+                drop: 0.65
+            },
+
+            // OB16：地下通道
+            zone_34: {
+                name: '地下通道1樓',
+                exp: 0.92,
+                gold: 0.72,
+                drop: 0.68
+            },
+            zone_35: {
+                name: '地下通道2樓',
+                exp: 0.95,
+                gold: 0.74,
+                drop: 0.67
+            },
+            zone_36: {
+                name: '地下通道3樓',
+                exp: 0.98,
+                gold: 0.76,
+                drop: 0.66
+            },
+
+            // OB16：海音野外
+            heine: {
+                name: '海音',
+                exp: 0.91,
+                gold: 0.73,
+                drop: 0.69
             }
         }
     };
@@ -296,7 +338,21 @@
         '多羅':        { exp: 1.10, gold: 1.05, drop: 1.05 },
         '骷髏鬥士':    { exp: 1.12, gold: 1.06, drop: 1.06 },
         '莫妮亞':      { exp: 1.15, gold: 1.08, drop: 1.08 },
-        '阿魯巴':      { exp: 1.18, gold: 1.10, drop: 1.10 }
+        '阿魯巴':      { exp: 1.18, gold: 1.10, drop: 1.10 },
+
+        // OB16：螞蟻洞窟代表怪物
+        '白螞蟻群':        { exp: 1.05, gold: 1.00, drop: 1.03 },
+        '巨大白螞蟻':      { exp: 1.08, gold: 1.03, drop: 1.05 },
+        '強化巨蟻':        { exp: 1.10, gold: 1.05, drop: 1.06 },
+        '強化白螞蟻群':    { exp: 1.12, gold: 1.06, drop: 1.07 },
+        '巨大突擊螞蟻':    { exp: 1.15, gold: 1.08, drop: 1.08 },
+        '巨大強化白螞蟻':  { exp: 1.18, gold: 1.10, drop: 1.10 },
+
+        // OB16：地下通道／海音代表怪物
+        '蟑螂人':      { exp: 1.08, gold: 1.02, drop: 1.04 },
+        '蟹人':        { exp: 1.05, gold: 1.02, drop: 1.03 },
+        '蛇女':        { exp: 1.08, gold: 1.04, drop: 1.05 },
+        '多眼怪':      { exp: 1.15, gold: 1.08, drop: 1.08 }
     };
 
     // ===== OB8：頭目掉落分層 =====
