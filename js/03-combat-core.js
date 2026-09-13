@@ -5,7 +5,8 @@
 let _dps = { player: 0, summon: 0, pet: 0, allies: {} };
 let _dpsAllyTurn = false;   // alliesTick 逐傭兵量測期間為 true：令 _allyDamageMob 不重複計入（回合內輸出已被該傭兵 HP-delta 涵蓋），僅「反擊/居合」等回合外輸出才由 _allyDamageMob 直接歸因
 // 原版方向的魔法係數：1－屬性防禦＋3×max(1, INT提供SP＋道具SP)÷32。
-// OB58 仿正服職業平衡：只把 SP 的傷害權重由 3 降為 1.5；原版仍維持 3。
+// OB58 職業平衡：仿正服 SP 傷害權重由 3 降為 1.5。
+// 測試補丁：舊服暫時同步使用 1.5，方便用相同魔法核心直接比較職業 DPS。
 // 法術階級、magicDmg 固定加值、魔法爆擊、MR、屬性剋制均維持原公式。
 // Fable 的 INT 可超過原版上限，因此 INT 提供的 SP 封頂 33（等同原版 INT 45 → INT-12）。
 // extraMp 仍是畫面上的「總額外魔法點數」；扣除 INT 原始提供量後才是道具／套裝／增益 SP，避免重複計算。
@@ -42,7 +43,9 @@ function magicDamageCoef(dStats, attrDefense, spellTier) {
         typeof window !== 'undefined' &&
         window.OFFICIAL_BALANCE_MODE
     );
-    let _spWeight = _officialMagicBalance ? 1.5 : 3;
+    // 舊服測試同步：兩種入口暫時都使用 OB58 的 1.5 SP 權重。
+    // 保留 _officialMagicBalance 變數方便之後要恢復舊服 3.0 時一行切回。
+    let _spWeight = 1.5;
 
     let base = Math.max(0, 1 - attr + _spWeight * sp / 32);
     return base * (spellTier == null ? 1 : magicTierMult(spellTier));

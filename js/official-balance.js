@@ -7,7 +7,7 @@
  * 2. 確認 INT SP 沒有重複計算 bug，但 SP 本身屬於額外乘區，且再與法術階級倍率相乘
  * 3. 仿正服魔法傷害係數的 SP 權重由 3×SP/32 調整為 1.5×SP/32
  * 4. magicDmg固定加值、法術階級、魔爆、MR、屬性剋制、治癒全部不變
- * 5. 原版 index.html 維持原本 3×SP/32
+ * 5. 測試期間原版 index.html 也同步使用 1.5×SP/32，方便直接比較職業DPS
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
@@ -3094,7 +3094,7 @@
         // OB11 隨機詞綴停用仍維持。
         randomLootAffixDisabled: true,
 
-        originalModeUnchanged: true
+        originalModeSpWeightMatchedForTesting: true
     };
 
     window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
@@ -3573,7 +3573,8 @@
     window.__officialMagicSpBalanceOB58 = true;
 
     const MAGIC58 = {
-        originalSpWeight: 3.0,
+        originalSpWeightBeforeTestSync: 3.0,
+        originalSpWeightCurrentTest: 1.5,
         officialSpWeight: 1.5,
         spDivisor: 32,
 
