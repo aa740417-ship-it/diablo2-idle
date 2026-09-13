@@ -1,20 +1,20 @@
 /*
- * 放置天堂－仿正服平衡層 OB46
+ * 放置天堂－仿正服平衡層 OB47
  * 僅由 official.html 載入，原版 index.html 不受影響。
  *
- * OB46：
- * 1. 藥水／消耗品／卷軸／NPC 商店供需總稽核
- * 2. 一般補給品維持既有定價；沿用 OB10 仿正服 shopPrice +10%，不再額外全面加價
- * 3. 防爆卷改為專屬供應，不再出現在一般 fallback 商店
- * 4. 修正持城堡 8 折 × 仿正服 1.10 後，防爆卷一般商店可低於專屬售價的旁路
- * 5. 飾品強化卷原本就不在一般 SHOP_LISTS，本版不重複修改
+ * OB47：
+ * 1. 非戰鬥收益／攻城經濟總稽核
+ * 2. 確認真正離線收益目前已停用，不存在離線繞過仿正服倍率
+ * 3. 確認 PvP 僅記榮譽戰績，不發裝備、經驗或金幣
+ * 4. 新制攻城維持 1,000,000 金幣入場費
+ * 5. 仿正服舊制肯特／風木／海音攻城同步收取 1,000,000 金幣，堵住免費入口旁路
  */
 (function () {
     if (!window.OFFICIAL_BALANCE_MODE || window.__officialBalanceApplied) return;
     window.__officialBalanceApplied = true;
 
     const CFG = window.OFFICIAL_BALANCE = {
-        version: 'OB46',
+        version: 'OB47',
 
         // 全服基礎倍率
         baseDropMult: 0.55,
@@ -2947,3 +2947,131 @@
     }, 0);
 })();
 /* ===== 仿正服 OB46：消耗品／NPC 商店供需稽核 END ===== */
+
+/* ===== 仿正服 OB47：非戰鬥收益／攻城經濟稽核 START ===== */
+(function officialNonCombatEconomyAuditOB47(){
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialNonCombatEconomyAuditOB47) return;
+    window.__officialNonCombatEconomyAuditOB47 = true;
+
+    const ECON47 = {
+        offlineRewardsDisabled: true,
+        pvpEconomicReward: false,
+
+        newSiegeEntryGold: 1000000,
+
+        // 舊制三城沿用原戰鬥流程，只補仿正服入場費。
+        legacySiegeCities: ['kent', 'windwood', 'heine'],
+        legacySiegeEntryGold: 1000000,
+
+        // 不碰舊制戰鬥內容、城堡獎勵與冷卻。
+        legacySiegeCombatUnchanged: true,
+        legacySiegeRewardUnchanged: true,
+        legacySiegeCooldownUnchanged: true
+    };
+
+    window.OFFICIAL_ECONOMY_AUDIT = Object.assign(
+        {},
+        window.OFFICIAL_ECONOMY_AUDIT || {},
+        ECON47
+    );
+
+    try {
+        if (typeof startSiege === 'function' &&
+            !window.__officialLegacySiegeEntryWrapped) {
+
+            window.__officialLegacySiegeEntryWrapped = true;
+
+            const _officialBaseStartSiegeOB47 = startSiege;
+
+            startSiege = function(faction, city) {
+                const targetCity = String(city || 'kent');
+                const isLegacy = ECON47.legacySiegeCities.includes(targetCity);
+
+                // 只處理舊制三城；其他入口完全交回原本流程。
+                if (!isLegacy) {
+                    return _officialBaseStartSiegeOB47.apply(this, arguments);
+                }
+
+                const wasActive = !!(player && player.siege && player.siege.active);
+
+                // 已在攻城中時，不可再次扣費。
+                if (wasActive) {
+                    return _officialBaseStartSiegeOB47.apply(this, arguments);
+                }
+
+                const fee = ECON47.legacySiegeEntryGold;
+
+                if (!player || Number(player.gold || 0) < fee) {
+                    const nowGold = player ? Number(player.gold || 0) : 0;
+
+                    try {
+                        alert(
+                            '仿正服舊制攻城需要 ' +
+                            fee.toLocaleString() +
+                            ' 金幣。\\n目前：' +
+                            nowGold.toLocaleString()
+                        );
+                    } catch (e) {}
+
+                    try {
+                        logSys(
+                            '<span class="text-red-400">仿正服攻城入場費不足：需要 ' +
+                            fee.toLocaleString() +
+                            ' 金幣。</span>'
+                        );
+                    } catch (e) {}
+
+                    return false;
+                }
+
+                // 先讓原 startSiege 做完原本所有資格判定。
+                const beforeGold = Number(player.gold || 0);
+                const ret = _officialBaseStartSiegeOB47.apply(this, arguments);
+                const nowActive = !!(player && player.siege && player.siege.active);
+
+                // 只有「原本未開戰 → 本次成功開戰」才真正扣款。
+                if (!wasActive && nowActive) {
+                    player.gold = Math.max(
+                        0,
+                        Number(player.gold || beforeGold) - fee
+                    );
+
+                    try {
+                        logSys(
+                            '<span class="text-amber-300">仿正服攻城入場費：-' +
+                            fee.toLocaleString() +
+                            ' 金幣。</span>'
+                        );
+                    } catch (e) {}
+
+                    try { if (typeof updateUI === 'function') updateUI(); } catch (e) {}
+                    try { if (typeof saveGame === 'function') saveGame(); } catch (e) {}
+                }
+
+                return ret;
+            };
+
+            try { window.startSiege = startSiege; } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('[official-OB47] legacy siege entry wrapper failed', e);
+    }
+
+    setTimeout(function(){
+        try {
+            window.OFFICIAL_ECONOMY_AUDIT.runtimeOB47 = {
+                startSiege: typeof startSiege === 'function',
+                legacySiegeEntryWrapped:
+                    !!window.__officialLegacySiegeEntryWrapped,
+                offlineSettleCatchup:
+                    typeof window.offlineSettleCatchup === 'function'
+            };
+
+            console.info(
+                '[official-OB47] non-combat economy audit',
+                window.OFFICIAL_ECONOMY_AUDIT
+            );
+        } catch (e) {}
+    }, 0);
+})();
+/* ===== 仿正服 OB47：非戰鬥收益／攻城經濟稽核 END ===== */
