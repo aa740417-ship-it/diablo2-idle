@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script id="OLD_SERVER_CLOSED_TO_OFFICIAL">
+    // 舊服公開入口關閉：只保留仿正服。
+    // official.html 會先設定 OFFICIAL_BALANCE_MODE，再把 index.html 當底層載入；
+    // 因此仿正服自己載入 index.html 時不會重新導向。
+    (function () {
+        if (window.OFFICIAL_BALANCE_MODE) return;
+        try {
+            var target = new URL('official.html', window.location.href);
+            target.search = window.location.search || '';
+            target.hash = window.location.hash || '';
+            window.location.replace(target.href);
+        } catch (e) {
+            window.location.replace('official.html');
+        }
+    })();
+    </script>
+
     <meta charset="UTF-8">
     <!-- 🚀 v3.0.74 移植參考版優化：禁止瀏覽器快取 HTML→改檔後玩家重整即拿到新版 js/css（免手動硬重載/清快取） -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">

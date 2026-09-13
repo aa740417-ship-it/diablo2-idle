@@ -154,7 +154,12 @@
                 throw new Error('找不到 </body>，無法載入仿正服平衡層');
             }
 
-            html = html.replace('</body>', inject + '\n</body>');
+            html = html.replace(
+                '</body>',
+                inject +
+                '\n<script src="js/official-wiki-sync.js?v=20260914-official-wiki1"><\/script>' +
+                '\n</body>'
+            );
 
             document.open();
             document.write(html);
