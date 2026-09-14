@@ -3500,7 +3500,170 @@ function skillDetail(id){
 }
 
 function mobDetail(id){const d=DB.mobs[id];if(!d)return'找不到資料';const k=knowledge(),ms=[...new Set(k.mobMaps[d.n]||[])],ds=(k.mobDrops[d.n]||[]).sort((a,b)=>(b.rate||0)-(a.rate||0));return `<h2>${esc(d.n)}</h2><div class="awk-tags"><span>Lv.${esc(d.lv||0)}</span>${d.boss?'<span>BOSS</span>':''}<span>${esc(d.race||'-')}</span></div><section><h3>📊 怪物能力</h3><div class="awk-grid"><div>HP ${esc(d.hp||0)}</div><div>AC ${esc(d.ac==null?'-':d.ac)}</div><div>MR ${esc(d.mr||0)}</div><div>EXP ${esc(d.exp||0)}</div><div>屬性 ${esc(ele[d.e]||d.e||'無')}</div><div>行為 ${esc(d.beh||'-')}</div></div></section><section><h3>🗺️ 出沒地圖</h3><p>${ms.map(esc).join('、')||'特殊事件／召喚／階段型怪物'}</p></section><section><h3>🎁 專屬掉落</h3>${ds.length?ds.slice(0,80).map(r=>`<div class="awk-row"><b>${esc((DB.items[r.id]||{}).n||r.id)}</b><em>${r.rate!=null?esc(r.rate+'%'):'特殊'}</em></div>`).join(''):'<p>沒有登記專屬掉落。</p>'}</section>`;}
-function mapDetail(id){const n=knowledge().names[id]||id,ids=(DB.maps&&DB.maps[id])||[],mm=ids.map(x=>({id:x,d:DB.mobs[x]})).filter(x=>x.d);return `<h2>${esc(n)}</h2><div class="awk-tags"><span>${mm.length} 種怪物</span></div><section><h3>👾 怪物池</h3>${mm.length?mm.map(x=>`<button class="awk-link" onclick="AFKWiki.detail('mob','${esc(x.id)}')"><span>${x.d.boss?'👑 ':''}${esc(x.d.n)}</span><em>Lv.${esc(x.d.lv||0)}</em></button>`).join(''):'<p>安全區或沒有固定怪物。</p>'}</section>`;}
+function mapDetail(id){
+    const n=knowledge().names[id]||id;
+    const ids=(DB.maps&&DB.maps[id])||[];
+    const k=knowledge();
+
+    const mm=ids
+        .map(x=>({id:x,d:DB.mobs[x]}))
+        .filter(x=>x.d);
+
+    const monsterHtml=mm.length
+        ? mm.map(x=>{
+            const ds=(k.mobDrops[x.d.n]||[])
+                .slice()
+                .sort((a,b)=>(b.rate||0)-(a.rate||0));
+
+            const dropHtml=ds.length
+                ? `
+                    <div style="
+                        margin:-1px 0 10px 0;
+                        padding:7px 12px 9px 16px;
+                        border:1px solid #26364c;
+                        border-top:0;
+                        border-radius:0 0 8px 8px;
+                        background:#0b1220;
+                    ">
+                        <div style="
+                            color:#94a3b8;
+                            font-size:11px;
+                            font-weight:700;
+                            margin-bottom:4px;
+                        ">🎁 掉落 ${ds.length} 項</div>
+
+                        ${ds.slice(0,80).map(r=>`
+                            <button
+                                type="button"
+                                class="awk-link"
+                                style="
+                                    padding:6px 0;
+                                    font-size:12px;
+                                "
+                                onclick="AFKWiki.detail('item','${esc(r.id)}')"
+                            >
+                                <span>${esc((DB.items[r.id]||{}).n||r.id)}</span>
+                                <em>${r.rate!=null?esc(r.rate+'%'):'特殊'}</em>
+                            </button>
+                        `).join('')}
+                    </div>
+                  `
+                : `
+                    <div style="
+                        margin:-1px 0 10px 0;
+                        padding:7px 12px 9px 16px;
+                        border:1px solid #26364c;
+                        border-top:0;
+                        border-radius:0 0 8px 8px;
+                        background:#0b1220;
+                        color:#94a3b8;
+                        font-size:12px;
+                    ">
+                        🎁 掉落：目前沒有登記專屬掉落
+                    </div>
+                  `;
+
+            return `
+                <div>
+                    <button
+                        class="awk-link"
+                        onclick="AFKWiki.detail('mob','${esc(x.id)}')"
+                    >
+                        <span>${x.d.boss?'👑 ':''}${esc(x.d.n)}</span>
+                        <em>Lv.${esc(x.d.lv||0)}</em>
+                    </button>
+                    ${dropHtml}
+                </div>
+            `;
+        }).join('')
+        : '<p>安全區或沒有固定怪物。</p>';
+
+    const allDrops=new Map();
+
+    mm.forEach(x=>{
+        (k.mobDrops[x.d.n]||[]).forEach(r=>{
+            if(!r || !r.id) return;
+
+            const key=String(r.id);
+            const old=allDrops.get(key)||{
+                id:r.id,
+                best:null,
+                mobs:[]
+            };
+
+            const rate=Number(r.rate);
+
+            if(
+                Number.isFinite(rate) &&
+                (old.best==null || rate>old.best)
+            ){
+                old.best=rate;
+            }
+
+            if(old.mobs.indexOf(x.d.n)<0){
+                old.mobs.push(x.d.n);
+            }
+
+            allDrops.set(key,old);
+        });
+    });
+
+    const total=[...allDrops.values()]
+        .sort((a,b)=>{
+            const ar=a.best==null?-1:a.best;
+            const br=b.best==null?-1:b.best;
+
+            return br-ar ||
+                String((DB.items[a.id]||{}).n||a.id)
+                    .localeCompare(
+                        String((DB.items[b.id]||{}).n||b.id),
+                        'zh-Hant'
+                    );
+        });
+
+    const totalHtml=total.length
+        ? `
+            <section>
+                <h3>📦 本地圖掉落總表</h3>
+                <div class="awk-note" style="margin-bottom:9px">
+                    顯示資料表原始掉率；仿正服實戰仍會套用全域、區域、BOSS 與物品類別倍率。
+                </div>
+
+                ${total.map(r=>`
+                    <button
+                        class="awk-link"
+                        onclick="AFKWiki.detail('item','${esc(r.id)}')"
+                    >
+                        <span>${esc((DB.items[r.id]||{}).n||r.id)}</span>
+                        <em>
+                            ${r.mobs.length} 種怪
+                            ${r.best!=null?'・最高 '+esc(r.best+'%'):''}
+                        </em>
+                    </button>
+                `).join('')}
+            </section>
+          `
+        : '';
+
+    return `
+        <h2>${esc(n)}</h2>
+
+        <div class="awk-tags">
+            <span>${mm.length} 種怪物</span>
+        </div>
+
+        <section>
+            <h3>👾 怪物池</h3>
+            <div class="awk-note" style="margin-bottom:8px">
+                怪物名稱下方直接顯示掉落；點怪物或物品可查看詳細百科。
+            </div>
+            ${monsterHtml}
+        </section>
+
+        ${totalHtml}
+    `;
+}
+
 function system(){return `<div class="awk-hero"><h2>📖 詳細百科</h2><p>收藏是收集進度；百科是攻略查詢。裝備、技能、怪物和地圖都直接讀目前遊戲資料。</p></div><section><h3>⚒️ 強化規則</h3><p>安定值內為安全強化；超過安定值後有失敗風險。武器、防具、飾品依各自規則判定，實際可強化上限與成功率以遊戲目前版本為準。</p></section><section><h3>🎲 裝備詞綴</h3><p>一般裝備可依來源產生祝福、屬性、遠古等特殊能力；遺物不走一般隨機詞綴。百科的「完整能力」直接使用遊戲現行物品資料。</p></section><section><h3>📚 百科用途</h3><p>可查裝備能力與掉落怪、技能學習等級與技能書、怪物能力與掉落、地圖怪物池。之後新增資料也會自動跟著出現。</p></section>`;}
 function home(){return `<div class="awk-hero"><h2>📖 放置天堂・詳細百科</h2><p>輸入裝備、技能、怪物或地圖名稱即可搜尋。</p></div><div class="awk-count"><button onclick="AFKWiki.tab('items')"><b>${Object.keys(DB.items||{}).length}</b><span>裝備／道具</span></button><button onclick="AFKWiki.tab('skills')"><b>${Object.keys(DB.skills||{}).length}</b><span>技能</span></button><button onclick="AFKWiki.tab('mobs')"><b>${Object.keys(DB.mobs||{}).length}</b><span>怪物</span></button><button onclick="AFKWiki.tab('maps')"><b>${Object.keys(DB.maps||{}).length}</b><span>地圖</span></button></div><section><h3>🔎 搜尋提示</h3><p>例如：死亡騎士、沙哈之弓、衝擊之暈、象牙塔。點結果可看更完整資料。</p></section>`;}
 function detail(){const d=S.detail;if(!d)return'';return `<button class="awk-back" onclick="AFKWiki.back()">← 返回列表</button>${d.k==='item'?itemDetail(d.id):d.k==='skill'?skillDetail(d.id):d.k==='mob'?mobDetail(d.id):mapDetail(d.id)}`;}
