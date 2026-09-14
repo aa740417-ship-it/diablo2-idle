@@ -39,7 +39,7 @@
     function mapIdsForMobId(mobId) {
         var out = [];
         try {
-            Object.keys((window.DB && DB.maps) || {}).forEach(function (mapId) {
+            Object.keys(((typeof DB !== 'undefined' ? DB : null) && DB.maps) || {}).forEach(function (mapId) {
                 if ((DB.maps[mapId] || []).indexOf(mobId) >= 0) out.push(mapId);
             });
         } catch (e) {}
@@ -584,7 +584,7 @@
         const groups = {};
 
         try {
-            Object.keys((window.DB && DB.items) || {}).forEach(function (id) {
+            Object.keys(((typeof DB !== 'undefined' ? DB : null) && DB.items) || {}).forEach(function (id) {
                 const d = DB.items[id];
                 if (!d || !d.set) return;
                 const key = String(d.set);
@@ -608,7 +608,7 @@
 
         SPECIAL.forEach(function (s) {
             const valid = s.ids.filter(function (id) {
-                return !!(window.DB && DB.items && DB.items[id]);
+                return !!((typeof DB !== 'undefined' ? DB : null) && DB.items && DB.items[id]);
             });
             if (valid.length === s.ids.length) {
                 out.push({
