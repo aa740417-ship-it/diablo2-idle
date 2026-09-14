@@ -6,7 +6,7 @@ const CLAN_LOCK_KEY = 'fb5_clan_state_v1_lock';
 const CLAN_CREATE_COST = 30000;
 const CLAN_BUFF_HOUR_MS = 60 * 60 * 1000;
 const CLAN_BUFF_HOUR_COST = 5;
-const CLAN_LEVEL_COSTS = [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 250000];
+const CLAN_LEVEL_COSTS = [200, 400, 800, 1600, 3200, 6400, 12800, 25000, 50000];
 const CLAN_BUFF_BY_LEVEL = [
     null,
     { hp:20,  mp:5,  extraDmg:1, extraHit:1, mr:1,  magicDmg:1, hpR:1,  mpR:1,  ac:-1 },
