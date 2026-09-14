@@ -5361,6 +5361,313 @@ function qCraftDetail(id){
 
 
 
+
+/* ===== 🔽 製作百科：材料點擊後原地展開子配方 ===== */
+
+function qCraftRecipeSourcesForItem(itemId){
+    const out=[];
+
+    try{
+        const npcs=qCraftNpcs();
+        const npcMap={};
+
+        npcs.forEach(function(n){
+            npcMap[n.id]=n;
+        });
+
+        Object.keys(CRAFT_RECIPES||{}).forEach(function(npcId){
+            (CRAFT_RECIPES[npcId]||[]).forEach(function(r){
+                if(!r || r.result!==itemId) return;
+
+                const n=npcMap[npcId]||{
+                    id:npcId,
+                    n:npcId,
+                    town:'未知地點'
+                };
+
+                out.push({
+                    npcId:npcId,
+                    npcName:n.n||npcId,
+                    town:n.town||'未知地點',
+                    recipe:r
+                });
+            });
+        });
+    }catch(e){}
+
+    return out;
+}
+
+window.AFKCraftToggle=function(key){
+    const el=document.getElementById('awk-craft-inline-'+key);
+    const btn=document.getElementById('awk-craft-toggle-'+key);
+
+    if(!el) return;
+
+    const open=el.style.display!=='none';
+    el.style.display=open?'none':'block';
+
+    if(btn){
+        btn.setAttribute('aria-expanded',open?'false':'true');
+
+        const mark=btn.querySelector('[data-craft-arrow]');
+        if(mark) mark.textContent=open?'▼':'▲';
+    }
+};
+
+function qCraftInlineMaterial(id,label,need,key,depth,seen){
+    const have=qCraftHave(id);
+    const enough=have>=need;
+    const sources=qCraftRecipeSourcesForItem(id);
+    const canExpand=sources.length>0 && depth<4 && !seen.has(id);
+
+    if(!canExpand){
+        return `
+            <div style="
+                padding:9px 0;
+                border-bottom:1px solid #243247;
+                line-height:1.55;
+            ">
+                ${qCraftItemLink(id,label)}
+
+                <span style="
+                    color:${enough?'#86efac':'#fca5a5'};
+                    font-weight:800;
+                    margin-left:6px;
+                ">
+                    ×${need.toLocaleString()}
+                </span>
+            </div>
+        `;
+    }
+
+    const nextSeen=new Set(seen);
+    nextSeen.add(id);
+
+    const childHtml=sources.map(function(src,ri){
+        const r=src.recipe||{};
+        const subReq=(r.req||[]).map(function(m,mi){
+            const subNeed=Math.max(0,Number(m.cnt||1));
+
+            return qCraftInlineMaterial(
+                m.id,
+                qCraftItemName(m.id),
+                subNeed,
+                key+'-'+ri+'-'+mi,
+                depth+1,
+                nextSeen
+            );
+        }).join('');
+
+        return `
+            <div style="
+                margin-top:8px;
+                padding:10px 11px;
+                border:1px solid #334155;
+                border-radius:9px;
+                background:#0b1220;
+            ">
+                <div style="
+                    color:#fbbf24;
+                    font-size:12px;
+                    font-weight:800;
+                    margin-bottom:5px;
+                ">
+                    🔨 ${esc(src.npcName)}
+                    <span style="color:#94a3b8;font-weight:600;">
+                        ・${esc(src.town)}
+                    </span>
+                </div>
+
+                ${subReq || '<div style="color:#94a3b8;">無材料資料</div>'}
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div style="
+            padding:9px 0;
+            border-bottom:1px solid #243247;
+            line-height:1.55;
+        ">
+            <button
+                id="awk-craft-toggle-${key}"
+                type="button"
+                aria-expanded="false"
+                onclick="AFKCraftToggle('${key}')"
+                style="
+                    padding:0;
+                    border:0;
+                    background:none;
+                    color:#7dd3fc;
+                    font:inherit;
+                    font-weight:800;
+                    text-align:left;
+                    text-decoration:underline;
+                    text-decoration-style:dotted;
+                    text-underline-offset:3px;
+                    cursor:pointer;
+                "
+            >
+                ${esc(label)}
+                <small style="color:#94a3b8;font-weight:600;">
+                    （持有 ${have.toLocaleString()}）
+                </small>
+                <span
+                    data-craft-arrow
+                    style="
+                        display:inline-block;
+                        margin-left:5px;
+                        color:#fbbf24;
+                        text-decoration:none;
+                        font-size:11px;
+                    "
+                >▼</span>
+            </button>
+
+            <span style="
+                color:${enough?'#86efac':'#fca5a5'};
+                font-weight:800;
+                margin-left:6px;
+            ">
+                ×${need.toLocaleString()}
+            </span>
+
+            <div
+                id="awk-craft-inline-${key}"
+                style="
+                    display:none;
+                    margin:9px 0 2px 8px;
+                    padding:9px 10px;
+                    border-left:3px solid #38bdf8;
+                    border-radius:0 9px 9px 0;
+                    background:#0f172a;
+                "
+            >
+                <div style="
+                    color:#bae6fd;
+                    font-weight:800;
+                    font-size:12px;
+                    margin-bottom:5px;
+                ">
+                    📦 ${esc(label)} 的製作材料
+                </div>
+
+                ${childHtml}
+            </div>
+        </div>
+    `;
+}
+
+/* 覆寫製作 NPC 詳情：主材料可原地展開，不再跳離目前頁面 */
+qCraftDetail=function(id){
+    const n=qCraftNpcs().find(function(x){
+        return x.id===id;
+    });
+
+    if(!n){
+        return `
+            <button class="awk-back" onclick="AFKWiki.back()">
+                ← 返回列表
+            </button>
+            <p>找不到這名製作 NPC。</p>
+        `;
+    }
+
+    const recipes=n.recipes.map(function(r,idx){
+        const resultName=qCraftItemName(r.result);
+        const outCnt=Math.max(1,Number(r.yield||1));
+
+        const req=(r.req||[]).map(function(m,mi){
+            const need=Math.max(0,Number(m.cnt||1));
+
+            return qCraftInlineMaterial(
+                m.id,
+                qCraftItemName(m.id),
+                need,
+                'r'+idx+'-m'+mi,
+                0,
+                new Set([r.result])
+            );
+        }).join('');
+
+        return `
+            <section style="
+                margin-top:14px;
+                border:1px solid #334155;
+                border-radius:12px;
+                padding:14px;
+                background:#111c30;
+            ">
+                <div style="
+                    color:#fbbf24;
+                    font-weight:800;
+                    margin-bottom:10px;
+                ">
+                    配方 ${idx+1}
+                </div>
+
+                <div style="
+                    font-size:18px;
+                    margin-bottom:12px;
+                ">
+                    ${qCraftItemLink(r.result,resultName)}
+
+                    ${outCnt>1
+                        ? `<span style="color:#facc15;font-weight:800;"> ×${outCnt}</span>`
+                        : ''
+                    }
+                </div>
+
+                <div style="
+                    color:#94a3b8;
+                    font-size:14px;
+                    margin-bottom:4px;
+                ">
+                    🧰 所需材料
+                    <small style="margin-left:5px;color:#64748b;">
+                        可製作的材料點一下可展開
+                    </small>
+                </div>
+
+                ${req || '<div style="color:#94a3b8;">無材料資料</div>'}
+            </section>
+        `;
+    }).join('');
+
+    return `
+        <button class="awk-back" onclick="AFKWiki.back()">
+            ← 返回列表
+        </button>
+
+        <h2>🔨 ${esc(n.n)}</h2>
+
+        <div class="awk-tags">
+            <span>${esc(n.town)}</span>
+            <span>製作 NPC</span>
+            <span>${n.recipes.length} 項配方</span>
+        </div>
+
+        ${n.d
+            ? `<section style="
+                    margin-top:14px;
+                    border:1px solid #334155;
+                    border-radius:12px;
+                    padding:14px;
+                    line-height:1.7;
+                ">
+                    📜 ${esc(n.d)}
+               </section>`
+            : ''
+        }
+
+        <h3 style="margin-top:18px;">⚒️ 製作清單</h3>
+
+        ${recipes}
+    `;
+};
+
+
 /* ===== 🗡️ 裝備圖鑑 ===== */
 
 function qEquipDexCatLabel(c){
