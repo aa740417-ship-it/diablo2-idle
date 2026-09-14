@@ -408,3 +408,433 @@
         cfg().version || 'official'
     );
 })();
+
+
+/* ===== OFFICIAL_WIKI_SET_TAB_V1 ===== */
+(function () {
+    'use strict';
+
+    if (!window.OFFICIAL_BALANCE_MODE || window.__officialWikiSetTabV1) return;
+    window.__officialWikiSetTabV1 = true;
+
+    const META = {
+        leather: {
+            n: '皮套裝', need: 4,
+            eff: '集齊 4 件：AC -3。'
+        },
+        oasis: {
+            n: '歐西斯套裝', need: 4,
+            eff: '集齊 4 件：AC -3。'
+        },
+        gnome: {
+            n: '侏儒套裝', need: 3,
+            eff: '集齊 3 件：AC -1、HP +5。'
+        },
+        silver: {
+            n: '銀釘套裝', need: 4,
+            eff: '集齊 4 件：AC -3。'
+        },
+        bone: {
+            n: '骷髏套裝', need: 3,
+            eff: '集齊 3 件：AC -2、HP +10。'
+        },
+        steel: {
+            n: '鋼鐵套裝', need: 5,
+            eff: '集齊 5 件：AC -2、傷害減免 +2。'
+        },
+        mage: {
+            n: '法師套裝', need: 2,
+            eff: '集齊 2 件：MP +50、MP 自然恢復量 +1。'
+        },
+        dk: {
+            n: '死亡騎士套裝', need: 4,
+            eff: '集齊 4 件：AC -4，並變身「真‧死亡騎士」；變身同時提供額外傷害、命中與專屬攻擊速度。'
+        },
+        kurt: {
+            n: '克特套裝', need: 4,
+            eff: '集齊 4 件：AC -4，並變身「真‧克特」；變身同時提供額外傷害、命中與專屬攻擊速度。'
+        },
+        mr: {
+            n: '抗魔套裝', need: 3,
+            eff: '集齊 3 件：MR +5。'
+        },
+        guard: {
+            n: '守護套裝', need: 3,
+            eff: '集齊 3 件：AC -1。'
+        },
+        kinglord: {
+            n: '四大軍王套裝', need: 4,
+            eff: '集齊 4 件：HP +30、MP +30、HP 自然恢復量 +10、MP 自然恢復量 +10、魅力 +3。'
+        },
+        demon: {
+            n: '惡魔套裝', need: 4,
+            eff: '集齊 4 件：AC -2、HP 自然恢復量 +5，並變身「惡魔」；變身另提供額外傷害、命中、魔法傷害、SP 與專屬速度。'
+        },
+        darkelf: {
+            n: '黑暗妖精套裝', need: 3,
+            eff: '集齊 3 件：力量 -2、敏捷 +2、AC -3、HP 自然恢復量 -2、MP 自然恢復量 -7，並變身「高等黑暗精靈」；變身另提供遠距離傷害／命中與專屬速度。'
+        },
+        orin: {
+            n: '歐林西瑪套裝', need: 2,
+            eff: '集齊 2 件：六項基本屬性各 +1、AC -5、HP +50。'
+        },
+        icequeen_charm: {
+            n: '冰之女王魅力套裝', need: 3,
+            eff: '集齊 3 件：力量 +2、魅力 +2、AC -5、HP +100、MP 自然恢復量 +4、水屬性抗性 +20。公主限定。'
+        },
+        frost: {
+            n: '寒冰套裝', need: 3,
+            eff: '集齊 3 件：體質 +3、AC -5、HP +100、HP 自然恢復量 +8、MP 自然恢復量 +4、MR +15、水屬性抗性 +20。'
+        },
+        bluepirate: {
+            n: '藍海賊套裝', need: 4,
+            eff: '集齊頭巾、皮盔甲、手套、長靴 4 件：智力 +1、AC -1、HP +10。藍海賊斗篷不計入套裝件數。'
+        },
+        emperor: {
+            n: '真．冥皇套裝', need: 5,
+            eff: '集齊 5 件：AC -20、HP +100、MP +20、HP 自然恢復量 +10、攻擊速度 +30%、近／遠距離傷害 +5。'
+        },
+        priest: {
+            n: '司祭苦行套裝', need: 5,
+            eff: '集齊 5 件：AC -50、MR +50、HP +300、MP 自然恢復量 +30；近／遠／魔法爆擊率各 +5%，爆擊傷害各 +50%。'
+        }
+    };
+
+    const SPECIAL = [
+        {
+            id: 'curse_red',
+            n: '淨化＋紅色詛咒耳環',
+            need: 2,
+            ids: ['acc_purify_earring', 'acc_curse_red'],
+            eff: '同時裝備：力量 +2、體質 -2。'
+        },
+        {
+            id: 'curse_blue',
+            n: '淨化＋藍色詛咒耳環',
+            need: 2,
+            ids: ['acc_purify_earring', 'acc_curse_blue'],
+            eff: '同時裝備：智力 +2、精神 -2。'
+        },
+        {
+            id: 'curse_green',
+            n: '淨化＋綠色詛咒耳環',
+            need: 2,
+            ids: ['acc_purify_earring', 'acc_curse_green'],
+            eff: '同時裝備：敏捷 +2、魅力 -2。'
+        }
+    ];
+
+    const CLS = {
+        all: '全職業',
+        royal: '王族',
+        knight: '騎士',
+        elf: '妖精',
+        mage: '法師',
+        dark: '黑暗妖精',
+        illusion: '幻術士',
+        dragon: '龍騎士',
+        warrior: '戰士'
+    };
+
+    const SLOT = {
+        helm: '頭盔',
+        armor: '盔甲',
+        tshirt: 'T恤',
+        cloak: '斗篷',
+        gloves: '手套',
+        boots: '長靴',
+        shield: '盾牌',
+        amulet: '項鍊',
+        belt: '腰帶',
+        ear: '耳環',
+        ring: '戒指',
+        wpn: '武器'
+    };
+
+    function esc(v) {
+        return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+        });
+    }
+
+    function reqText(d) {
+        if (!d || !d.req || d.req === 'all') return '全職業';
+        return String(d.req).split(',').map(function (x) {
+            return CLS[x] || x;
+        }).join('／');
+    }
+
+    function itemSub(d) {
+        if (!d) return '';
+        const parts = [];
+        if (d.type === 'wpn') {
+            if (d.dmgS != null || d.dmgL != null) {
+                parts.push('傷害 ' + (d.dmgS || 0) + '/' + (d.dmgL || 0));
+            }
+        } else if (d.ac != null) {
+            parts.push('AC ' + (d.ac > 0 ? '-' + d.ac : String(d.ac)));
+        }
+        if (d.mr) parts.push('MR +' + d.mr);
+        if (d.mhp) parts.push('HP +' + d.mhp);
+        if (d.mmp) parts.push('MP +' + d.mmp);
+        return parts.join('・');
+    }
+
+    function collectSets() {
+        const groups = {};
+
+        try {
+            Object.keys((window.DB && DB.items) || {}).forEach(function (id) {
+                const d = DB.items[id];
+                if (!d || !d.set) return;
+                const key = String(d.set);
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(id);
+            });
+        } catch (e) {}
+
+        const out = Object.keys(groups).map(function (key) {
+            const meta = META[key] || {};
+            const ids = groups[key].slice();
+            return {
+                id: key,
+                n: meta.n || key,
+                need: meta.need || ids.length,
+                ids: ids,
+                eff: meta.eff || '此套裝已存在於目前遊戲資料，效果以角色能力實際套用結果為準。',
+                special: false
+            };
+        });
+
+        SPECIAL.forEach(function (s) {
+            const valid = s.ids.filter(function (id) {
+                return !!(window.DB && DB.items && DB.items[id]);
+            });
+            if (valid.length === s.ids.length) {
+                out.push({
+                    id: 'special:' + s.id,
+                    n: s.n,
+                    need: s.need,
+                    ids: valid,
+                    eff: s.eff,
+                    special: true
+                });
+            }
+        });
+
+        out.sort(function (a, b) {
+            return a.n.localeCompare(b.n, 'zh-Hant');
+        });
+
+        return out;
+    }
+
+    function findSet(id) {
+        return collectSets().find(function (x) {
+            return x.id === id;
+        }) || null;
+    }
+
+    function ensureButton() {
+        const tabs = document.getElementById('awk-tabs');
+        if (!tabs) return null;
+
+        let btn = tabs.querySelector('[data-awk-set-tab="1"]');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-awk-set-tab', '1');
+            btn.textContent = '套裝';
+            btn.onclick = function () {
+                window.AFKWiki.tab('sets');
+            };
+            tabs.appendChild(btn);
+        }
+        return btn;
+    }
+
+    let active = false;
+
+    function markTab() {
+        const tabs = document.getElementById('awk-tabs');
+        if (!tabs) return;
+        const btn = ensureButton();
+        if (!btn) return;
+
+        if (active) {
+            Array.from(tabs.querySelectorAll('button')).forEach(function (b) {
+                b.classList.remove('on');
+            });
+            btn.classList.add('on');
+        }
+    }
+
+    function renderList() {
+        active = true;
+        const body = document.getElementById('awk-body');
+        if (!body) return;
+
+        const input = document.getElementById('awk-search');
+        const q = (input ? input.value : '').trim().toLowerCase();
+
+        const rows = collectSets().filter(function (s) {
+            if (!q) return true;
+            const itemNames = s.ids.map(function (id) {
+                return (DB.items[id] && DB.items[id].n) || id;
+            }).join(' ');
+            return (s.n + ' ' + s.eff + ' ' + itemNames).toLowerCase().includes(q);
+        });
+
+        body.innerHTML =
+            '<div class="awk-hero">' +
+                '<h2>🧩 仿正服套裝百科</h2>' +
+                '<p>列出目前遊戲真正有套裝標記的裝備，以及角色能力重算中實際套用的套裝效果。點套裝可查看全部部件；再點部件可接著看物品能力與掉落來源。</p>' +
+            '</div>' +
+            '<div class="awk-note">目前共 ' + rows.length + ' 組符合條件；可直接用上方搜尋套裝名或部件名。</div>' +
+            '<div class="awk-list">' +
+            (rows.length
+                ? rows.map(function (s) {
+                    return '<button class="awk-card" onclick="AFKWiki.detail(\'set\',\'' + esc(s.id) + '\')">' +
+                        '<div><b>' + esc(s.n) + '</b>' +
+                        '<span>' + esc(s.eff) + '</span></div>' +
+                        '<em>' + esc(s.need + ' 件效果') + '</em><i>›</i></button>';
+                }).join('')
+                : '<div class="awk-empty">沒有符合的套裝資料。</div>') +
+            '</div>';
+
+        body.scrollTop = 0;
+        markTab();
+    }
+
+    function renderDetail(id) {
+        active = true;
+        const body = document.getElementById('awk-body');
+        if (!body) return;
+
+        const s = findSet(id);
+        if (!s) {
+            renderList();
+            return;
+        }
+
+        const pieces = s.ids.map(function (iid) {
+            const d = DB.items[iid] || {};
+            const slot = d.type === 'wpn' ? '武器' : (SLOT[d.slot] || d.slot || '裝備');
+            const sub = [slot, reqText(d), itemSub(d)].filter(Boolean).join('・');
+
+            return '<button class="awk-link" onclick="AFKWiki.detail(\'item\',\'' + esc(iid) + '\')">' +
+                '<span><b>' + esc(d.n || iid) + '</b><small style="display:block;color:#94a3b8;margin-top:2px">' + esc(sub) + '</small></span>' +
+                '<em>查看物品 ›</em></button>';
+        }).join('');
+
+        body.innerHTML =
+            '<button class="awk-back" onclick="AFKWiki.tab(\'sets\')">← 返回套裝列表</button>' +
+            '<h2>' + esc(s.n) + '</h2>' +
+            '<div class="awk-tags">' +
+                '<span>' + esc(s.ids.length + ' 個部件') + '</span>' +
+                '<span>' + esc(s.need + ' 件發動') + '</span>' +
+                (s.special ? '<span>特殊組合</span>' : '<span>一般套裝</span>') +
+            '</div>' +
+            '<section>' +
+                '<h3>✨ 套裝效果</h3>' +
+                '<p>' + esc(s.eff) + '</p>' +
+            '</section>' +
+            '<section>' +
+                '<h3>🧩 套裝部件</h3>' +
+                (pieces || '<p>找不到部件資料。</p>') +
+            '</section>' +
+            '<section>' +
+                '<h3>🎁 掉落／取得方式</h3>' +
+                '<p>點上方任一部件進入物品詳情，即可查看該部件目前百科登記的掉落來源與取得資料。</p>' +
+            '</section>';
+
+        body.scrollTop = 0;
+        markTab();
+    }
+
+    function decorateCurrent() {
+        ensureButton();
+        if (active) markTab();
+    }
+
+    function install() {
+        if (!window.AFKWiki || window.AFKWiki.__officialSetTabWrapped) return false;
+
+        const api = window.AFKWiki;
+        api.__officialSetTabWrapped = true;
+
+        const oldOpen = api.open;
+        if (typeof oldOpen === 'function') {
+            api.open = function () {
+                active = false;
+                const r = oldOpen.apply(this, arguments);
+                setTimeout(decorateCurrent, 0);
+                return r;
+            };
+        }
+
+        const oldTab = api.tab;
+        api.tab = function (tab) {
+            if (tab === 'sets') {
+                renderList();
+                return;
+            }
+            active = false;
+            const r = oldTab.apply(this, arguments);
+            setTimeout(decorateCurrent, 0);
+            return r;
+        };
+
+        const oldDetail = api.detail;
+        api.detail = function (kind, id) {
+            if (kind === 'set') {
+                renderDetail(String(id || ''));
+                return;
+            }
+
+            if (active && kind === 'item') {
+                active = false;
+                const r = oldDetail.apply(this, arguments);
+                setTimeout(decorateCurrent, 0);
+                return r;
+            }
+
+            active = false;
+            const r = oldDetail.apply(this, arguments);
+            setTimeout(decorateCurrent, 0);
+            return r;
+        };
+
+        const oldBack = api.back;
+        if (typeof oldBack === 'function') {
+            api.back = function () {
+                active = false;
+                const r = oldBack.apply(this, arguments);
+                setTimeout(decorateCurrent, 0);
+                return r;
+            };
+        }
+
+        setTimeout(function () {
+            decorateCurrent();
+            const input = document.getElementById('awk-search');
+            if (input && !input.__officialSetSearchBound) {
+                input.__officialSetSearchBound = true;
+                input.addEventListener('input', function () {
+                    if (active) setTimeout(renderList, 0);
+                });
+            }
+        }, 0);
+
+        return true;
+    }
+
+    if (!install()) {
+        let tries = 0;
+        const timer = setInterval(function () {
+            if (install() || ++tries > 40) clearInterval(timer);
+        }, 250);
+    }
+
+    console.info('[official-wiki-set-tab] enabled');
+})();
