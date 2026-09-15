@@ -93,6 +93,41 @@
         rem_fang:'遺骸・牙', rem_heart:'遺骸・心', rem_flesh:'遺骸・肉', rem_claw:'遺骸・爪'
     };
 
+    function ensurePageTabs() {
+        const frame = el('equipment-window-frame');
+        const slots = el('equipment-window-slots');
+        if (!frame || !slots || el('equipment-page-tabs')) return;
+
+        const bar = document.createElement('div');
+        bar.id = 'equipment-page-tabs';
+
+        const normal = document.createElement('button');
+        normal.id = 'equipment-tab-normal';
+        normal.type = 'button';
+        normal.textContent = '⚔️ 一般裝備';
+        normal.onclick = function () {
+            page = 0;
+            const frame = el('equipment-window-frame');
+            if (frame) frame.scrollTop = 0;
+            refreshEquipmentWindow();
+        };
+
+        const remains = document.createElement('button');
+        remains.id = 'equipment-tab-remains';
+        remains.type = 'button';
+        remains.textContent = '💀 遺骸';
+        remains.onclick = function () {
+            page = 1;
+            const frame = el('equipment-window-frame');
+            if (frame) frame.scrollTop = 0;
+            refreshEquipmentWindow();
+        };
+
+        bar.appendChild(normal);
+        bar.appendChild(remains);
+        frame.insertBefore(bar, slots);
+    }
+
     function ensureListStyle() {
         if (el('equipment-list-style')) return;
         const style = document.createElement('style');
@@ -100,6 +135,33 @@
         style.textContent = `
         #equipment-window-frame{width:min(100%,520px)!important;max-width:520px!important;height:auto!important;min-height:0!important;background:#111b22!important;border:1px solid #52616b!important;overflow:hidden!important;}
         #equipment-window-frame .equipment-window-bg{display:none!important;}
+        #equipment-window-frame .equipment-window-arrow{display:none!important;}
+        #equipment-page-tabs{
+            position:sticky!important;
+            top:0!important;
+            z-index:30!important;
+            display:grid!important;
+            grid-template-columns:1fr 1fr!important;
+            gap:6px!important;
+            padding:8px!important;
+            background:#0d171d!important;
+            border-bottom:1px solid #52616b!important;
+        }
+        #equipment-page-tabs button{
+            min-height:42px!important;
+            border:1px solid #52616b!important;
+            border-radius:5px!important;
+            background:#18252d!important;
+            color:#aebbc2!important;
+            font-size:14px!important;
+            font-weight:700!important;
+        }
+        #equipment-page-tabs button.active{
+            background:#173d60!important;
+            color:#ffffff!important;
+            border-color:#4c91c7!important;
+            box-shadow:inset 0 0 8px rgba(77,155,210,.35)!important;
+        }
         #equipment-window-slots{position:relative!important;inset:auto!important;width:100%!important;height:auto!important;padding:8px!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;gap:4px!important;}
         #equipment-window-slots .equipment-visual-slot{position:relative!important;left:auto!important;top:auto!important;width:100%!important;height:48px!important;min-height:48px!important;transform:none!important;display:grid!important;grid-template-columns:88px 38px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;padding:4px 8px!important;box-sizing:border-box!important;border:1px solid #394a54!important;border-radius:3px!important;background:linear-gradient(180deg,#17242c,#10191f)!important;color:#dce7ec!important;text-align:left!important;}
         #equipment-window-slots .equipment-visual-slot:active{background:#22333d!important;}
@@ -164,6 +226,7 @@
     function renderSlots() {
         if (typeof player === 'undefined' || !player || !player.eq) return;
         ensureListStyle();
+        ensurePageTabs();
         const host = el('equipment-window-slots');
         host.innerHTML = '';
         PAGE_SLOTS[page].forEach(pos => {
@@ -222,6 +285,17 @@
         pageOne.classList.toggle('active', page === 0); pageTwo.classList.toggle('active', page === 1);
         pageOne.setAttribute('aria-pressed', page === 0 ? 'true' : 'false');
         pageTwo.setAttribute('aria-pressed', page === 1 ? 'true' : 'false');
+
+        const normalTab = el('equipment-tab-normal');
+        const remainsTab = el('equipment-tab-remains');
+        if (normalTab) {
+            normalTab.classList.toggle('active', page === 0);
+            normalTab.setAttribute('aria-pressed', page === 0 ? 'true' : 'false');
+        }
+        if (remainsTab) {
+            remainsTab.classList.toggle('active', page === 1);
+            remainsTab.setAttribute('aria-pressed', page === 1 ? 'true' : 'false');
+        }
     }
 
     function fitEquipmentWindowToViewport() {
@@ -331,6 +405,8 @@
         if (!frame) return;
         const win = el('equipment-window');
         if (win) win.classList.add('equipment-window-embedded');
+        ensureListStyle();
+        ensurePageTabs();
         const background = frame.querySelector('.equipment-window-bg');
         if (background) {
             background.onerror = function () {
