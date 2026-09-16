@@ -328,6 +328,12 @@ function recomputeStats() {
         let _wAtt = getAttrAffix(p.eq.wpn.attr);
         if (_wAtt) { d.extraDmg += _wAtt.dmg; d.extraMp += _wAtt.mp; }
 
+        // 🔥 高強化武器：+10 起，每提高 1 階，額外傷害 +1
+        let _highWpnEn = capEn(p.eq.wpn.en, w);
+        if (_highWpnEn >= 10) {
+            d.extraDmg += (_highWpnEn - 9);
+        }
+
     }
 
     // ⚔️ 迅猛雙斧副手武器：祝福/遠古/屬性比照主武器計入 global d（與其他裝備一致疊加；玩家＋傭兵 buildAlly 換身共用本函式）。剋制屬性仍走 getPhysicalDmg 副手揮擊（用 offwpn 自身屬性）
@@ -384,6 +390,14 @@ d.mr += (baseMr + bonusMr);
         if(ed.immSilence) d.immSilence = true;                // 🏺 v3.5.27 被敲爛的半邊頭盔：免疫沉默
         if(ed.resNone) d.resNone += ed.resNone;               // 🛡️ v3.3.29 無屬性抗性（紅騎士盾牌/反射之盾/阿茲特的反光石·只對魔法）
         if(ed.dr) d.dr += ed.dr;   // 🛡️ 防具/飾品固定傷害減免（信念之盾 +2、巴風特盔甲 +2）
+
+        // 🛡️ 高強化防具：+10 起，每提高 1 階，傷害減免 +1
+        if(ed.type === 'arm') {
+            let _highArmEn = capEn(e.en, ed);
+            if (_highArmEn >= 10) {
+                d.dr += (_highArmEn - 9);
+            }
+        }
         if(ed.drEnFrom7Max3) d.dr += Math.min(3, Math.max(0, capEn(e.en, ed) - 6));   // 🐉 v3.7.69 安塔瑞斯四防具：強化+7 傷害減免+1，之後每+1再+1，最高+3（與基礎 dr:3 合計上限 +6）·公式同巴風特魔杖 mdmgEnFrom7Max3
         if(ed.hitstunReduce) d.hitstunReduce += ed.hitstunReduce;   // 🏺 不動的鋼鐵堅壁：受傷硬直 -0.5 秒（-5 tick）→先累加·於變身速度覆蓋後統一扣（v3.1.30 審查修：原本直接扣會被 POLY_TIERS 的 d.hitstun=pf.stun 蓋掉）
         if(ed.crushDr) d.crushDr += ed.crushDr;        // 🏺 遺物 妖魔的兜襠布：受到重擊時傷害減少 crushDr%（於 js/04 受擊路徑套用）

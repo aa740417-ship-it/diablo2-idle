@@ -1014,6 +1014,9 @@ function buildItemDescHTML(item) {
         if (_showEn > 0 && typeof enhanceWpnBonus === 'function') {
             let _enBonus = enhanceWpnBonus(_showEn);
             desc += `<br><span class="text-violet-300 font-bold">強化 +${_showEn}：${dmgLabel} +${_enBonus.dmg}、${hitLabel} +${_enBonus.hit}</span>`;
+            if (_showEn >= 10) {
+                desc += `<br><span class="text-rose-300 font-bold">高強化加成：額外傷害 +${_showEn - 9}</span>`;
+            }
         }
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
@@ -1304,6 +1307,14 @@ function buildItemDescHTML(item) {
     // ⚖️ 負重：計入負重的裝備（武器/防具/飾品）顯示重量
     if ((d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') && ITEM_WEIGHTS[d.n] !== undefined) {
         desc += `<br><span class="text-amber-300">重量: ${ITEM_WEIGHTS[d.n]}</span>`;
+    }
+
+    // 🛡️ 高強化防具加成顯示
+    if (d.type === 'arm') {
+        let _showArmEn = Math.max(0, Number(item.en) || 0);
+        if (_showArmEn >= 10) {
+            desc += `<br><span class="text-sky-300 font-bold">高強化加成：傷害減免 +${_showArmEn - 9}</span>`;
+        }
     }
 
     // 🔧 安定值 / 無法強化（武器/防具/飾品）
