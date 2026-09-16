@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 7 =====
+// ===== 🧙 天堂M風格變身系統 Phase 8 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -992,6 +992,93 @@
     return success;
   }
 
+  // ===== Phase 8：一鍵合成全部 =====
+  // 對指定階級持續合成，直到「重複素材」不足 4 張才停止。
+  // 整批只 save / calc / render 一次，避免手機連續重繪造成卡頓。
+  function transformFuseAll(tier) {
+    const cfg = TRANSFORM_FUSION_CONFIG[tier];
+    if (!cfg) return false;
+
+    let mats = fusionMaterialCount(tier);
+    if (mats < cfg.need) {
+      try {
+        if (typeof logSys === 'function') {
+          logSys(`<span class="text-amber-300">${TRANSFORM_TIERS[tier].short}重複素材不足 ${cfg.need} 張，無法一鍵合成。</span>`);
+        }
+      } catch(e) {}
+      render();
+      return false;
+    }
+
+    const rec = fusionStateFor(tier);
+    const rewardCount = {};
+    let attempts = 0;
+    let successes = 0;
+    let failures = 0;
+    let pitySuccesses = 0;
+
+    // 正常情況一定會收斂：成功淨消耗4張，失敗返1張＝淨消耗3張。
+    // 2000 次上限只是防止異常資料造成無限迴圈。
+    while (fusionMaterialCount(tier) >= cfg.need && attempts < 2000) {
+      const guaranteed = rec.fail >= (cfg.pity - 1);
+
+      if (!consumeFusionMaterials(tier, cfg.need)) break;
+
+      const success = guaranteed || Math.random() < cfg.success;
+      attempts++;
+
+      if (success) {
+        const result = randomCardOfTier(cfg.next);
+        if (!result) break;
+        addFusionReward(result, 1);
+        rewardCount[result.id] = (rewardCount[result.id] || 0) + 1;
+        successes++;
+        if (guaranteed) pitySuccesses++;
+        rec.fail = 0;
+      } else {
+        const result = randomCardOfTier(tier);
+        if (result) addFusionReward(result, 1);
+        failures++;
+        rec.fail = Math.min(cfg.pity - 1, rec.fail + 1);
+      }
+    }
+
+    saveState();
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+
+    try {
+      if (typeof logSys === 'function') {
+        const ti = TRANSFORM_TIERS[tier];
+        const ni = TRANSFORM_TIERS[cfg.next];
+
+        logSys(
+          `<span class="font-bold" style="color:${ti.color}">⚡ ${ti.short}一鍵合成完成</span>：` +
+          `共 ${attempts} 次，` +
+          `<span class="text-emerald-300">成功 ${successes}</span>／` +
+          `<span class="text-slate-300">失敗 ${failures}</span>` +
+          (pitySuccesses ? `／<span class="text-amber-300">保底成功 ${pitySuccesses}</span>` : '') +
+          `，剩餘重複素材 ${fusionMaterialCount(tier)} 張。`
+        );
+
+        const rewards = Object.entries(rewardCount)
+          .map(([id, n]) => ({ card:cardById(id), n }))
+          .filter(x => x.card)
+          .sort((a,b) => (b.n - a.n) || a.card.name.localeCompare(b.card.name));
+
+        if (rewards.length) {
+          const txt = rewards.map(x =>
+            `<span style="color:${ni.color};font-weight:700">【${ni.short}】${esc(x.card.name)}×${x.n}</span>`
+          ).join('、');
+          logSys(`🎁 合成成果：${txt}`);
+        }
+      }
+    } catch(e) {}
+
+    render();
+    return attempts > 0;
+  }
+
   // ===== UI =====
   function ensureDom() {
     let root = document.getElementById('transform-book');
@@ -1112,7 +1199,8 @@
         <div class="text-xl font-bold text-purple-300">🔥 變身合成</div>
         <div class="text-sm text-slate-300 mt-2">
           每次消耗 4 張同階「重複變身」。每種變身的第一張永久保留，不會被合成吃掉。
-          合成失敗會返還 1 張隨機同階變身，並累積保底。
+          合成失敗會返還 1 張隨機同階變身，並累積保底。<br>
+          「一鍵合成全部」會持續合到該階重複素材不足 4 張為止。
         </div>
       </div>
       <div class="grid grid-cols-1 gap-3">
@@ -1161,7 +1249,13 @@
               <button class="btn w-full mt-4 py-3 font-bold ${can ? 'bg-purple-800 text-purple-100' : 'bg-slate-800 text-slate-500'}"
                       ${can ? '' : 'disabled'}
                       onclick="transformFuse('${row.tier}')">
-                ${can ? `🔥 合成 ${row.title}` : `還缺 ${Math.max(0, cfg.need - mats)} 張重複卡`}
+                ${can ? `🔥 合成 1 次 ${row.title}` : `還缺 ${Math.max(0, cfg.need - mats)} 張重複卡`}
+              </button>
+
+              <button class="btn w-full mt-2 py-3 font-bold ${can ? 'bg-cyan-900 text-cyan-100 border-cyan-700' : 'bg-slate-800 text-slate-500'}"
+                      ${can ? '' : 'disabled'}
+                      onclick="transformFuseAll('${row.tier}')">
+                ${can ? `⚡ 一鍵合成全部重複卡` : `⚡ 暫無可批次合成素材`}
               </button>
             </div>`;
         }).join('')}
@@ -1308,6 +1402,7 @@
   window.transformCompletedCollections = completedTransformCollectionIds;
   window.applyTransformCollectionStats = applyTransformCollectionStats;
 
+  window.transformFuseAll = transformFuseAll;
   window.transformFuse = transformFuse;
   window.transformFusionMaterialCount = fusionMaterialCount;
   window.TRANSFORM_FUSION_CONFIG = TRANSFORM_FUSION_CONFIG;
