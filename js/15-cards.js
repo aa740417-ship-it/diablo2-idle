@@ -183,9 +183,9 @@ function rollCardDrops(mob) {
     const nm = CARD_DROP_ALIAS[mob.n] || mob.n;   // 🐉 後續階無卡的鏈（安塔瑞斯）→ 打倒最終階＝掉鏈根那張卡
     if (!CARD_MOB_INFO[nm]) return;
     const chainPool = CARD_CHAIN_BY_FINAL[nm] || null;   // 最終階＝擲中時整鏈隨機（僅限整鏈都有卡者·如九尾狐）
-    _cardDropRoll(nm, 3, 0.00001, chainPool);    // 金卡 0.001%
-    _cardDropRoll(nm, 2, 0.0001, chainPool);     // 銀卡 0.01%
-    _cardDropRoll(nm, 1, 0.001, chainPool);      // 普卡 0.1%
+    _cardDropRoll(nm, 3, 0.0002, chainPool);     // 金卡 0.02%（約 1/5000）
+    _cardDropRoll(nm, 2, 0.002, chainPool);      // 銀卡 0.2%（約 1/500）
+    _cardDropRoll(nm, 1, 0.02, chainPool);       // 普卡 2%（約 1/50）
 }
 // 🎴 加分登錄 + 開通溢出退費（普/銀/金共用·useCardItem 與 acquireCard 單一真相）。回傳 {useN, overflow}。
 function _cardRegister(name, tier, count) {
