@@ -1,10 +1,25 @@
-// ===== 🧙 變身卡系統 Phase 1：介面／收藏／角色裝備骨架 =====
-// 先建立骨架；尚未接戰鬥能力與正式合成。
+// ===== 🧙 天堂M風格變身系統 Phase 2 =====
+// 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
+// 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
+// 重複卡保留數量，Phase 3 供合成使用。
 
 (function () {
   'use strict';
 
   const STORE_KEY = 'lineage_transform_collection_v1';
+  const TRANSFORM_CARD_ITEM_ID = 'item_transform_card';
+
+  // ===== 可調整機率 =====
+  // 每隻真正死亡並結算的地圖怪物，都有同一機率掉 1 張變身卡。
+  const TRANSFORM_CARD_DROP_RATE = 0.002; // 0.2% = 約 1/500
+
+  // 使用變身卡後的階級機率，合計必須為 1。
+  const TRANSFORM_OPEN_RATES = [
+    { tier:'red',    rate:0.900 }, // 90%
+    { tier:'purple', rate:0.080 }, // 8%
+    { tier:'gold',   rate:0.018 }, // 1.8%
+    { tier:'cyan',   rate:0.002 }  // 0.2%
+  ];
 
   const TRANSFORM_TIERS = {
     red:    { name:'英雄', short:'紅變', color:'#ef4444', order:1 },
@@ -24,16 +39,47 @@
     warrior:  { name:'戰士', icon:'⚔️' }
   };
 
-  // Phase 1：八職各一張紅變。
+  // ===== 8 職 × 4 階 = 32 張 =====
   const TRANSFORM_CARDS = [
-    { id:'tr_red_royal_01',    name:'赤焰君主',   tier:'red', cls:'royal',    planned:'近傷／命中／隊伍增益' },
-    { id:'tr_red_knight_01',   name:'鋼鐵守護者', tier:'red', cls:'knight',   planned:'近傷／命中／減傷' },
-    { id:'tr_red_elf_01',      name:'風痕神射手', tier:'red', cls:'elf',      planned:'遠傷／遠命／連射強化' },
-    { id:'tr_red_mage_01',     name:'星界賢者',   tier:'red', cls:'mage',     planned:'魔攻／魔命／施法速度' },
-    { id:'tr_red_dark_01',     name:'夜刃追獵者', tier:'red', cls:'dark',     planned:'近傷／暴擊／雙擊強化' },
-    { id:'tr_red_dragon_01',   name:'赤鱗破軍',   tier:'red', cls:'dragon',   planned:'近傷／命中／弱點曝光強化' },
-    { id:'tr_red_illusion_01', name:'夢境支配者', tier:'red', cls:'illusion', planned:'魔攻／魔命／幻術技能強化' },
-    { id:'tr_red_warrior_01',  name:'狂嵐戰王',   tier:'red', cls:'warrior',  planned:'近傷／HP／反擊強化' }
+    // 紅變
+    { id:'tr_red_royal_01',    name:'赤焰君主',     tier:'red', cls:'royal',    planned:'近傷／命中／隊伍增益' },
+    { id:'tr_red_knight_01',   name:'鋼鐵守護者',   tier:'red', cls:'knight',   planned:'近傷／命中／減傷' },
+    { id:'tr_red_elf_01',      name:'風痕神射手',   tier:'red', cls:'elf',      planned:'遠傷／遠命／連射強化' },
+    { id:'tr_red_mage_01',     name:'星界賢者',     tier:'red', cls:'mage',     planned:'魔攻／魔命／施法速度' },
+    { id:'tr_red_dark_01',     name:'夜刃追獵者',   tier:'red', cls:'dark',     planned:'近傷／暴擊／雙擊強化' },
+    { id:'tr_red_dragon_01',   name:'赤鱗破軍',     tier:'red', cls:'dragon',   planned:'近傷／命中／弱點曝光強化' },
+    { id:'tr_red_illusion_01', name:'夢境支配者',   tier:'red', cls:'illusion', planned:'魔攻／魔命／幻術技能強化' },
+    { id:'tr_red_warrior_01',  name:'狂嵐戰王',     tier:'red', cls:'warrior',  planned:'近傷／HP／反擊強化' },
+
+    // 紫變
+    { id:'tr_purple_royal_01',    name:'黎明帝王',       tier:'purple', cls:'royal',    planned:'近傷／命中／統御強化' },
+    { id:'tr_purple_knight_01',   name:'深淵劍聖',       tier:'purple', cls:'knight',   planned:'近傷／命中／減傷強化' },
+    { id:'tr_purple_elf_01',      name:'蒼穹神弓',       tier:'purple', cls:'elf',      planned:'遠傷／遠命／連射增幅' },
+    { id:'tr_purple_mage_01',     name:'奧術大賢者',     tier:'purple', cls:'mage',     planned:'魔攻／魔命／施法速度強化' },
+    { id:'tr_purple_dark_01',     name:'月蝕暗殺者',     tier:'purple', cls:'dark',     planned:'近傷／暴擊／雙擊增幅' },
+    { id:'tr_purple_dragon_01',   name:'蒼龍戰將',       tier:'purple', cls:'dragon',   planned:'近傷／命中／弱點傷害增幅' },
+    { id:'tr_purple_illusion_01', name:'虛界操演者',     tier:'purple', cls:'illusion', planned:'魔攻／魔命／幻術增幅' },
+    { id:'tr_purple_warrior_01',  name:'泰坦戰神',       tier:'purple', cls:'warrior',  planned:'近傷／HP／反擊增幅' },
+
+    // 金變
+    { id:'tr_gold_royal_01',    name:'神聖霸王',     tier:'gold', cls:'royal',    planned:'統御被動／近傷／命中' },
+    { id:'tr_gold_knight_01',   name:'永恆聖騎',     tier:'gold', cls:'knight',   planned:'守護被動／近傷／減傷' },
+    { id:'tr_gold_elf_01',      name:'天穹箭神',     tier:'gold', cls:'elf',      planned:'追加箭矢／遠傷／遠命' },
+    { id:'tr_gold_mage_01',     name:'元素主宰',     tier:'gold', cls:'mage',     planned:'魔法共鳴／魔攻／魔命' },
+    { id:'tr_gold_dark_01',     name:'無影冥皇',     tier:'gold', cls:'dark',     planned:'雙擊增幅／近傷／暴擊' },
+    { id:'tr_gold_dragon_01',   name:'龍魂霸者',     tier:'gold', cls:'dragon',   planned:'弱點爆發／近傷／命中' },
+    { id:'tr_gold_illusion_01', name:'萬象幻神',     tier:'gold', cls:'illusion', planned:'幻術共鳴／魔攻／魔命' },
+    { id:'tr_gold_warrior_01',  name:'不滅泰坦',     tier:'gold', cls:'warrior',  planned:'泰坦反擊／HP／近傷' },
+
+    // 青變
+    { id:'tr_cyan_royal_01',    name:'天命君王',       tier:'cyan', cls:'royal',    planned:'終極統御效果' },
+    { id:'tr_cyan_knight_01',   name:'終焉守護神',     tier:'cyan', cls:'knight',   planned:'終極守護效果' },
+    { id:'tr_cyan_elf_01',      name:'星界狩神',       tier:'cyan', cls:'elf',      planned:'連射追加攻擊' },
+    { id:'tr_cyan_mage_01',     name:'真理魔神',       tier:'cyan', cls:'mage',     planned:'魔法共鳴強化' },
+    { id:'tr_cyan_dark_01',     name:'虛無夜皇',       tier:'cyan', cls:'dark',     planned:'雙擊進化效果' },
+    { id:'tr_cyan_dragon_01',   name:'始源龍神',       tier:'cyan', cls:'dragon',   planned:'弱點爆發進化' },
+    { id:'tr_cyan_illusion_01', name:'夢界神主',       tier:'cyan', cls:'illusion', planned:'幻術共鳴進化' },
+    { id:'tr_cyan_warrior_01',  name:'混沌戰神',       tier:'cyan', cls:'warrior',  planned:'泰坦反擊進化' }
   ];
 
   let state = null;
@@ -56,7 +102,7 @@
 
   function defaultState() {
     return {
-      version: 1,
+      version: 2,
       owned: {},
       fusion: {
         red: { fail:0 },
@@ -74,6 +120,7 @@
       if (!state || typeof state !== 'object') state = defaultState();
       if (!state.owned) state.owned = {};
       if (!state.fusion) state.fusion = defaultState().fusion;
+      state.version = 2;
     } catch(e) {
       state = defaultState();
     }
@@ -150,6 +197,171 @@
     return `<span style="color:${t.color};font-weight:700">【${t.short}】</span>`;
   }
 
+  // ===== 掉落道具定義 =====
+  function ensureTransformCardItem() {
+    try {
+      if (typeof DB === 'undefined' || !DB.items) return false;
+      DB.items[TRANSFORM_CARD_ITEM_ID] = {
+        n: '變身卡',
+        type: 'etc',
+        eff: 'transform_card',
+        p: 0,
+        gachaWeight: 0,
+        noSell: true,
+        c: 'text-cyan-300',
+        d: '全地圖怪物都有機率掉落。使用後隨機取得紅變、紫變、金變或青變；重複變身會累積，之後可用於合成。'
+      };
+      return true;
+    } catch(e) { return false; }
+  }
+
+  function rollOpenTier() {
+    let r = Math.random();
+    let acc = 0;
+    for (const row of TRANSFORM_OPEN_RATES) {
+      acc += row.rate;
+      if (r < acc) return row.tier;
+    }
+    return 'red';
+  }
+
+  function randomCardOfTier(tier) {
+    const pool = TRANSFORM_CARDS.filter(c => c.tier === tier);
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)] || pool[0];
+  }
+
+  function useTransformCardItem(item, silent) {
+    if (!item || item.id !== TRANSFORM_CARD_ITEM_ID) return false;
+    if (silent) return false;
+
+    const tier = rollOpenTier();
+    const card = randomCardOfTier(tier);
+    if (!card) {
+      try { logSys('<span class="text-red-400">變身卡開啟失敗：此階級沒有可抽取的變身。</span>'); } catch(e) {}
+      return false;
+    }
+
+    const before = ownedCount(card.id);
+
+    item.cnt = Math.max(0, (Number(item.cnt) || 1) - 1);
+    if (item.cnt <= 0) {
+      try { player.inv = player.inv.filter(i => i.uid !== item.uid); } catch(e) {}
+    }
+
+    grant(card.id, 1);
+
+    const ti = TRANSFORM_TIERS[card.tier];
+    const ci = TRANSFORM_CLASSES[card.cls];
+    const dup = before > 0 ? ` <span class="text-slate-400">（重複 ×${before + 1}）</span>` : ' <span class="text-emerald-300">（首次取得）</span>';
+
+    try {
+      logSys(
+        `<span style="color:${ti.color};font-weight:700">🧙 開啟變身卡！【${ti.short}】${esc(card.name)}</span>` +
+        ` <span class="text-slate-300">${ci.icon} ${esc(ci.name)}</span>${dup}`
+      );
+    } catch(e) {}
+
+    try { if (typeof renderTabs === 'function') renderTabs(); } catch(e) {}
+    try { if (typeof updateUI === 'function') updateUI(); } catch(e) {}
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+    try {
+      const modal = document.getElementById('item-modal');
+      if (modal && !modal.classList.contains('hidden') && typeof closeModal === 'function') closeModal();
+    } catch(e) {}
+
+    return true;
+  }
+
+  // 原 useItem 之前攔截「變身卡」。
+  function hookUseItem() {
+    try {
+      if (typeof window.useItem !== 'function') return;
+      if (window.useItem.__transformCardHook) return;
+
+      const base = window.useItem;
+      const hooked = function(u, silent=false) {
+        let item = null;
+        try { item = player && Array.isArray(player.inv) ? player.inv.find(i => i.uid === u) : null; } catch(e) {}
+        if (item && item.id === TRANSFORM_CARD_ITEM_ID) {
+          if (player && player.dead) {
+            if (!silent && typeof logSys === 'function') logSys('死亡狀態無法使用變身卡。');
+            return;
+          }
+          return useTransformCardItem(item, silent);
+        }
+        return base.apply(this, arguments);
+      };
+      hooked.__transformCardHook = true;
+      hooked.__transformCardBase = base;
+      window.useItem = hooked;
+    } catch(e) {
+      console.warn('[transform] hookUseItem failed', e);
+    }
+  }
+
+  // 每一隻正常結算死亡的地圖怪物，獨立擲 0.2%。
+  function maybeDropTransformCard(mob) {
+    if (!mob) return false;
+    if (Math.random() >= TRANSFORM_CARD_DROP_RATE) return false;
+    if (typeof gainItem !== 'function') return false;
+
+    try {
+      const got = gainItem(TRANSFORM_CARD_ITEM_ID, 1, true, true);
+      if (!got) return false;
+
+      if (typeof logSys === 'function') {
+        logSys(`<span class="text-cyan-300 font-bold">🧙 ${esc(mob.n || '怪物')} 掉落了「變身卡」！</span>`);
+      }
+      return true;
+    } catch(e) {
+      console.warn('[transform] card drop failed', e);
+      return false;
+    }
+  }
+
+  // 用 killMob 包裝，不改原核心檔：
+  // ・中間變身階段（transformTo）不掉
+  // ・只有原 mob 最終真的被標成 _dead 才擲卡
+  function hookKillMob() {
+    try {
+      if (typeof window.killMob !== 'function') return;
+      if (window.killMob.__transformDropHook) return;
+
+      const base = window.killMob;
+      const hooked = function(idx) {
+        let mob = null;
+        let wasDead = true;
+        let isTransformStage = false;
+
+        try {
+          mob = (typeof mapState !== 'undefined' && mapState.mobs) ? mapState.mobs[idx] : null;
+          wasDead = !mob || !!mob._dead;
+          isTransformStage = !!(mob && mob.transformTo && typeof DB !== 'undefined' && DB.mobs && DB.mobs[mob.transformTo]);
+        } catch(e) {}
+
+        const out = base.apply(this, arguments);
+
+        try {
+          if (mob && !wasDead && !isTransformStage && mob._dead) {
+            maybeDropTransformCard(mob);
+          }
+        } catch(e) {
+          console.warn('[transform] post-kill drop failed', e);
+        }
+
+        return out;
+      };
+
+      hooked.__transformDropHook = true;
+      hooked.__transformDropBase = base;
+      window.killMob = hooked;
+    } catch(e) {
+      console.warn('[transform] hookKillMob failed', e);
+    }
+  }
+
+  // ===== UI =====
   function ensureDom() {
     let root = document.getElementById('transform-book');
     if (root) return root;
@@ -194,7 +406,7 @@
     box.appendChild(btn);
   }
 
-  function renderTabs() {
+  function renderTabsTop() {
     const el = document.getElementById('transform-book-tabs');
     if (!el) return;
     const tabs = [
@@ -213,7 +425,9 @@
     const p = ensurePlayer();
     const cur = current();
     const clsInfo = p && p.cls ? TRANSFORM_CLASSES[p.cls] : null;
-    const cards = TRANSFORM_CARDS.filter(c => ownedCount(c.id) > 0 && (!p || !p.cls || c.cls === p.cls || c.cls === 'all'));
+    const cards = TRANSFORM_CARDS
+      .filter(c => ownedCount(c.id) > 0 && (!p || !p.cls || c.cls === p.cls || c.cls === 'all'))
+      .sort((a,b) => (TRANSFORM_TIERS[b.tier].order - TRANSFORM_TIERS[a.tier].order));
 
     let html = `
       <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4 mb-4">
@@ -226,7 +440,8 @@
 
     if (!cards.length) {
       return html + `<div class="border border-dashed border-slate-700 rounded-xl p-8 text-center text-slate-500">
-        目前沒有此職業可使用的變身卡。
+        目前沒有此職業可使用的變身卡。<br>
+        <span class="text-xs">全地圖怪物都有機率掉落「變身卡」，開啟後隨機取得變身。</span>
       </div>`;
     }
 
@@ -256,7 +471,7 @@
     return `
       <div class="rounded-xl border border-purple-800/50 bg-purple-950/20 p-5">
         <div class="text-xl font-bold text-purple-300 mb-2">🔥 變身合成</div>
-        <div class="text-slate-300">Phase 1 暫不啟用消耗，下一階段才接「重複卡投入 → 機率升階 → 失敗累積保底」。</div>
+        <div class="text-slate-300">重複變身已經會保留數量。下一階段會正式開放：重複卡投入 → 升階合成 → 失敗累積保底。</div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-sm">
           <div class="rounded-lg bg-slate-800 p-3"><b class="text-red-400">紅 → 紫</b></div>
           <div class="rounded-lg bg-slate-800 p-3"><b class="text-purple-400">紫 → 金</b></div>
@@ -269,7 +484,9 @@
     return `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${
       Object.keys(TRANSFORM_CLASSES).map(k => {
         const ci = TRANSFORM_CLASSES[k];
-        const cards = TRANSFORM_CARDS.filter(c => c.cls === k);
+        const cards = TRANSFORM_CARDS
+          .filter(c => c.cls === k)
+          .sort((a,b) => TRANSFORM_TIERS[a.tier].order - TRANSFORM_TIERS[b.tier].order);
         return `
           <div class="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
             <div class="font-bold text-lg mb-2">${ci.icon} ${esc(ci.name)}</div>
@@ -287,19 +504,29 @@
 
   function renderAbilityPage() {
     const cur = current();
+    const odds = TRANSFORM_OPEN_RATES.map(r => {
+      const t = TRANSFORM_TIERS[r.tier];
+      return `<span style="color:${t.color};font-weight:700">${t.short} ${(r.rate*100).toFixed(r.rate < 0.01 ? 1 : 0)}%</span>`;
+    }).join(' ／ ');
+
     return `
       <div class="rounded-xl border border-cyan-900/60 bg-cyan-950/10 p-5">
         <div class="text-xl font-bold text-cyan-300 mb-3">📊 變身能力</div>
         ${cur ? `<div class="text-lg">${badge(cur)} ${esc(cur.name)}</div><div class="text-slate-300 mt-2">預定：${esc(cur.planned)}</div>` : '<div class="text-slate-500">目前未套用變身。</div>'}
-        <div class="mt-4 p-3 rounded-lg bg-slate-800 text-sm text-amber-200">
-          Phase 1 不會改角色傷害、攻速、施法速度或能力值。
+        <div class="mt-4 p-3 rounded-lg bg-slate-800 text-sm">
+          <div class="text-cyan-200 font-bold">變身卡取得</div>
+          <div class="text-slate-300 mt-1">全地圖怪物：每隻 ${(TRANSFORM_CARD_DROP_RATE*100).toFixed(1)}% 機率掉落。</div>
+          <div class="text-slate-300 mt-1">開卡機率：${odds}</div>
+        </div>
+        <div class="mt-3 p-3 rounded-lg bg-slate-800 text-sm text-amber-200">
+          Phase 2 先完成取得、開卡與收藏；實際戰鬥能力會在下一階段接入。
         </div>
       </div>`;
   }
 
   function render() {
     ensureDom();
-    renderTabs();
+    renderTabsTop();
     const body = document.getElementById('transform-book-body');
     if (!body) return;
     if (page === 'fusion') body.innerHTML = renderFusionPage();
@@ -329,19 +556,28 @@
   function init() {
     loadState();
     ensurePlayer();
+    ensureTransformCardItem();
     ensureDom();
     ensureCollectionButton();
+    hookUseItem();
+    hookKillMob();
   }
 
   window.TRANSFORM_TIERS = TRANSFORM_TIERS;
   window.TRANSFORM_CLASSES = TRANSFORM_CLASSES;
   window.TRANSFORM_CARDS = TRANSFORM_CARDS;
+  window.TRANSFORM_CARD_DROP_RATE = TRANSFORM_CARD_DROP_RATE;
+  window.TRANSFORM_OPEN_RATES = TRANSFORM_OPEN_RATES;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
   window.transformEquip = equip;
   window.transformUnequip = unequip;
   window.transformCurrent = current;
+  window.transformOpenCard = function () {
+    const item = player && Array.isArray(player.inv) ? player.inv.find(i => i.id === TRANSFORM_CARD_ITEM_ID) : null;
+    return item ? useTransformCardItem(item, false) : false;
+  };
 
   window.openTransformBook = openTransformBook;
   window.closeTransformBook = closeTransformBook;
