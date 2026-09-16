@@ -1309,11 +1309,47 @@ function buildItemDescHTML(item) {
         desc += `<br><span class="text-amber-300">重量: ${ITEM_WEIGHTS[d.n]}</span>`;
     }
 
-    // 🛡️ 高強化防具加成顯示
+    // 🛡️ 防具強化能力顯示
     if (d.type === 'arm') {
-        let _showArmEn = Math.max(0, Number(item.en) || 0);
-        if (_showArmEn >= 10) {
-            desc += `<br><span class="text-sky-300 font-bold">高強化加成：傷害減免 +${_showArmEn - 9}</span>`;
+        let _showArmEn = (typeof capEn === 'function')
+            ? capEn(item.en, d)
+            : Math.max(0, Number(item.en) || 0);
+
+        if (_showArmEn > 0) {
+            // 特殊臂甲：每強化 +1 → HP +10
+            if (d.armguard) {
+                desc += `<br><span class="text-violet-300 font-bold">強化 +${_showArmEn}：最大HP +${_showArmEn * 10}</span>`;
+            } else {
+                // 一般防具：每強化 +1 → AC -1
+                let _armAc = (typeof enhanceArmAc === 'function')
+                    ? enhanceArmAc(_showArmEn)
+                    : _showArmEn;
+                desc += `<br><span class="text-violet-300 font-bold">強化 +${_showArmEn}：防禦(AC) -${_armAc}</span>`;
+            }
+
+            // +10 起額外傷害減免
+            if (_showArmEn >= 10) {
+                desc += `<br><span class="text-sky-300 font-bold">高強化加成：傷害減免 +${_showArmEn - 9}</span>`;
+            }
+        }
+    }
+
+    // 💍 飾品強化能力顯示
+    if (d.type === 'acc') {
+        let _showAccEn = (typeof capEn === 'function')
+            ? capEn(item.en, d)
+            : Math.min(5, Math.max(0, Number(item.en) || 0));
+
+        if (_showAccEn > 0) {
+            if (d.slot === 'ring') {
+                desc += `<br><span class="text-violet-300 font-bold">強化 +${_showAccEn}：防禦(AC) -${_showAccEn}</span>`;
+            } else if (d.slot === 'amulet') {
+                desc += `<br><span class="text-violet-300 font-bold">強化 +${_showAccEn}：魔防(MR) +${_showAccEn * 3}</span>`;
+            } else if (d.slot === 'ear') {
+                desc += `<br><span class="text-violet-300 font-bold">強化 +${_showAccEn}：魔防(MR) +${_showAccEn * 2}</span>`;
+            } else if (d.slot === 'belt') {
+                desc += `<br><span class="text-violet-300 font-bold">強化 +${_showAccEn}：負重上限 +${_showAccEn * 20}</span>`;
+            }
         }
     }
 
