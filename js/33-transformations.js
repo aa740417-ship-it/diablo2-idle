@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 6 =====
+// ===== 🧙 天堂M風格變身系統 Phase 7 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -41,7 +41,7 @@
     warrior:  { name:'戰士', icon:'⚔️' }
   };
 
-  // ===== 8 職 × 4 階 = 32 張 =====
+  // ===== 8 職：紅2＋紫2＋金2＋青1 = 56 張 =====
   const TRANSFORM_CARDS = [
     // 紅變
     { id:'tr_red_royal_01',    name:'赤焰君主',     tier:'red', cls:'royal',    planned:'近傷／命中／隊伍增益' },
@@ -53,6 +53,16 @@
     { id:'tr_red_illusion_01', name:'夢境支配者',   tier:'red', cls:'illusion', planned:'魔攻／魔命／幻術技能強化' },
     { id:'tr_red_warrior_01',  name:'狂嵐戰王',     tier:'red', cls:'warrior',  planned:'近傷／HP／反擊強化' },
 
+    // 紅變・第二系列
+    { id:'tr_red_royal_02',    name:'烈陽皇胄',     tier:'red', cls:'royal',    planned:'近傷／命中／隊伍增益' },
+    { id:'tr_red_knight_02',   name:'鐵壁劍皇',     tier:'red', cls:'knight',   planned:'近傷／命中／減傷' },
+    { id:'tr_red_elf_02',      name:'月影神射',     tier:'red', cls:'elf',      planned:'遠傷／遠命／連射強化' },
+    { id:'tr_red_mage_02',     name:'秘法賢者',     tier:'red', cls:'mage',     planned:'魔攻／魔命／施法速度' },
+    { id:'tr_red_dark_02',     name:'血月夜刃',     tier:'red', cls:'dark',     planned:'近傷／暴擊／雙擊強化' },
+    { id:'tr_red_dragon_02',   name:'龍牙戰將',     tier:'red', cls:'dragon',   planned:'近傷／命中／弱點曝光強化' },
+    { id:'tr_red_illusion_02', name:'幻夢支配者',   tier:'red', cls:'illusion', planned:'魔攻／魔命／幻術技能強化' },
+    { id:'tr_red_warrior_02',  name:'泰坦狂戰',     tier:'red', cls:'warrior',  planned:'近傷／HP／反擊強化' },
+
     // 紫變
     { id:'tr_purple_royal_01',    name:'黎明帝王',       tier:'purple', cls:'royal',    planned:'近傷／命中／統御強化' },
     { id:'tr_purple_knight_01',   name:'深淵劍聖',       tier:'purple', cls:'knight',   planned:'近傷／命中／減傷強化' },
@@ -63,6 +73,16 @@
     { id:'tr_purple_illusion_01', name:'虛界操演者',     tier:'purple', cls:'illusion', planned:'魔攻／魔命／幻術增幅' },
     { id:'tr_purple_warrior_01',  name:'泰坦戰神',       tier:'purple', cls:'warrior',  planned:'近傷／HP／反擊增幅' },
 
+    // 紫變・第二系列
+    { id:'tr_purple_royal_02',    name:'紫電霸主',       tier:'purple', cls:'royal',    planned:'近傷／命中／統御強化' },
+    { id:'tr_purple_knight_02',   name:'神鋼守護',       tier:'purple', cls:'knight',   planned:'近傷／命中／減傷強化' },
+    { id:'tr_purple_elf_02',      name:'翡翠風使',       tier:'purple', cls:'elf',      planned:'遠傷／遠命／連射增幅' },
+    { id:'tr_purple_mage_02',     name:'次元大法師',     tier:'purple', cls:'mage',     planned:'魔攻／魔命／施法速度強化' },
+    { id:'tr_purple_dark_02',     name:'幽冥夜刃',       tier:'purple', cls:'dark',     planned:'近傷／暴擊／雙擊增幅' },
+    { id:'tr_purple_dragon_02',   name:'真龍鬥將',       tier:'purple', cls:'dragon',   planned:'近傷／命中／弱點傷害增幅' },
+    { id:'tr_purple_illusion_02', name:'星夢幻主',       tier:'purple', cls:'illusion', planned:'魔攻／魔命／幻術增幅' },
+    { id:'tr_purple_warrior_02',  name:'破軍泰坦',       tier:'purple', cls:'warrior',  planned:'近傷／HP／反擊增幅' },
+
     // 金變
     { id:'tr_gold_royal_01',    name:'神聖霸王',     tier:'gold', cls:'royal',    planned:'統御被動／近傷／命中' },
     { id:'tr_gold_knight_01',   name:'永恆聖騎',     tier:'gold', cls:'knight',   planned:'守護被動／近傷／減傷' },
@@ -72,6 +92,16 @@
     { id:'tr_gold_dragon_01',   name:'龍魂霸者',     tier:'gold', cls:'dragon',   planned:'弱點爆發／近傷／命中' },
     { id:'tr_gold_illusion_01', name:'萬象幻神',     tier:'gold', cls:'illusion', planned:'幻術共鳴／魔攻／魔命' },
     { id:'tr_gold_warrior_01',  name:'不滅泰坦',     tier:'gold', cls:'warrior',  planned:'泰坦反擊／HP／近傷' },
+
+    // 金變・第二系列
+    { id:'tr_gold_royal_02',    name:'黃金聖王',     tier:'gold', cls:'royal',    planned:'統御被動／近傷／命中' },
+    { id:'tr_gold_knight_02',   name:'日耀聖騎',     tier:'gold', cls:'knight',   planned:'守護被動／近傷／減傷' },
+    { id:'tr_gold_elf_02',      name:'光翼箭神',     tier:'gold', cls:'elf',      planned:'追加箭矢／遠傷／遠命' },
+    { id:'tr_gold_mage_02',     name:'星辰法皇',     tier:'gold', cls:'mage',     planned:'魔法共鳴／魔攻／魔命' },
+    { id:'tr_gold_dark_02',     name:'日蝕冥王',     tier:'gold', cls:'dark',     planned:'雙擊增幅／近傷／暴擊' },
+    { id:'tr_gold_dragon_02',   name:'天龍霸主',     tier:'gold', cls:'dragon',   planned:'弱點爆發／近傷／命中' },
+    { id:'tr_gold_illusion_02', name:'虛空幻神',     tier:'gold', cls:'illusion', planned:'幻術共鳴／魔攻／魔命' },
+    { id:'tr_gold_warrior_02',  name:'神力泰坦',     tier:'gold', cls:'warrior',  planned:'泰坦反擊／HP／近傷' },
 
     // 青變
     { id:'tr_cyan_royal_01',    name:'天命君王',       tier:'cyan', cls:'royal',    planned:'終極統御效果' },
@@ -290,63 +320,78 @@
   const TRANSFORM_COLLECTIONS = [
     {
       id:'col_all_red', name:'英雄集結', desc:'8 職紅變全部收集',
-      cards: TRANSFORM_CARDS.filter(c => c.tier === 'red').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'red' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ mhp:100, meleeHit:1, rangedHit:1, magicHit:1 }
     },
     {
       id:'col_all_purple', name:'傳說集結', desc:'8 職紫變全部收集',
-      cards: TRANSFORM_CARDS.filter(c => c.tier === 'purple').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'purple' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ mhp:100, meleeDmg:1, rangedDmg:1, magicDmg:1 }
     },
     {
       id:'col_all_gold', name:'神話集結', desc:'8 職金變全部收集',
-      cards: TRANSFORM_CARDS.filter(c => c.tier === 'gold').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'gold' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ meleeDmg:2, rangedDmg:2, magicDmg:2, meleeHit:2, rangedHit:2, magicHit:2, dr:1 }
     },
     {
       id:'col_all_cyan', name:'唯一集結', desc:'8 職青變全部收集',
-      cards: TRANSFORM_CARDS.filter(c => c.tier === 'cyan').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'cyan' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ mhp:300, meleeDmg:3, rangedDmg:3, magicDmg:3, meleeHit:3, rangedHit:3, magicHit:3, dr:2 }
     },
     {
       id:'col_royal_line', name:'王者之路', desc:'王族紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'royal').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'royal' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ extraDmg:2, extraHit:1 }
     },
     {
       id:'col_knight_line', name:'不落之盾', desc:'騎士紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'knight').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'knight' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ meleeDmg:2, dr:1 }
     },
     {
       id:'col_elf_line', name:'蒼穹獵手', desc:'妖精紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'elf').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'elf' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ rangedDmg:2, rangedHit:1 }
     },
     {
       id:'col_mage_line', name:'奧術真理', desc:'法師紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'mage').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'mage' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ magicDmg:2, magicHit:1, extraMp:1 }
     },
     {
       id:'col_dark_line', name:'暗夜獵殺', desc:'黑暗妖精紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'dark').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'dark' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ meleeDmg:2, meleeCrit:2 }
     },
     {
       id:'col_dragon_line', name:'龍魂覺醒', desc:'龍騎士紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'dragon').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'dragon' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ meleeDmg:2, extraHit:1 }
     },
     {
       id:'col_illusion_line', name:'夢界共鳴', desc:'幻術士紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'illusion').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'illusion' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ magicDmg:2, magicHit:1, extraMp:1 }
     },
     {
       id:'col_warrior_line', name:'泰坦之血', desc:'戰士紅／紫／金／青全收集',
-      cards: TRANSFORM_CARDS.filter(c => c.cls === 'warrior').map(c => c.id),
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'warrior' && c.id.endsWith('_01')).map(c => c.id),
       bonus:{ mhp:150, dr:1 }
+    },
+    {
+      id:'col_series2_red', name:'英雄新星', desc:'第二系列 8 職紅變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'red' && c.id.endsWith('_02')).map(c => c.id),
+      bonus:{ mhp:50, meleeHit:1, rangedHit:1, magicHit:1 }
+    },
+    {
+      id:'col_series2_purple', name:'傳說新星', desc:'第二系列 8 職紫變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'purple' && c.id.endsWith('_02')).map(c => c.id),
+      bonus:{ mhp:50, meleeDmg:1, rangedDmg:1, magicDmg:1 }
+    },
+    {
+      id:'col_series2_gold', name:'神話新星', desc:'第二系列 8 職金變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'gold' && c.id.endsWith('_02')).map(c => c.id),
+      bonus:{ meleeDmg:1, rangedDmg:1, magicDmg:1, meleeHit:1, rangedHit:1, magicHit:1, dr:1 }
     }
   ];
 
@@ -553,6 +598,150 @@
     } catch(e) {}
 
     return true;
+  }
+
+  // ===== Phase 7：變身卡全部使用 =====
+  // 一次處理整疊，避免 40 張、100 張時逐張重算 UI／存檔造成手機卡頓。
+  function useAllTransformCards(uid) {
+    let item = null;
+    try {
+      item = player && Array.isArray(player.inv) ? player.inv.find(i => i.uid === uid) : null;
+    } catch(e) {}
+    if (!item || item.id !== TRANSFORM_CARD_ITEM_ID) return false;
+
+    if (player && player.dead) {
+      try { if (typeof logSys === 'function') logSys('死亡狀態無法使用變身卡。'); } catch(e) {}
+      return false;
+    }
+    try {
+      if (typeof inAbsBarrier === 'function' && inAbsBarrier()) {
+        if (typeof logSys === 'function') logSys('絕對屏障期間無法使用變身卡。');
+        return false;
+      }
+    } catch(e) {}
+
+    const total = Math.max(0, Math.floor(Number(item.cnt) || 1));
+    if (total <= 0) return false;
+
+    const st = loadState();
+    const tierCount = { red:0, purple:0, gold:0, cyan:0 };
+    const rareCount = {};
+    let firstCount = 0;
+    let opened = 0;
+
+    for (let i = 0; i < total; i++) {
+      const tier = rollOpenTier();
+      const card = randomCardOfTier(tier);
+      if (!card) continue;
+
+      const before = Math.max(0, Math.floor(Number(st.owned[card.id] || 0)));
+      st.owned[card.id] = before + 1;
+      if (before === 0) firstCount++;
+
+      tierCount[tier] = (tierCount[tier] || 0) + 1;
+      if (tier !== 'red') rareCount[card.id] = (rareCount[card.id] || 0) + 1;
+      opened++;
+    }
+
+    if (opened <= 0) return false;
+
+    item.cnt = Math.max(0, total - opened);
+    if (item.cnt <= 0) {
+      try { player.inv = player.inv.filter(i => i.uid !== uid); } catch(e) {}
+    }
+
+    saveState();
+
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
+    try { render(); } catch(e) {}
+    try { if (typeof renderTabs === 'function') renderTabs(true); } catch(e) {}
+    try { if (typeof updateUI === 'function') updateUI(); } catch(e) {}
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+
+    const tc = (tier, n) => {
+      const ti = TRANSFORM_TIERS[tier];
+      return `<span style="color:${ti.color};font-weight:700">${ti.short} ${n}</span>`;
+    };
+
+    try {
+      if (typeof logSys === 'function') {
+        logSys(
+          `<span class="text-cyan-300 font-bold">🧙 一次開啟變身卡 ×${opened}</span>：` +
+          `${tc('red',tierCount.red)} ／ ${tc('purple',tierCount.purple)} ／ ` +
+          `${tc('gold',tierCount.gold)} ／ ${tc('cyan',tierCount.cyan)}` +
+          ` <span class="text-emerald-300">首次取得 ${firstCount} 張</span>`
+        );
+
+        const rares = Object.entries(rareCount)
+          .map(([id, n]) => ({ card:cardById(id), n }))
+          .filter(x => x.card)
+          .sort((a,b) => TRANSFORM_TIERS[b.card.tier].order - TRANSFORM_TIERS[a.card.tier].order);
+
+        if (rares.length) {
+          const txt = rares.map(x => {
+            const ti = TRANSFORM_TIERS[x.card.tier];
+            return `<span style="color:${ti.color};font-weight:700">【${ti.short}】${esc(x.card.name)}×${x.n}</span>`;
+          }).join('、');
+          logSys(`✨ 稀有結果：${txt}`);
+        }
+      }
+    } catch(e) {}
+
+    try {
+      const modal = document.getElementById('item-modal');
+      if (modal && !modal.classList.contains('hidden') && typeof closeModal === 'function') closeModal();
+    } catch(e) {}
+
+    return true;
+  }
+
+  function ensureTransformUseAllButton(item) {
+    try {
+      const actions = document.getElementById('modal-actions');
+      if (!actions) return;
+
+      const old = document.getElementById('transform-use-all-btn');
+      if (old) old.remove();
+
+      if (!item || item.id !== TRANSFORM_CARD_ITEM_ID) return;
+      const count = Math.max(0, Math.floor(Number(item.cnt) || 1));
+      if (count <= 1) return;
+
+      const btn = document.createElement('button');
+      btn.id = 'transform-use-all-btn';
+      btn.type = 'button';
+      btn.className = 'col-span-2 w-full btn py-3 text-lg font-bold mt-2 bg-cyan-900 hover:bg-cyan-800 border-cyan-600 text-cyan-100';
+      btn.textContent = `🧙 全部使用（${count} 張）`;
+      btn.onclick = function () { useAllTransformCards(item.uid); };
+
+      const close = document.getElementById('item-modal-bottom-close');
+      if (close && close.parentNode === actions) actions.insertBefore(btn, close);
+      else actions.appendChild(btn);
+    } catch(e) {
+      console.warn('[transform] ensure use-all button failed', e);
+    }
+  }
+
+  function hookTransformCardModal() {
+    try {
+      if (typeof window.openModal !== 'function') return;
+      if (window.openModal.__transformUseAllHook) return;
+
+      const base = window.openModal;
+      const hooked = function(item, isEq, slot) {
+        const out = base.apply(this, arguments);
+        if (!isEq && item && item.id === TRANSFORM_CARD_ITEM_ID) {
+          requestAnimationFrame(() => ensureTransformUseAllButton(item));
+          setTimeout(() => ensureTransformUseAllButton(item), 40);
+        }
+        return out;
+      };
+      hooked.__transformUseAllHook = true;
+      hooked.__transformUseAllBase = base;
+      window.openModal = hooked;
+    } catch(e) {
+      console.warn('[transform] hookTransformCardModal failed', e);
+    }
   }
 
   // 原 useItem 之前攔截「變身卡」。
@@ -1092,6 +1281,7 @@
     ensureDom();
     ensureCollectionButton();
     hookUseItem();
+    hookTransformCardModal();
     hookKillMob();
     try { if (typeof calcStats === 'function' && typeof player !== 'undefined' && player && player.cls) calcStats(); } catch(e) {}
   }
@@ -1121,6 +1311,8 @@
   window.transformFuse = transformFuse;
   window.transformFusionMaterialCount = fusionMaterialCount;
   window.TRANSFORM_FUSION_CONFIG = TRANSFORM_FUSION_CONFIG;
+
+  window.transformUseAllCards = useAllTransformCards;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
