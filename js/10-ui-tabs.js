@@ -1008,6 +1008,13 @@ function buildItemDescHTML(item) {
         // 顯示命中與傷害
         if(d.hit) desc += ` / ${hitLabel}: ${formatBonus(d.hit)}`;
         if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 加上 !== undefined 避免 0 被漏掉
+
+        // 🔧 顯示目前強化值實際增加的能力
+        let _showEn = Math.max(0, Number(item.en) || 0);
+        if (_showEn > 0 && typeof enhanceWpnBonus === 'function') {
+            let _enBonus = enhanceWpnBonus(_showEn);
+            desc += `<br><span class="text-violet-300 font-bold">強化 +${_showEn}：${dmgLabel} +${_enBonus.dmg}、${hitLabel} +${_enBonus.hit}</span>`;
+        }
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
         // ⚔️ 攻擊速度依「職業性別×武器種類」查表顯示（以目前角色為準；戰士雙持另依雙斧速度）
