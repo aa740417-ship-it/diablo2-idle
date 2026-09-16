@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 3 =====
+// ===== 🧙 天堂M風格變身系統 Phase 4 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -182,6 +182,15 @@
       return null;
     }
   }
+
+  // ===== Phase 4：重複變身合成設定 =====
+  // 每次只消耗「重複張數」：每一種變身的第一張永遠保留。
+  // 失敗返還 1 張隨機同階卡；成功取得 1 張隨機下一階。
+  const TRANSFORM_FUSION_CONFIG = {
+    red:    { next:'purple', need:4, success:0.30, pity:5  },
+    purple: { next:'gold',   need:4, success:0.20, pity:7  },
+    gold:   { next:'cyan',   need:4, success:0.10, pity:10 }
+  };
 
   let state = null;
   let page = 'transform';
@@ -464,6 +473,113 @@
     }
   }
 
+  // ===== Phase 4：合成核心 =====
+  function fusionStateFor(tier) {
+    const s = loadState();
+    if (!s.fusion || typeof s.fusion !== 'object') s.fusion = {};
+    if (!s.fusion[tier] || typeof s.fusion[tier] !== 'object') s.fusion[tier] = { fail:0 };
+    s.fusion[tier].fail = Math.max(0, Math.floor(Number(s.fusion[tier].fail) || 0));
+    return s.fusion[tier];
+  }
+
+  function fusionMaterialCount(tier) {
+    return TRANSFORM_CARDS
+      .filter(c => c.tier === tier)
+      .reduce((sum, c) => sum + Math.max(0, ownedCount(c.id) - 1), 0);
+  }
+
+  function consumeFusionMaterials(tier, need) {
+    const s = loadState();
+    let remain = Math.max(0, Math.floor(Number(need) || 0));
+    const cards = TRANSFORM_CARDS.filter(c => c.tier === tier);
+
+    const available = cards.reduce((sum, c) => {
+      const n = Math.max(0, Math.floor(Number(s.owned[c.id] || 0)));
+      return sum + Math.max(0, n - 1);
+    }, 0);
+    if (available < remain) return false;
+
+    for (const c of cards) {
+      if (remain <= 0) break;
+      const n = Math.max(0, Math.floor(Number(s.owned[c.id] || 0)));
+      const extra = Math.max(0, n - 1);
+      if (!extra) continue;
+      const take = Math.min(extra, remain);
+      s.owned[c.id] = n - take;
+      remain -= take;
+    }
+    return remain === 0;
+  }
+
+  function addFusionReward(card, count) {
+    if (!card) return false;
+    const s = loadState();
+    const n = Math.max(1, Math.floor(Number(count) || 1));
+    s.owned[card.id] = Math.max(0, Math.floor(Number(s.owned[card.id] || 0))) + n;
+    return true;
+  }
+
+  function transformFuse(tier) {
+    const cfg = TRANSFORM_FUSION_CONFIG[tier];
+    if (!cfg) return false;
+
+    const mats = fusionMaterialCount(tier);
+    if (mats < cfg.need) {
+      try {
+        if (typeof logSys === 'function') {
+          logSys(`<span class="text-amber-300">合成需要 ${cfg.need} 張${TRANSFORM_TIERS[tier].short}重複卡，目前只有 ${mats} 張。</span>`);
+        }
+      } catch(e) {}
+      render();
+      return false;
+    }
+
+    const rec = fusionStateFor(tier);
+    const guaranteed = rec.fail >= (cfg.pity - 1);
+
+    if (!consumeFusionMaterials(tier, cfg.need)) return false;
+
+    const success = guaranteed || Math.random() < cfg.success;
+    let result = null;
+
+    if (success) {
+      result = randomCardOfTier(cfg.next);
+      if (!result) return false;
+      addFusionReward(result, 1);
+      rec.fail = 0;
+    } else {
+      result = randomCardOfTier(tier);
+      if (result) addFusionReward(result, 1);
+      rec.fail = Math.min(cfg.pity - 1, rec.fail + 1);
+    }
+
+    saveState();
+
+    try {
+      const ti = TRANSFORM_TIERS[result.tier];
+      const ci = TRANSFORM_CLASSES[result.cls];
+      if (typeof logSys === 'function') {
+        if (success) {
+          logSys(
+            `<span style="color:${ti.color};font-weight:700">🔥 變身合成成功！獲得【${ti.short}】${esc(result.name)}</span>` +
+            ` <span class="text-slate-300">${ci.icon} ${esc(ci.name)}</span>` +
+            (guaranteed ? ' <span class="text-amber-300">（保底成功）</span>' : '')
+          );
+        } else {
+          logSys(
+            `<span class="text-slate-300">🔥 變身合成失敗，返還 1 張</span>` +
+            `<span style="color:${ti.color};font-weight:700">【${ti.short}】${esc(result.name)}</span>` +
+            ` <span class="text-slate-400">保底 ${rec.fail}/${cfg.pity}</span>`
+          );
+        }
+      }
+    } catch(e) {}
+
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+    render();
+    return success;
+  }
+
   // ===== UI =====
   function ensureDom() {
     let root = document.getElementById('transform-book');
@@ -571,15 +687,70 @@
   }
 
   function renderFusionPage() {
+    const rows = [
+      { tier:'red',    title:'紅變 → 紫變' },
+      { tier:'purple', title:'紫變 → 金變' },
+      { tier:'gold',   title:'金變 → 青變' }
+    ];
+
     return `
-      <div class="rounded-xl border border-purple-800/50 bg-purple-950/20 p-5">
-        <div class="text-xl font-bold text-purple-300 mb-2">🔥 變身合成</div>
-        <div class="text-slate-300">重複變身已經會保留數量。下一階段會正式開放：重複卡投入 → 升階合成 → 失敗累積保底。</div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-sm">
-          <div class="rounded-lg bg-slate-800 p-3"><b class="text-red-400">紅 → 紫</b></div>
-          <div class="rounded-lg bg-slate-800 p-3"><b class="text-purple-400">紫 → 金</b></div>
-          <div class="rounded-lg bg-slate-800 p-3"><b class="text-amber-300">金 → 青</b></div>
+      <div class="mb-4 rounded-xl border border-purple-800/50 bg-purple-950/20 p-4">
+        <div class="text-xl font-bold text-purple-300">🔥 變身合成</div>
+        <div class="text-sm text-slate-300 mt-2">
+          每次消耗 4 張同階「重複變身」。每種變身的第一張永久保留，不會被合成吃掉。
+          合成失敗會返還 1 張隨機同階變身，並累積保底。
         </div>
+      </div>
+      <div class="grid grid-cols-1 gap-3">
+        ${rows.map(row => {
+          const cfg = TRANSFORM_FUSION_CONFIG[row.tier];
+          const ti = TRANSFORM_TIERS[row.tier];
+          const ni = TRANSFORM_TIERS[cfg.next];
+          const mats = fusionMaterialCount(row.tier);
+          const rec = fusionStateFor(row.tier);
+          const can = mats >= cfg.need;
+          const nextGuaranteed = rec.fail >= cfg.pity - 1;
+          return `
+            <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-lg font-bold">
+                    <span style="color:${ti.color}">${ti.short}</span>
+                    <span class="text-slate-400"> → </span>
+                    <span style="color:${ni.color}">${ni.short}</span>
+                  </div>
+                  <div class="text-sm text-slate-400 mt-1">${esc(row.title)}</div>
+                </div>
+                <div class="text-right text-sm">
+                  <div class="${mats >= cfg.need ? 'text-emerald-300' : 'text-slate-400'}">重複素材 ${mats} / ${cfg.need}</div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 mt-4 text-sm">
+                <div class="rounded-lg bg-slate-900/70 p-3">
+                  <div class="text-slate-500">成功率</div>
+                  <div class="font-bold text-lg">${Math.round(cfg.success * 100)}%</div>
+                </div>
+                <div class="rounded-lg bg-slate-900/70 p-3">
+                  <div class="text-slate-500">失敗保底</div>
+                  <div class="font-bold text-lg ${nextGuaranteed ? 'text-amber-300' : ''}">
+                    ${rec.fail} / ${cfg.pity}${nextGuaranteed ? '（下次必成）' : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-xs text-slate-400 mt-3">
+                成功：隨機獲得 1 張${ni.short}（八職皆可能）<br>
+                失敗：返還 1 張隨機${ti.short}，並累積 1 次保底。
+              </div>
+
+              <button class="btn w-full mt-4 py-3 font-bold ${can ? 'bg-purple-800 text-purple-100' : 'bg-slate-800 text-slate-500'}"
+                      ${can ? '' : 'disabled'}
+                      onclick="transformFuse('${row.tier}')">
+                ${can ? `🔥 合成 ${row.title}` : `還缺 ${Math.max(0, cfg.need - mats)} 張重複卡`}
+              </button>
+            </div>`;
+        }).join('')}
       </div>`;
   }
 
@@ -676,6 +847,10 @@
   window.transformAbilityData = transformAbilityData;
   window.transformAbilityLines = transformAbilityLines;
   window.applyTransformCombatStats = applyTransformCombatStats;
+
+  window.transformFuse = transformFuse;
+  window.transformFusionMaterialCount = fusionMaterialCount;
+  window.TRANSFORM_FUSION_CONFIG = TRANSFORM_FUSION_CONFIG;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
