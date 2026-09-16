@@ -146,6 +146,8 @@ function playerAttack() {
         if (wpn && wpn.pierceMainMult) result.dmg = Math.max(1, Math.floor(result.dmg * wpn.pierceMainMult));   // 🏺 v3.6.44 艾爾摩尖頭槍：一般攻擊主目標傷害 ×1.3
         let _lootPct = target.boss ? (player.d.lootBossDmgPct||0) : (player.d.lootNormalDmgPct||0);
         if (_lootPct) result.dmg = Math.max(1, Math.floor(result.dmg * (1 + _lootPct/100)));
+        // 🩵 Phase 6 青變：一般攻擊專屬效果（王族／妖精／黑妖／龍騎）
+        if (typeof applyCyanTransformPhysicalProc === 'function') applyCyanTransformPhysicalProc(player, target, result);
         target.curHp -= result.dmg;
         if (result.dmg > 0) { if (player.d.lootHitHp) player.hp = Math.min(player.mhp, player.hp + player.d.lootHitHp); if (player.d.lootHitMp) player.mp = Math.min(player.mmp, player.mp + player.d.lootHitMp); }
         if (wpn && wpn.bonespike && (target._bonespike || 0) > 0 && target.curHp > 0) { let _bs = target._bonespike * 20; target._bonespike = 0; target.curHp -= _bs; target._spellHurt = true; mobWake(target); logCombat(`<span class="font-bold" style="color:#e5e7eb;text-shadow:0 0 6px #6b7280;">【骨刺爆裂】</span>引爆目標身上的骨刺，額外造成 ${_bs} 點固定傷害。`, 'player-special'); }   // 🏺 骸骨意志之弓：一般攻擊引爆所有骨刺（每層 20 固定傷害）
@@ -1267,6 +1269,10 @@ function _enemyPhysicalAttackInner(mob, idx, stunChance = 0, atkDmg = null, atkD
         totalDmg = Math.max(0, Math.floor(totalDmg * antHelperDrMult()));   // 🐉 v3.7.57 助戰者「護衛」減免（物理）
         totalDmg = dollDamageReduced(totalDmg);   // 🪆 魔法娃娃：受傷機率傷害減免（史巴托/巫妖）
         totalDmg = shieldDmgReduceProc(player, totalDmg);   // 🌑 v3.3.33 反叛者的盾牌：受傷 1%(+2%/強化) 機率傷害 -50（物理）
+        // 🩵 Phase 6 青變：騎士終焉守護（一般物理傷害 -15%）
+        if (typeof cyanTransformIncomingPhysicalMult === 'function') totalDmg = Math.max(0, Math.floor(totalDmg * cyanTransformIncomingPhysicalMult()));
+        // 🩵 Phase 6 青變：戰士泰坦反擊（15% 反射同額傷害＋免疫該擊）
+        if (typeof cyanTransformTryWarriorReflect === 'function' && cyanTransformTryWarriorReflect(player, mob, totalDmg, idx)) { updateUI(); return; }
         // 🏺 v3.1.80 魅魔女皇的誘惑：受到一般攻擊時 dmgReflect% 機率使攻擊者受到相同傷害，自身免疫此次傷害
         if (player.d.dmgReflect > 0 && totalDmg > 0 && mob && mob.curHp > 0 && Math.random() * 100 < player.d.dmgReflect) {
             let _rf = Math.max(1, Math.floor(totalDmg * fragileMult(mob)));

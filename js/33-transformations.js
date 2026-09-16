@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 5 =====
+// ===== 🧙 天堂M風格變身系統 Phase 6 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -13,12 +13,14 @@
   // 每隻真正死亡並結算的地圖怪物，都有同一機率掉 1 張變身卡。
   const TRANSFORM_CARD_DROP_RATE = 0.002; // 0.2% = 約 1/500
 
-  // 使用變身卡後的階級機率，合計必須為 1。
+  // 使用變身卡後的階級權重。
+  // 顯示：紅95%／紫4%／金1%／青0.01%。
+  // 因四項合計 100.01，抽選時會以總權重正規化，避免機率判定超過 100%。
   const TRANSFORM_OPEN_RATES = [
-    { tier:'red',    rate:0.900 }, // 90%
-    { tier:'purple', rate:0.080 }, // 8%
-    { tier:'gold',   rate:0.018 }, // 1.8%
-    { tier:'cyan',   rate:0.002 }  // 0.2%
+    { tier:'red',    rate:95.00 },
+    { tier:'purple', rate:4.00  },
+    { tier:'gold',   rate:1.00  },
+    { tier:'cyan',   rate:0.01  }
   ];
 
   const TRANSFORM_TIERS = {
@@ -144,6 +146,10 @@
     if (a.meleeCrit) lines.push(`近距離爆擊率 +${a.meleeCrit}%`);
     if (a.rangedCrit) lines.push(`遠距離爆擊率 +${a.rangedCrit}%`);
     if (a.mhp) lines.push(`最大 HP +${a.mhp}`);
+    if (card.tier === 'cyan' && CYAN_TRANSFORM_SPECIALS[card.cls]) {
+      const sp = CYAN_TRANSFORM_SPECIALS[card.cls];
+      lines.push(`專屬【${sp.name}】：${sp.text}`);
+    }
     return lines;
   }
 
@@ -152,12 +158,15 @@
   function applyTransformCombatStats(p, d) {
     try {
       if (!p || !d) return null;
+      d._cyanTransform = '';
       if (typeof applyTransformCollectionStats === 'function') applyTransformCollectionStats(p, d);
       if (!p.transformId) return null;
       const card = cardById(p.transformId);
       if (!card || card.cls !== p.cls || ownedCount(card.id) <= 0) return null;
       const a = transformAbilityData(card);
       if (!a) return null;
+
+      d._cyanTransform = card.tier === 'cyan' ? card.cls : '';
 
       if (a.meleeDmg) d.meleeDmg += a.meleeDmg;
       if (a.meleeHit) d.meleeHit += a.meleeHit;
@@ -183,6 +192,96 @@
       console.warn('[transform] applyTransformCombatStats failed', e);
       return null;
     }
+  }
+
+  // ===== Phase 6：青變專屬能力 =====
+  const CYAN_TRANSFORM_SPECIALS = {
+    royal: { name:'天命統御', text:'傭兵／召喚傷害 +10%；近戰 10% 機率追加 50% 傷害' },
+    knight:{ name:'終焉守護', text:'受到一般物理傷害 -15%' },
+    elf:   { name:'星界連射', text:'遠距離一般攻擊 15% 機率追加 50% 傷害' },
+    mage:  { name:'真理共鳴', text:'最終魔法傷害 +20%' },
+    dark:  { name:'虛無追擊', text:'近距離一般攻擊 12% 機率追加 100% 傷害' },
+    dragon:{ name:'龍魂破綻', text:'近距離一般攻擊 15% 機率追加 50% 傷害，並追加 2 層弱點' },
+    illusion:{ name:'夢界共鳴', text:'奇古獸／魔法最終傷害 +20%' },
+    warrior:{ name:'泰坦反擊', text:'受到一般攻擊 15% 機率反射同額傷害，並免疫該次攻擊' }
+  };
+
+  function isCyanTransformActive(cls) {
+    try {
+      if (typeof player === 'undefined' || !player || player.cls !== cls || !player.transformId) return false;
+      const c = cardById(player.transformId);
+      return !!(c && c.tier === 'cyan' && c.cls === cls && ownedCount(c.id) > 0);
+    } catch(e) { return false; }
+  }
+
+  function cyanTransformMagicMult(dStats) {
+    try {
+      if (typeof player === 'undefined' || !player || !player.d || dStats !== player.d) return 1;
+      if (isCyanTransformActive('mage') || isCyanTransformActive('illusion')) return 1.20;
+    } catch(e) {}
+    return 1;
+  }
+
+  function cyanTransformIncomingPhysicalMult() {
+    return isCyanTransformActive('knight') ? 0.85 : 1;
+  }
+
+  function applyCyanTransformPhysicalProc(p, target, result) {
+    if (!p || !target || !result || !result.hit || !p.transformId) return;
+    const c = cardById(p.transformId);
+    if (!c || c.tier !== 'cyan' || c.cls !== p.cls || ownedCount(c.id) <= 0) return;
+
+    let extra = 0;
+    let msg = '';
+
+    if (p.cls === 'royal' && !result.ranged && Math.random() < 0.10) {
+      extra = Math.max(1, Math.floor(result.dmg * 0.50));
+      result.dmg += extra;
+      msg = `【天命統御】王者威壓爆發，追加 ${extra} 點傷害！`;
+    } else if (p.cls === 'elf' && result.ranged && Math.random() < 0.15) {
+      extra = Math.max(1, Math.floor(result.dmg * 0.50));
+      result.dmg += extra;
+      msg = `【星界連射】追加一箭，額外造成 ${extra} 點傷害！`;
+    } else if (p.cls === 'dark' && !result.ranged && Math.random() < 0.12) {
+      extra = Math.max(1, Math.floor(result.dmg));
+      result.dmg += extra;
+      msg = `【虛無追擊】影刃再次斬擊，追加 ${extra} 點傷害！`;
+    } else if (p.cls === 'dragon' && !result.ranged && Math.random() < 0.15) {
+      extra = Math.max(1, Math.floor(result.dmg * 0.50));
+      result.dmg += extra;
+      target.weakExpose = Math.min(5, Math.max(0, Number(target.weakExpose) || 0) + 2);
+      msg = `【龍魂破綻】龍魂撕裂弱點，追加 ${extra} 點傷害並增加 2 層弱點！`;
+    }
+
+    if (msg && typeof logCombat === 'function') {
+      logCombat(`<span class="font-bold" style="color:#22d3ee;text-shadow:0 0 6px #0891b2;">${msg}</span>`, 'player-special');
+    }
+  }
+
+  function cyanTransformTryWarriorReflect(p, mob, totalDmg, idx) {
+    if (!p || !mob || !(totalDmg > 0) || !isCyanTransformActive('warrior')) return false;
+    if (Math.random() >= 0.15) return false;
+
+    let mult = 1;
+    try { if (typeof fragileMult === 'function') mult = fragileMult(mob); } catch(e) {}
+    const reflect = Math.max(1, Math.floor(totalDmg * mult));
+    mob.curHp -= reflect;
+    mob.justHit = 'normal';
+    try { if (typeof mobWake === 'function') mobWake(mob); } catch(e) {}
+
+    if (typeof logCombat === 'function') {
+      logCombat(
+        `<span class="font-bold" style="color:#22d3ee;text-shadow:0 0 6px #0891b2;">【泰坦反擊】</span>` +
+        `<span class="${typeof getMobColor === 'function' ? getMobColor(mob.lv) : ''}">${mob.n}</span>` +
+        ` 承受 ${reflect} 點反擊傷害，你免疫了此次攻擊！`,
+        'player-special'
+      );
+    }
+
+    if (mob.curHp <= 0 && typeof killMob === 'function') {
+      try { killMob(idx); } catch(e) {}
+    }
+    return true;
   }
 
   // ===== Phase 5：變身收藏套組 =====
@@ -397,13 +496,15 @@
   }
 
   function rollOpenTier() {
-    let r = Math.random();
+    const total = TRANSFORM_OPEN_RATES.reduce((sum, row) => sum + Math.max(0, Number(row.rate) || 0), 0);
+    if (total <= 0) return 'red';
+    let r = Math.random() * total;
     let acc = 0;
     for (const row of TRANSFORM_OPEN_RATES) {
-      acc += row.rate;
+      acc += Math.max(0, Number(row.rate) || 0);
       if (r < acc) return row.tier;
     }
-    return 'red';
+    return TRANSFORM_OPEN_RATES[TRANSFORM_OPEN_RATES.length - 1].tier;
   }
 
   function randomCardOfTier(tier) {
@@ -935,7 +1036,9 @@
     const cur = current();
     const odds = TRANSFORM_OPEN_RATES.map(r => {
       const t = TRANSFORM_TIERS[r.tier];
-      return `<span style="color:${t.color};font-weight:700">${t.short} ${(r.rate*100).toFixed(r.rate < 0.01 ? 1 : 0)}%</span>`;
+      const pct = Number(r.rate) || 0;
+      const txt = pct < 0.1 ? pct.toFixed(2) : (Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1));
+      return `<span style="color:${t.color};font-weight:700">${t.short} ${txt}%</span>`;
     }).join(' ／ ');
 
     return `
@@ -1002,6 +1105,13 @@
   window.transformAbilityData = transformAbilityData;
   window.transformAbilityLines = transformAbilityLines;
   window.applyTransformCombatStats = applyTransformCombatStats;
+
+  window.CYAN_TRANSFORM_SPECIALS = CYAN_TRANSFORM_SPECIALS;
+  window.isCyanTransformActive = isCyanTransformActive;
+  window.cyanTransformMagicMult = cyanTransformMagicMult;
+  window.cyanTransformIncomingPhysicalMult = cyanTransformIncomingPhysicalMult;
+  window.applyCyanTransformPhysicalProc = applyCyanTransformPhysicalProc;
+  window.cyanTransformTryWarriorReflect = cyanTransformTryWarriorReflect;
 
   window.TRANSFORM_COLLECTIONS = TRANSFORM_COLLECTIONS;
   window.transformCollectionProgress = transformCollectionProgress;

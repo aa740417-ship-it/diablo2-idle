@@ -74,6 +74,9 @@ function magicDamageCoef(dStats, attrDefense, spellTier) {
     // 只在 dStats === player.d 時成立，不會提高傭兵或其他獨立角色。
     coef *= balancedNonMagePlayerDamageMult(dStats);
 
+    // 🩵 Phase 6 青變：法師／幻術最終魔法共鳴（主玩家自己的魔法／奇古獸傷害 +20%）
+    if (typeof cyanTransformMagicMult === 'function') coef *= cyanTransformMagicMult(dStats);
+
     return coef;
 }
 // 魔法傷害 stat 視為骰值以外的固定魔法傷害，每次施法只加入一次。

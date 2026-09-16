@@ -392,7 +392,11 @@ function allyActiveCap() {
 }
 // 原版王族魅力仍只調整可帶傭兵數量；仿正服固定 4 名。
 // 保留此相容函式供既有各傷害路徑呼叫；固定回傳 1 可一次停用所有舊魅力能力倍率。
-function royalAllyMult() { return 1; }
+function royalAllyMult() {
+    // 🩵 Phase 6 青變「天命統御」：王族套用青變時，傭兵／召喚最終傷害 +10%。
+    if (typeof isCyanTransformActive === 'function' && isCyanTransformActive('royal')) return 1.10;
+    return 1;
+}
 function isAllyActive(slotN) { return !!(player.allies && player.allies.some(a => a && a._slot === String(slotN))); }
 // 🤝 v3.7.62 反向受僱索引：讓「被招募的來源角色」知道自己目前是別人的傭兵。
 // 完整角色存檔只在首次相容遷移或驗證僱主時讀取；平時 heartbeat 僅讀這個小型索引，避免多開時反覆解壓 8 份大存檔。
