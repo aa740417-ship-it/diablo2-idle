@@ -710,8 +710,10 @@
     root = document.createElement('div');
     root.id = 'transform-book';
     root.className = 'hidden fixed inset-0 z-[48] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3';
+    root.style.paddingBottom = 'calc(112px + env(safe-area-inset-bottom, 0px))';
+    root.style.paddingTop = '12px';
     root.innerHTML = `
-      <div class="w-full max-w-5xl max-h-[92vh] flex flex-col bg-slate-900/95 rounded-2xl border-2 border-cyan-800/70 overflow-hidden"
+      <div class="w-full max-w-5xl h-full max-h-full flex flex-col bg-slate-900/95 rounded-2xl border-2 border-cyan-800/70 overflow-hidden"
            onclick="event.stopPropagation()">
         <div class="flex items-center justify-between px-5 py-3 border-b border-slate-700 bg-slate-900">
           <div>
@@ -721,7 +723,7 @@
           <button class="btn px-3 py-1.5 bg-slate-700" onclick="closeTransformBook()">✕ 關閉</button>
         </div>
         <div id="transform-book-tabs" class="grid grid-cols-4 gap-1.5 px-4 py-2.5 border-b border-slate-700"></div>
-        <div id="transform-book-body" class="flex-1 overflow-y-auto p-4"></div>
+        <div id="transform-book-body" class="flex-1 min-h-0 overflow-y-auto p-4" style="padding-bottom:140px;overscroll-behavior:contain;"></div>
       </div>`;
     root.addEventListener('click', closeTransformBook);
     document.body.appendChild(root);
