@@ -1,7 +1,7 @@
-// ===== 🧙 天堂M風格變身系統 Phase 2 =====
+// ===== 🧙 天堂M風格變身系統 Phase 3 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
-// 重複卡保留數量，Phase 3 供合成使用。
+// 重複卡保留數量，後續供合成使用。
 
 (function () {
   'use strict';
@@ -81,6 +81,107 @@
     { id:'tr_cyan_illusion_01', name:'夢界神主',       tier:'cyan', cls:'illusion', planned:'幻術共鳴進化' },
     { id:'tr_cyan_warrior_01',  name:'混沌戰神',       tier:'cyan', cls:'warrior',  planned:'泰坦反擊進化' }
   ];
+
+  // ===== Phase 3：實際變身能力 =====
+  // 攻速是「間隔縮短」的百分比加成；施法速度直接縮短 castLock/supportCastLock。
+  // 數值集中在此，後續要微調不用碰戰鬥核心。
+  const TRANSFORM_TIER_POWER = {
+    red:    { atkSpdPct:10, dmg:3,  hit:3,  sub:1, hp:50  },
+    purple: { atkSpdPct:15, dmg:5,  hit:5,  sub:2, hp:100 },
+    gold:   { atkSpdPct:20, dmg:8,  hit:8,  sub:3, hp:200 },
+    cyan:   { atkSpdPct:25, dmg:12, hit:12, sub:5, hp:300 }
+  };
+
+  function transformAbilityData(card) {
+    if (!card || !TRANSFORM_TIER_POWER[card.tier]) return null;
+    const t = TRANSFORM_TIER_POWER[card.tier];
+    const out = { atkSpdPct:t.atkSpdPct };
+
+    switch (card.cls) {
+      case 'royal':
+        out.meleeDmg = t.dmg; out.meleeHit = t.hit; out.extraDmg = t.sub;
+        break;
+      case 'knight':
+        out.meleeDmg = t.dmg; out.meleeHit = t.hit; out.dr = t.sub;
+        break;
+      case 'elf':
+        out.rangedDmg = t.dmg; out.rangedHit = t.hit; out.rangedCrit = t.sub;
+        break;
+      case 'mage':
+        out.magicDmg = t.dmg; out.magicHit = t.hit; out.extraMp = t.sub; out.castSpdPct = t.atkSpdPct;
+        break;
+      case 'dark':
+        out.meleeDmg = t.dmg; out.meleeHit = t.hit; out.meleeCrit = t.sub;
+        break;
+      case 'dragon':
+        out.meleeDmg = t.dmg; out.meleeHit = t.hit; out.extraDmg = t.sub;
+        break;
+      case 'illusion':
+        out.magicDmg = t.dmg; out.magicHit = t.hit; out.extraMp = t.sub; out.castSpdPct = t.atkSpdPct;
+        break;
+      case 'warrior':
+        out.meleeDmg = t.dmg; out.meleeHit = t.hit; out.dr = t.sub; out.mhp = t.hp;
+        break;
+    }
+    return out;
+  }
+
+  function transformAbilityLines(card) {
+    const a = transformAbilityData(card);
+    if (!a) return [];
+    const lines = [];
+    if (a.atkSpdPct) lines.push(`攻擊速度 +${a.atkSpdPct}%`);
+    if (a.castSpdPct) lines.push(`施法速度 +${a.castSpdPct}%`);
+    if (a.meleeDmg) lines.push(`近距離傷害 +${a.meleeDmg}`);
+    if (a.meleeHit) lines.push(`近距離命中 +${a.meleeHit}`);
+    if (a.rangedDmg) lines.push(`遠距離傷害 +${a.rangedDmg}`);
+    if (a.rangedHit) lines.push(`遠距離命中 +${a.rangedHit}`);
+    if (a.magicDmg) lines.push(`魔法傷害 +${a.magicDmg}`);
+    if (a.magicHit) lines.push(`魔法命中 +${a.magicHit}`);
+    if (a.extraDmg) lines.push(`額外傷害 +${a.extraDmg}`);
+    if (a.extraMp) lines.push(`額外魔法點數 +${a.extraMp}`);
+    if (a.dr) lines.push(`傷害減免 +${a.dr}`);
+    if (a.meleeCrit) lines.push(`近距離爆擊率 +${a.meleeCrit}%`);
+    if (a.rangedCrit) lines.push(`遠距離爆擊率 +${a.rangedCrit}%`);
+    if (a.mhp) lines.push(`最大 HP +${a.mhp}`);
+    return lines;
+  }
+
+  // 由 js/02-stats-recompute.js 在正式 recomputeStats() 尾段呼叫。
+  // 回傳 attackSpeedPct 給既有 spdMult 管線，避免直接覆蓋 d.aspd。
+  function applyTransformCombatStats(p, d) {
+    try {
+      if (!p || !d || !p.transformId) return null;
+      const card = cardById(p.transformId);
+      if (!card || card.cls !== p.cls || ownedCount(card.id) <= 0) return null;
+      const a = transformAbilityData(card);
+      if (!a) return null;
+
+      if (a.meleeDmg) d.meleeDmg += a.meleeDmg;
+      if (a.meleeHit) d.meleeHit += a.meleeHit;
+      if (a.rangedDmg) d.rangedDmg += a.rangedDmg;
+      if (a.rangedHit) d.rangedHit += a.rangedHit;
+      if (a.magicDmg) d.magicDmg += a.magicDmg;
+      if (a.magicHit) d.magicHit += a.magicHit;
+      if (a.extraDmg) d.extraDmg += a.extraDmg;
+      if (a.extraMp) d.extraMp += a.extraMp;
+      if (a.dr) d.dr += a.dr;
+      if (a.meleeCrit) d.meleeCrit += a.meleeCrit;
+      if (a.rangedCrit) d.rangedCrit += a.rangedCrit;
+      if (a.mhp) p.mhp += a.mhp;
+
+      if (a.castSpdPct) {
+        const m = 1 + a.castSpdPct / 100;
+        if (d.castLock != null) d.castLock = Math.max(1, d.castLock / m);
+        if (d.supportCastLock != null) d.supportCastLock = Math.max(1, d.supportCastLock / m);
+      }
+
+      return { attackSpeedPct: a.atkSpdPct || 0, card: card, stats: a };
+    } catch (e) {
+      console.warn('[transform] applyTransformCombatStats failed', e);
+      return null;
+    }
+  }
 
   let state = null;
   let page = 'transform';
@@ -172,6 +273,7 @@
     const p = ensurePlayer();
     if (!p || !canEquip(c)) return false;
     p.transformId = id;
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
     try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
     render();
     return true;
@@ -181,6 +283,7 @@
     const p = ensurePlayer();
     if (!p) return false;
     p.transformId = null;
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
     try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
     render();
     return true;
@@ -457,7 +560,7 @@
             </div>
             <div class="text-xs text-slate-500">持有 × ${ownedCount(c.id)}</div>
           </div>
-          <div class="text-xs text-amber-200 mt-3">預定能力：${esc(c.planned)}</div>
+          <div class="text-xs text-amber-200 mt-3">${transformAbilityLines(c).map(x=>esc(x)).join(' ／ ')}</div>
           <button class="btn w-full mt-3 py-2 ${active?'bg-cyan-900':'bg-slate-700'}"
                   ${active?'disabled':''}
                   onclick="transformEquip('${c.id}')">${active?'目前使用中':'套用變身'}</button>
@@ -512,14 +615,14 @@
     return `
       <div class="rounded-xl border border-cyan-900/60 bg-cyan-950/10 p-5">
         <div class="text-xl font-bold text-cyan-300 mb-3">📊 變身能力</div>
-        ${cur ? `<div class="text-lg">${badge(cur)} ${esc(cur.name)}</div><div class="text-slate-300 mt-2">預定：${esc(cur.planned)}</div>` : '<div class="text-slate-500">目前未套用變身。</div>'}
+        ${cur ? `<div class="text-lg">${badge(cur)} ${esc(cur.name)}</div><div class="text-slate-300 mt-2">${transformAbilityLines(cur).map(x=>esc(x)).join('<br>')}</div>` : '<div class="text-slate-500">目前未套用變身。</div>'}
         <div class="mt-4 p-3 rounded-lg bg-slate-800 text-sm">
           <div class="text-cyan-200 font-bold">變身卡取得</div>
           <div class="text-slate-300 mt-1">全地圖怪物：每隻 ${(TRANSFORM_CARD_DROP_RATE*100).toFixed(1)}% 機率掉落。</div>
           <div class="text-slate-300 mt-1">開卡機率：${odds}</div>
         </div>
         <div class="mt-3 p-3 rounded-lg bg-slate-800 text-sm text-amber-200">
-          Phase 2 先完成取得、開卡與收藏；實際戰鬥能力會在下一階段接入。
+          Phase 3 已接入正式戰鬥能力；套用／解除變身會立即重算角色能力。
         </div>
       </div>`;
   }
@@ -561,6 +664,7 @@
     ensureCollectionButton();
     hookUseItem();
     hookKillMob();
+    try { if (typeof calcStats === 'function' && typeof player !== 'undefined' && player && player.cls) calcStats(); } catch(e) {}
   }
 
   window.TRANSFORM_TIERS = TRANSFORM_TIERS;
@@ -568,6 +672,10 @@
   window.TRANSFORM_CARDS = TRANSFORM_CARDS;
   window.TRANSFORM_CARD_DROP_RATE = TRANSFORM_CARD_DROP_RATE;
   window.TRANSFORM_OPEN_RATES = TRANSFORM_OPEN_RATES;
+  window.TRANSFORM_TIER_POWER = TRANSFORM_TIER_POWER;
+  window.transformAbilityData = transformAbilityData;
+  window.transformAbilityLines = transformAbilityLines;
+  window.applyTransformCombatStats = applyTransformCombatStats;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;

@@ -746,6 +746,14 @@ d.mr += (baseMr + bonusMr);
     // 🐉 v3.7.57 地龍之魔眼觸發增益（10 分鐘）：額外傷害/額外命中/ER 各 +5（js/04 石化觸發·js/03 _tickExpireFields 到期重算）
     if ((p._eyePetrifyUntil || 0) > state.ticks) { d.extraDmg += 5; d.extraHit += 5; d.er += 5; }
 
+    // 🧙 變身系統 Phase 3：正式能力注入
+    // 只作用主玩家；數值本體由最後載入的 js/33-transformations.js 提供。
+    // 攻速沿既有 spdMult 管線乘算；施法/傷害/命中/HP/DR 直接進 d/p 正式欄位。
+    if (!_recomputingAlly && typeof applyTransformCombatStats === 'function') {
+        let _tf = applyTransformCombatStats(p, d);
+        if (_tf && _tf.attackSpeedPct) spdMult *= (1 / (1 + _tf.attackSpeedPct / 100));
+    }
+
     // 原版方向魔法公式拆分：INT 提供 SP 封頂 33；其餘 extraMp 才列為道具／套裝／增益 SP。
     // 用未封頂的 INT 原始提供量扣除，避免 INT 100 多出的 2 點被誤判成道具 SP。
     let _rawIntSp = Math.max(0, getIntExtraMp(d.int));
