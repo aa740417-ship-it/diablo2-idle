@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 4 =====
+// ===== 🧙 天堂M風格變身系統 Phase 5 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -151,7 +151,9 @@
   // 回傳 attackSpeedPct 給既有 spdMult 管線，避免直接覆蓋 d.aspd。
   function applyTransformCombatStats(p, d) {
     try {
-      if (!p || !d || !p.transformId) return null;
+      if (!p || !d) return null;
+      if (typeof applyTransformCollectionStats === 'function') applyTransformCollectionStats(p, d);
+      if (!p.transformId) return null;
       const card = cardById(p.transformId);
       if (!card || card.cls !== p.cls || ownedCount(card.id) <= 0) return null;
       const a = transformAbilityData(card);
@@ -182,6 +184,72 @@
       return null;
     }
   }
+
+  // ===== Phase 5：變身收藏套組 =====
+  // 收藏判定只看「是否曾取得並仍保留至少 1 張」。
+  // Phase 4 合成只吃重複張數，因此第一張永遠保留，已完成收藏不會被拆掉。
+  const TRANSFORM_COLLECTIONS = [
+    {
+      id:'col_all_red', name:'英雄集結', desc:'8 職紅變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'red').map(c => c.id),
+      bonus:{ mhp:100, meleeHit:1, rangedHit:1, magicHit:1 }
+    },
+    {
+      id:'col_all_purple', name:'傳說集結', desc:'8 職紫變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'purple').map(c => c.id),
+      bonus:{ mhp:100, meleeDmg:1, rangedDmg:1, magicDmg:1 }
+    },
+    {
+      id:'col_all_gold', name:'神話集結', desc:'8 職金變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'gold').map(c => c.id),
+      bonus:{ meleeDmg:2, rangedDmg:2, magicDmg:2, meleeHit:2, rangedHit:2, magicHit:2, dr:1 }
+    },
+    {
+      id:'col_all_cyan', name:'唯一集結', desc:'8 職青變全部收集',
+      cards: TRANSFORM_CARDS.filter(c => c.tier === 'cyan').map(c => c.id),
+      bonus:{ mhp:300, meleeDmg:3, rangedDmg:3, magicDmg:3, meleeHit:3, rangedHit:3, magicHit:3, dr:2 }
+    },
+    {
+      id:'col_royal_line', name:'王者之路', desc:'王族紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'royal').map(c => c.id),
+      bonus:{ extraDmg:2, extraHit:1 }
+    },
+    {
+      id:'col_knight_line', name:'不落之盾', desc:'騎士紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'knight').map(c => c.id),
+      bonus:{ meleeDmg:2, dr:1 }
+    },
+    {
+      id:'col_elf_line', name:'蒼穹獵手', desc:'妖精紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'elf').map(c => c.id),
+      bonus:{ rangedDmg:2, rangedHit:1 }
+    },
+    {
+      id:'col_mage_line', name:'奧術真理', desc:'法師紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'mage').map(c => c.id),
+      bonus:{ magicDmg:2, magicHit:1, extraMp:1 }
+    },
+    {
+      id:'col_dark_line', name:'暗夜獵殺', desc:'黑暗妖精紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'dark').map(c => c.id),
+      bonus:{ meleeDmg:2, meleeCrit:2 }
+    },
+    {
+      id:'col_dragon_line', name:'龍魂覺醒', desc:'龍騎士紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'dragon').map(c => c.id),
+      bonus:{ meleeDmg:2, extraHit:1 }
+    },
+    {
+      id:'col_illusion_line', name:'夢界共鳴', desc:'幻術士紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'illusion').map(c => c.id),
+      bonus:{ magicDmg:2, magicHit:1, extraMp:1 }
+    },
+    {
+      id:'col_warrior_line', name:'泰坦之血', desc:'戰士紅／紫／金／青全收集',
+      cards: TRANSFORM_CARDS.filter(c => c.cls === 'warrior').map(c => c.id),
+      bonus:{ mhp:150, dr:1 }
+    }
+  ];
 
   // ===== Phase 4：重複變身合成設定 =====
   // 每次只消耗「重複張數」：每一種變身的第一張永遠保留。
@@ -263,6 +331,7 @@
     const s = loadState();
     s.owned[id] = ownedCount(id) + Math.max(1, Math.floor(Number(count) || 1));
     saveState();
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
     render();
     return true;
   }
@@ -473,6 +542,58 @@
     }
   }
 
+  // ===== Phase 5：收藏能力核心 =====
+  function transformCollectionProgress(col) {
+    if (!col || !Array.isArray(col.cards)) return { have:0, need:0, complete:false };
+    let have = 0;
+    for (const id of col.cards) if (ownedCount(id) > 0) have++;
+    return { have, need:col.cards.length, complete:col.cards.length > 0 && have >= col.cards.length };
+  }
+
+  function completedTransformCollectionIds() {
+    return TRANSFORM_COLLECTIONS
+      .filter(col => transformCollectionProgress(col).complete)
+      .map(col => col.id);
+  }
+
+  function collectionBonusText(b) {
+    if (!b) return [];
+    const out = [];
+    if (b.mhp) out.push(`最大 HP +${b.mhp}`);
+    if (b.meleeDmg) out.push(`近距離傷害 +${b.meleeDmg}`);
+    if (b.rangedDmg) out.push(`遠距離傷害 +${b.rangedDmg}`);
+    if (b.magicDmg) out.push(`魔法傷害 +${b.magicDmg}`);
+    if (b.meleeHit) out.push(`近距離命中 +${b.meleeHit}`);
+    if (b.rangedHit) out.push(`遠距離命中 +${b.rangedHit}`);
+    if (b.magicHit) out.push(`魔法命中 +${b.magicHit}`);
+    if (b.extraDmg) out.push(`額外傷害 +${b.extraDmg}`);
+    if (b.extraHit) out.push(`額外命中 +${b.extraHit}`);
+    if (b.extraMp) out.push(`額外魔法點數 +${b.extraMp}`);
+    if (b.dr) out.push(`傷害減免 +${b.dr}`);
+    if (b.meleeCrit) out.push(`近距離爆擊率 +${b.meleeCrit}%`);
+    return out;
+  }
+
+  function applyTransformCollectionStats(p, d) {
+    if (!p || !d) return;
+    for (const col of TRANSFORM_COLLECTIONS) {
+      if (!transformCollectionProgress(col).complete) continue;
+      const b = col.bonus || {};
+      if (b.mhp) p.mhp += b.mhp;
+      if (b.meleeDmg) d.meleeDmg += b.meleeDmg;
+      if (b.rangedDmg) d.rangedDmg += b.rangedDmg;
+      if (b.magicDmg) d.magicDmg += b.magicDmg;
+      if (b.meleeHit) d.meleeHit += b.meleeHit;
+      if (b.rangedHit) d.rangedHit += b.rangedHit;
+      if (b.magicHit) d.magicHit += b.magicHit;
+      if (b.extraDmg) d.extraDmg += b.extraDmg;
+      if (b.extraHit) d.extraHit += b.extraHit;
+      if (b.extraMp) d.extraMp += b.extraMp;
+      if (b.dr) d.dr += b.dr;
+      if (b.meleeCrit) d.meleeCrit += b.meleeCrit;
+    }
+  }
+
   // ===== Phase 4：合成核心 =====
   function fusionStateFor(tier) {
     const s = loadState();
@@ -554,6 +675,7 @@
     }
 
     saveState();
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
 
     try {
       const ti = TRANSFORM_TIERS[result.tier];
@@ -755,25 +877,56 @@
   }
 
   function renderCollectionPage() {
-    return `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${
-      Object.keys(TRANSFORM_CLASSES).map(k => {
-        const ci = TRANSFORM_CLASSES[k];
-        const cards = TRANSFORM_CARDS
-          .filter(c => c.cls === k)
-          .sort((a,b) => TRANSFORM_TIERS[a.tier].order - TRANSFORM_TIERS[b.tier].order);
-        return `
-          <div class="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
-            <div class="font-bold text-lg mb-2">${ci.icon} ${esc(ci.name)}</div>
-            ${cards.map(c => `
-              <div class="flex items-center justify-between gap-3 py-2 border-t border-slate-700">
-                <div>${badge(c)} ${esc(c.name)}</div>
-                <div class="text-sm ${ownedCount(c.id)?'text-emerald-300':'text-slate-600'}">
-                  ${ownedCount(c.id)?'已取得 × '+ownedCount(c.id):'未取得'}
+    const effects = `
+      <div class="mb-5">
+        <div class="text-lg font-bold text-amber-300 mb-2">✨ 收藏效果</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          ${TRANSFORM_COLLECTIONS.map(col => {
+            const pr = transformCollectionProgress(col);
+            const done = pr.complete;
+            return `
+              <div class="rounded-xl border ${done ? 'border-emerald-600/70' : 'border-slate-700'} bg-slate-800/70 p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="font-bold ${done ? 'text-emerald-300' : 'text-slate-200'}">
+                      ${done ? '✅' : '🔒'} ${esc(col.name)}
+                    </div>
+                    <div class="text-xs text-slate-400 mt-1">${esc(col.desc)}</div>
+                  </div>
+                  <div class="text-sm font-bold ${done ? 'text-emerald-300' : 'text-slate-500'}">${pr.have}/${pr.need}</div>
                 </div>
-              </div>`).join('')}
-          </div>`;
-      }).join('')
-    }</div>`;
+                <div class="text-xs mt-3 ${done ? 'text-amber-200' : 'text-slate-500'}">
+                  ${collectionBonusText(col.bonus).map(x => esc(x)).join(' ／ ')}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+
+    const cards = `<div>
+      <div class="text-lg font-bold text-cyan-300 mb-2">📚 變身圖鑑</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${
+        Object.keys(TRANSFORM_CLASSES).map(k => {
+          const ci = TRANSFORM_CLASSES[k];
+          const list = TRANSFORM_CARDS
+            .filter(c => c.cls === k)
+            .sort((a,b) => TRANSFORM_TIERS[a.tier].order - TRANSFORM_TIERS[b.tier].order);
+          return `
+            <div class="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
+              <div class="font-bold text-lg mb-2">${ci.icon} ${esc(ci.name)}</div>
+              ${list.map(c => `
+                <div class="flex items-center justify-between gap-3 py-2 border-t border-slate-700">
+                  <div>${badge(c)} ${esc(c.name)}</div>
+                  <div class="text-sm ${ownedCount(c.id)?'text-emerald-300':'text-slate-600'}">
+                    ${ownedCount(c.id)?'已取得 × '+ownedCount(c.id):'未取得'}
+                  </div>
+                </div>`).join('')}
+            </div>`;
+        }).join('')
+      }</div>
+    </div>`;
+
+    return effects + cards;
   }
 
   function renderAbilityPage() {
@@ -847,6 +1000,11 @@
   window.transformAbilityData = transformAbilityData;
   window.transformAbilityLines = transformAbilityLines;
   window.applyTransformCombatStats = applyTransformCombatStats;
+
+  window.TRANSFORM_COLLECTIONS = TRANSFORM_COLLECTIONS;
+  window.transformCollectionProgress = transformCollectionProgress;
+  window.transformCompletedCollections = completedTransformCollectionIds;
+  window.applyTransformCollectionStats = applyTransformCollectionStats;
 
   window.transformFuse = transformFuse;
   window.transformFusionMaterialCount = fusionMaterialCount;
