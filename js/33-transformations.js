@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 9 =====
+// ===== 🧙 天堂M風格變身系統 Phase 10 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -1383,7 +1383,60 @@
       </div>`;
   }
 
+  // ===== Phase 10：圖鑑篩選與完成度 =====
+  let collectionTierFilter = 'all';
+  let collectionClassMode = 'all';
+  let collectionMissingFirst = false;
+
+  function setTransformCollectionTierFilter(tier) {
+    collectionTierFilter = ['all','red','purple','gold','cyan'].includes(tier) ? tier : 'all';
+    render();
+  }
+
+  function setTransformCollectionClassMode(mode) {
+    collectionClassMode = (mode === 'mine') ? 'mine' : 'all';
+    render();
+  }
+
+  function setTransformCollectionMissingFirst(on) {
+    collectionMissingFirst = !!on;
+    render();
+  }
+
+  function transformUniqueOwnedCount(cards) {
+    return (cards || TRANSFORM_CARDS).reduce((n, c) => n + (ownedCount(c.id) > 0 ? 1 : 0), 0);
+  }
+
   function renderCollectionPage() {
+    const p = ensurePlayer();
+    const allHave = transformUniqueOwnedCount(TRANSFORM_CARDS);
+    const allNeed = TRANSFORM_CARDS.length;
+    const allPct = allNeed ? Math.floor((allHave / allNeed) * 100) : 0;
+
+    let filtered = TRANSFORM_CARDS.slice();
+
+    if (collectionTierFilter !== 'all') {
+      filtered = filtered.filter(c => c.tier === collectionTierFilter);
+    }
+
+    if (collectionClassMode === 'mine' && p && p.cls) {
+      filtered = filtered.filter(c => c.cls === p.cls);
+    }
+
+    const filteredHave = transformUniqueOwnedCount(filtered);
+    const filteredNeed = filtered.length;
+
+    const tierBtns = [
+      ['all','全部'],
+      ['red','紅'],
+      ['purple','紫'],
+      ['gold','金'],
+      ['cyan','青']
+    ].map(([k,n]) => `
+      <button class="btn py-2 text-sm font-bold ${collectionTierFilter===k?'bg-cyan-800 text-cyan-100':'bg-slate-800 text-slate-300'}"
+              onclick="setTransformCollectionTierFilter('${k}')">${n}</button>
+    `).join('');
+
     const effects = `
       <div class="mb-5">
         <div class="text-lg font-bold text-amber-300 mb-2">✨ 收藏效果</div>
@@ -1410,17 +1463,73 @@
         </div>
       </div>`;
 
-    const cards = `<div>
-      <div class="text-lg font-bold text-cyan-300 mb-2">📚 變身圖鑑</div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${
-        Object.keys(TRANSFORM_CLASSES).map(k => {
+    const controls = `
+      <div class="mb-4 rounded-xl border border-cyan-900/60 bg-slate-800/70 p-4">
+        <div class="flex items-end justify-between gap-3">
+          <div>
+            <div class="text-lg font-bold text-cyan-300">📚 變身圖鑑</div>
+            <div class="text-sm text-slate-300 mt-1">
+              總完成度 <b class="text-emerald-300">${allHave} / ${allNeed}</b>（${allPct}%）
+            </div>
+          </div>
+          <div class="text-right text-xs text-slate-400">
+            目前篩選 ${filteredHave} / ${filteredNeed}
+          </div>
+        </div>
+
+        <div class="mt-3 h-2 rounded-full bg-slate-900 overflow-hidden">
+          <div class="h-full bg-emerald-600" style="width:${Math.max(0,Math.min(100,allPct))}%"></div>
+        </div>
+
+        <div class="grid grid-cols-5 gap-1.5 mt-4">
+          ${tierBtns}
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mt-3">
+          <button class="btn py-2 text-sm font-bold ${collectionClassMode==='all'?'bg-cyan-800 text-cyan-100':'bg-slate-800 text-slate-300'}"
+                  onclick="setTransformCollectionClassMode('all')">全部職業</button>
+          <button class="btn py-2 text-sm font-bold ${collectionClassMode==='mine'?'bg-cyan-800 text-cyan-100':'bg-slate-800 text-slate-300'}"
+                  onclick="setTransformCollectionClassMode('mine')">只看本職</button>
+        </div>
+
+        <label class="mt-3 flex items-center justify-between gap-3 rounded-lg bg-slate-900/70 border border-slate-700 px-3 py-2">
+          <div>
+            <div class="text-sm font-bold text-slate-200">未取得優先</div>
+            <div class="text-xs text-slate-500">開啟後，每個職業會把缺少的變身排在前面。</div>
+          </div>
+          <input type="checkbox" class="w-5 h-5 accent-cyan-600"
+                 ${collectionMissingFirst ? 'checked' : ''}
+                 onchange="setTransformCollectionMissingFirst(this.checked)">
+        </label>
+      </div>`;
+
+    const classes = Object.keys(TRANSFORM_CLASSES).filter(k => filtered.some(c => c.cls === k));
+
+    const cards = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        ${classes.map(k => {
           const ci = TRANSFORM_CLASSES[k];
-          const list = TRANSFORM_CARDS
+          const list = filtered
             .filter(c => c.cls === k)
-            .sort((a,b) => TRANSFORM_TIERS[a.tier].order - TRANSFORM_TIERS[b.tier].order);
+            .sort((a,b) => {
+              if (collectionMissingFirst) {
+                const ah = ownedCount(a.id) > 0 ? 1 : 0;
+                const bh = ownedCount(b.id) > 0 ? 1 : 0;
+                if (ah !== bh) return ah - bh;
+              }
+              const tierDiff = TRANSFORM_TIERS[a.tier].order - TRANSFORM_TIERS[b.tier].order;
+              if (tierDiff) return tierDiff;
+              return String(a.id).localeCompare(String(b.id));
+            });
+
+          const have = transformUniqueOwnedCount(list);
+
           return `
             <div class="rounded-xl border border-slate-700 bg-slate-800/60 p-4">
-              <div class="font-bold text-lg mb-2">${ci.icon} ${esc(ci.name)}</div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-bold text-lg">${ci.icon} ${esc(ci.name)}</div>
+                <div class="text-xs text-slate-400">${have}/${list.length}</div>
+              </div>
               ${list.map(c => `
                 <div class="flex items-center justify-between gap-3 py-2 border-t border-slate-700">
                   <div>${badge(c)} ${esc(c.name)}</div>
@@ -1429,11 +1538,14 @@
                   </div>
                 </div>`).join('')}
             </div>`;
-        }).join('')
-      }</div>
-    </div>`;
+        }).join('')}
+      </div>`;
 
-    return effects + cards;
+    const empty = filteredNeed === 0
+      ? `<div class="rounded-xl border border-dashed border-slate-700 p-8 text-center text-slate-500">目前篩選條件沒有變身資料。</div>`
+      : '';
+
+    return effects + controls + (empty || cards);
   }
 
   function renderAbilityPage() {
@@ -1534,6 +1646,10 @@
   window.bestOwnedTransformForClass = bestOwnedTransformForClass;
   window.setAutoBestTransformEnabled = setAutoBestTransformEnabled;
   window.autoBestTransformEnabled = autoBestTransformEnabled;
+
+  window.setTransformCollectionTierFilter = setTransformCollectionTierFilter;
+  window.setTransformCollectionClassMode = setTransformCollectionClassMode;
+  window.setTransformCollectionMissingFirst = setTransformCollectionMissingFirst;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
