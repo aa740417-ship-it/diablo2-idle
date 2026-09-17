@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 10 =====
+// ===== 🧙 天堂M風格變身系統 Phase 11 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -1387,6 +1387,8 @@
   let collectionTierFilter = 'all';
   let collectionClassMode = 'all';
   let collectionMissingFirst = false;
+  let collectionSearchText = '';
+  let collectionSearchTimer = null;
 
   function setTransformCollectionTierFilter(tier) {
     collectionTierFilter = ['all','red','purple','gold','cyan'].includes(tier) ? tier : 'all';
@@ -1403,8 +1405,112 @@
     render();
   }
 
+  function setTransformCollectionSearch(value) {
+    collectionSearchText = String(value || '').trim();
+    render();
+  }
+
+  function queueTransformCollectionSearch(value) {
+    collectionSearchText = String(value || '');
+    if (collectionSearchTimer) clearTimeout(collectionSearchTimer);
+    collectionSearchTimer = setTimeout(() => {
+      render();
+      requestAnimationFrame(() => {
+        const input = document.getElementById('transform-collection-search');
+        if (input) {
+          input.focus();
+          try { input.setSelectionRange(input.value.length, input.value.length); } catch(e) {}
+        }
+      });
+    }, 250);
+  }
+
+  function clearTransformCollectionSearch() {
+    collectionSearchText = '';
+    render();
+  }
+
   function transformUniqueOwnedCount(cards) {
     return (cards || TRANSFORM_CARDS).reduce((n, c) => n + (ownedCount(c.id) > 0 ? 1 : 0), 0);
+  }
+
+  // ===== Phase 11：變身詳細資料 =====
+  function ensureTransformCardDetailDom() {
+    let root = document.getElementById('transform-card-detail');
+    if (root) return root;
+
+    root = document.createElement('div');
+    root.id = 'transform-card-detail';
+    root.className = 'hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3';
+    root.style.paddingBottom = 'calc(112px + env(safe-area-inset-bottom, 0px))';
+    root.innerHTML = `
+      <div class="w-full max-w-lg max-h-full overflow-y-auto rounded-2xl border-2 border-cyan-800/70 bg-slate-900 p-5"
+           onclick="event.stopPropagation()">
+        <div id="transform-card-detail-body"></div>
+      </div>`;
+    root.addEventListener('click', closeTransformCardDetail);
+    document.body.appendChild(root);
+    return root;
+  }
+
+  function openTransformCardDetail(id) {
+    const card = cardById(id);
+    if (!card) return;
+
+    const root = ensureTransformCardDetailDom();
+    const body = document.getElementById('transform-card-detail-body');
+    if (!body) return;
+
+    const ti = TRANSFORM_TIERS[card.tier];
+    const ci = TRANSFORM_CLASSES[card.cls];
+    const count = ownedCount(card.id);
+    const p = ensurePlayer();
+    const usable = !!(count > 0 && p && p.cls === card.cls);
+    const active = !!(current() && current().id === card.id);
+    const lines = transformAbilityLines(card);
+
+    body.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-2xl font-bold" style="color:${ti.color}">【${ti.short}】${esc(card.name)}</div>
+          <div class="text-sm text-slate-400 mt-1">${ci.icon} ${esc(ci.name)} ／ ${esc(ti.name)}</div>
+        </div>
+        <button class="btn px-3 py-1.5 bg-slate-700" onclick="closeTransformCardDetail()">✕</button>
+      </div>
+
+      <div class="mt-4 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+        <div class="flex justify-between gap-3">
+          <span class="text-slate-400">持有數量</span>
+          <b class="${count > 0 ? 'text-emerald-300' : 'text-slate-500'}">${count > 0 ? '× ' + count : '未取得'}</b>
+        </div>
+      </div>
+
+      <div class="mt-3 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+        <div class="font-bold text-cyan-300 mb-2">能力</div>
+        ${lines.map(x => `<div class="py-1 text-slate-200">${esc(x)}</div>`).join('')}
+      </div>
+
+      <div class="mt-3 rounded-xl border border-slate-700 bg-slate-800/70 p-4 text-sm">
+        <div class="font-bold text-slate-300 mb-1">取得方式</div>
+        <div class="text-slate-400">全地圖怪物掉落「變身卡」，開啟後隨機取得；也可由合成獲得。</div>
+      </div>
+
+      ${usable ? `
+        <button class="btn w-full mt-4 py-3 font-bold ${active ? 'bg-cyan-950 text-cyan-300' : 'bg-cyan-900 text-cyan-100 border-cyan-700'}"
+                ${active ? 'disabled' : ''}
+                onclick="transformEquip('${card.id}'); closeTransformCardDetail();">
+          ${active ? '目前使用中' : '套用這張變身'}
+        </button>` : ''}
+
+      <button class="btn w-full mt-2 py-3 bg-slate-700" onclick="closeTransformCardDetail()">關閉</button>
+    `;
+
+    root.classList.remove('hidden');
+  }
+
+  function closeTransformCardDetail() {
+    const root = document.getElementById('transform-card-detail');
+    if (root) root.classList.add('hidden');
   }
 
   function renderCollectionPage() {
@@ -1421,6 +1527,17 @@
 
     if (collectionClassMode === 'mine' && p && p.cls) {
       filtered = filtered.filter(c => c.cls === p.cls);
+    }
+
+    const q = collectionSearchText.trim().toLowerCase();
+    if (q) {
+      filtered = filtered.filter(c => {
+        const ti = TRANSFORM_TIERS[c.tier];
+        const ci = TRANSFORM_CLASSES[c.cls];
+        const hay = [c.name, c.id, ti && ti.short, ti && ti.name, ci && ci.name]
+          .filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(q);
+      });
     }
 
     const filteredHave = transformUniqueOwnedCount(filtered);
@@ -1481,7 +1598,16 @@
           <div class="h-full bg-emerald-600" style="width:${Math.max(0,Math.min(100,allPct))}%"></div>
         </div>
 
-        <div class="grid grid-cols-5 gap-1.5 mt-4">
+        <div class="grid grid-cols-[1fr_auto] gap-2 mt-4">
+          <input id="transform-collection-search"
+                 class="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 outline-none"
+                 placeholder="搜尋變身名稱、職業或階級..."
+                 value="${esc(collectionSearchText)}"
+                 oninput="queueTransformCollectionSearch(this.value)">
+          <button class="btn px-3 py-2 bg-slate-700" onclick="clearTransformCollectionSearch()">清除</button>
+        </div>
+
+        <div class="grid grid-cols-5 gap-1.5 mt-3">
           ${tierBtns}
         </div>
 
@@ -1531,12 +1657,13 @@
                 <div class="text-xs text-slate-400">${have}/${list.length}</div>
               </div>
               ${list.map(c => `
-                <div class="flex items-center justify-between gap-3 py-2 border-t border-slate-700">
+                <button class="w-full flex items-center justify-between gap-3 py-2 border-t border-slate-700 text-left"
+                        onclick="openTransformCardDetail('${c.id}')">
                   <div>${badge(c)} ${esc(c.name)}</div>
                   <div class="text-sm ${ownedCount(c.id)?'text-emerald-300':'text-slate-600'}">
                     ${ownedCount(c.id)?'已取得 × '+ownedCount(c.id):'未取得'}
                   </div>
-                </div>`).join('')}
+                </button>`).join('')}
             </div>`;
         }).join('')}
       </div>`;
@@ -1650,6 +1777,12 @@
   window.setTransformCollectionTierFilter = setTransformCollectionTierFilter;
   window.setTransformCollectionClassMode = setTransformCollectionClassMode;
   window.setTransformCollectionMissingFirst = setTransformCollectionMissingFirst;
+
+  window.setTransformCollectionSearch = setTransformCollectionSearch;
+  window.queueTransformCollectionSearch = queueTransformCollectionSearch;
+  window.clearTransformCollectionSearch = clearTransformCollectionSearch;
+  window.openTransformCardDetail = openTransformCardDetail;
+  window.closeTransformCardDetail = closeTransformCardDetail;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
