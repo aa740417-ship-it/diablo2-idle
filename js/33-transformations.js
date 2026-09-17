@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 12 =====
+// ===== 🧙 天堂M風格變身系統 Phase 13 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -966,6 +966,115 @@
     return out;
   }
 
+  // ===== Phase 13：青變重複兌換 =====
+  const CYAN_SOUL_KEY = 'lineage_transform_cyan_soul_v1';
+  const CYAN_SOUL_EXCHANGE_COST = 2;
+
+  function getCyanSoulCount() {
+    try {
+      return Math.max(0, Math.floor(Number(getStore(CYAN_SOUL_KEY) || 0)));
+    } catch(e) { return 0; }
+  }
+
+  function setCyanSoulCount(n) {
+    const v = Math.max(0, Math.floor(Number(n) || 0));
+    setStore(CYAN_SOUL_KEY, String(v));
+    return v;
+  }
+
+  function addCyanSoul(n=1) {
+    return setCyanSoulCount(getCyanSoulCount() + Math.max(0, Math.floor(Number(n) || 0)));
+  }
+
+  function cyanDuplicateCount() {
+    return TRANSFORM_CARDS
+      .filter(c => c.tier === 'cyan')
+      .reduce((sum, c) => sum + Math.max(0, ownedCount(c.id) - 1), 0);
+  }
+
+  function dismantleAllDuplicateCyan() {
+    const st = loadState();
+    let converted = 0;
+
+    for (const c of TRANSFORM_CARDS.filter(x => x.tier === 'cyan')) {
+      const n = Math.max(0, Math.floor(Number(st.owned[c.id] || 0)));
+      const extra = Math.max(0, n - 1);
+      if (!extra) continue;
+      st.owned[c.id] = 1;
+      converted += extra;
+    }
+
+    if (converted <= 0) {
+      try {
+        if (typeof logSys === 'function') {
+          logSys('<span class="text-slate-400">目前沒有可拆解的重複青變。</span>');
+        }
+      } catch(e) {}
+      render();
+      return 0;
+    }
+
+    addCyanSoul(converted);
+    saveState();
+
+    try {
+      if (typeof logSys === 'function') {
+        logSys(
+          `<span class="text-cyan-300 font-bold">🩵 已拆解重複青變 ×${converted}</span>` +
+          `，獲得青魂 ×${converted}，目前青魂 ${getCyanSoulCount()}。`
+        );
+      }
+    } catch(e) {}
+
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+    render();
+    return converted;
+  }
+
+  function exchangeCyanSoul() {
+    const souls = getCyanSoulCount();
+    if (souls < CYAN_SOUL_EXCHANGE_COST) {
+      try {
+        if (typeof logSys === 'function') {
+          logSys(`<span class="text-amber-300">青魂不足，需要 ${CYAN_SOUL_EXCHANGE_COST} 個。</span>`);
+        }
+      } catch(e) {}
+      render();
+      return false;
+    }
+
+    const cyanCards = TRANSFORM_CARDS.filter(c => c.tier === 'cyan');
+    const missing = cyanCards.filter(c => ownedCount(c.id) <= 0);
+    const pool = missing.length ? missing : cyanCards;
+    if (!pool.length) return false;
+
+    const card = pool[Math.floor(Math.random() * pool.length)];
+    const st = loadState();
+
+    st.owned[card.id] = Math.max(0, Math.floor(Number(st.owned[card.id] || 0))) + 1;
+    setCyanSoulCount(souls - CYAN_SOUL_EXCHANGE_COST);
+    saveState();
+
+    maybeAutoEquipHigherTransform(card);
+
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+
+    try {
+      if (typeof logSys === 'function') {
+        const ci = TRANSFORM_CLASSES[card.cls];
+        logSys(
+          `<span class="text-cyan-300 font-bold">🩵 青魂兌換成功：【青變】${esc(card.name)}</span>` +
+          ` <span class="text-slate-300">${ci.icon} ${esc(ci.name)}</span>` +
+          (missing.length ? ' <span class="text-emerald-300">（優先補未取得）</span>' : '')
+        );
+      }
+    } catch(e) {}
+
+    render();
+    return true;
+  }
+
   // ===== Phase 12：收藏總能力統計 =====
   function totalTransformCollectionBonus() {
     const total = {
@@ -1408,6 +1517,48 @@
               </button>
             </div>`;
         }).join('')}
+      </div>
+
+      <div class="mt-4 rounded-xl border border-cyan-800/60 bg-cyan-950/10 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-lg font-bold text-cyan-300">🩵 青變重複兌換</div>
+            <div class="text-xs text-slate-400 mt-1">
+              每種青變第一張永久保留；重複青變可拆成青魂。
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-slate-500">目前青魂</div>
+            <div class="text-2xl font-bold text-cyan-300">${getCyanSoulCount()}</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mt-4 text-sm">
+          <div class="rounded-lg bg-slate-900/70 p-3">
+            <div class="text-slate-500">重複青變</div>
+            <div class="text-xl font-bold">${cyanDuplicateCount()}</div>
+          </div>
+          <div class="rounded-lg bg-slate-900/70 p-3">
+            <div class="text-slate-500">兌換消耗</div>
+            <div class="text-xl font-bold">${CYAN_SOUL_EXCHANGE_COST} 青魂</div>
+          </div>
+        </div>
+
+        <button class="btn w-full mt-3 py-3 ${cyanDuplicateCount()>0?'bg-slate-700':'bg-slate-800 text-slate-500'}"
+                ${cyanDuplicateCount()>0?'':'disabled'}
+                onclick="dismantleAllDuplicateCyan()">
+          🧩 拆解全部重複青變
+        </button>
+
+        <button class="btn w-full mt-2 py-3 font-bold ${getCyanSoulCount()>=CYAN_SOUL_EXCHANGE_COST?'bg-cyan-900 text-cyan-100 border-cyan-700':'bg-slate-800 text-slate-500'}"
+                ${getCyanSoulCount()>=CYAN_SOUL_EXCHANGE_COST?'':'disabled'}
+                onclick="exchangeCyanSoul()">
+          🩵 ${CYAN_SOUL_EXCHANGE_COST} 青魂兌換 1 張青變
+        </button>
+
+        <div class="text-xs text-slate-500 mt-3">
+          兌換時會優先抽你尚未取得的青變；若 8 職青變都已收齊，則改為隨機青變。
+        </div>
       </div>`;
   }
 
@@ -1872,6 +2023,11 @@
   window.totalTransformCollectionBonus = totalTransformCollectionBonus;
   window.totalTransformCollectionBonusLines = totalTransformCollectionBonusLines;
   window.completedTransformCollectionCount = completedTransformCollectionCount;
+
+  window.getCyanSoulCount = getCyanSoulCount;
+  window.cyanDuplicateCount = cyanDuplicateCount;
+  window.dismantleAllDuplicateCyan = dismantleAllDuplicateCyan;
+  window.exchangeCyanSoul = exchangeCyanSoul;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
