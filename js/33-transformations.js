@@ -2238,11 +2238,24 @@
 
     root = document.createElement('div');
     root.id = 'transform-card-detail';
-    root.className = 'hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3';
-    root.style.paddingBottom = 'calc(112px + env(safe-area-inset-bottom, 0px))';
+    root.className = 'hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 overflow-y-auto';
+    root.style.paddingTop = 'max(12px, env(safe-area-inset-top, 0px))';
+    root.style.paddingBottom = 'calc(145px + env(safe-area-inset-bottom, 0px))';
+    root.style.overscrollBehavior = 'contain';
+    root.style.webkitOverflowScrolling = 'touch';
+    root.style.touchAction = 'pan-y';
     root.innerHTML = `
-      <div class="w-full max-w-lg max-h-full overflow-y-auto rounded-2xl border-2 border-cyan-800/70 bg-slate-900 p-5"
+      <div class="relative w-full max-w-lg rounded-2xl border-2 border-cyan-800/70 bg-slate-900 p-5"
            onclick="event.stopPropagation()">
+
+        <div class="sticky top-0 z-30 flex justify-end mb-2 pointer-events-none">
+          <button type="button"
+                  class="btn px-3 py-2 bg-slate-700 border-slate-500 pointer-events-auto shadow-lg"
+                  onclick="closeTransformCardDetail()">
+            ✕ 關閉
+          </button>
+        </div>
+
         <div id="transform-card-detail-body"></div>
       </div>`;
     root.addEventListener('click', closeTransformCardDetail);
