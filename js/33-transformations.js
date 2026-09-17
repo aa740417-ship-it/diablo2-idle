@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 8 =====
+// ===== 🧙 天堂M風格變身系統 Phase 9 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -501,6 +501,97 @@
     return true;
   }
 
+  // ===== Phase 9：最佳變身與自動換裝 =====
+  const AUTO_BEST_TRANSFORM_KEY = 'lineage_transform_auto_best_v1';
+
+  function autoBestTransformEnabled() {
+    try { return getStore(AUTO_BEST_TRANSFORM_KEY) === '1'; }
+    catch(e) { return false; }
+  }
+
+  function setAutoBestTransformEnabled(on) {
+    setStore(AUTO_BEST_TRANSFORM_KEY, on ? '1' : '0');
+    render();
+    return !!on;
+  }
+
+  function bestOwnedTransformForClass(cls) {
+    if (!cls) return null;
+    const list = TRANSFORM_CARDS
+      .filter(c => c.cls === cls && ownedCount(c.id) > 0)
+      .sort((a,b) => {
+        const ao = TRANSFORM_TIERS[a.tier] ? TRANSFORM_TIERS[a.tier].order : 0;
+        const bo = TRANSFORM_TIERS[b.tier] ? TRANSFORM_TIERS[b.tier].order : 0;
+        if (bo !== ao) return bo - ao;
+        return String(a.id).localeCompare(String(b.id));
+      });
+    return list[0] || null;
+  }
+
+  function equipBestTransform(silent=false) {
+    const p = ensurePlayer();
+    if (!p || !p.cls) return false;
+
+    const best = bestOwnedTransformForClass(p.cls);
+    if (!best) {
+      if (!silent) {
+        try { if (typeof logSys === 'function') logSys('<span class="text-slate-400">目前沒有本職可套用的變身。</span>'); } catch(e) {}
+      }
+      return false;
+    }
+
+    const cur = current();
+    if (cur && cur.id === best.id) {
+      if (!silent) {
+        try {
+          if (typeof logSys === 'function') {
+            logSys(`<span class="text-cyan-300">目前已經套用本職最高階變身【${TRANSFORM_TIERS[best.tier].short}】${esc(best.name)}。</span>`);
+          }
+        } catch(e) {}
+      }
+      return true;
+    }
+
+    p.transformId = best.id;
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+
+    if (!silent) {
+      try {
+        if (typeof logSys === 'function') {
+          logSys(`<span class="text-cyan-300 font-bold">⭐ 已套用本職最佳變身：【${TRANSFORM_TIERS[best.tier].short}】${esc(best.name)}</span>`);
+        }
+      } catch(e) {}
+    }
+
+    render();
+    return true;
+  }
+
+  function maybeAutoEquipHigherTransform(card) {
+    try {
+      const p = ensurePlayer();
+      if (!p || !card || card.cls !== p.cls || !autoBestTransformEnabled()) return false;
+
+      const cur = current();
+      const newOrder = TRANSFORM_TIERS[card.tier] ? TRANSFORM_TIERS[card.tier].order : 0;
+      const curOrder = cur && TRANSFORM_TIERS[cur.tier] ? TRANSFORM_TIERS[cur.tier].order : 0;
+
+      if (!cur || newOrder > curOrder) {
+        p.transformId = card.id;
+        try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
+        try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+        try {
+          if (typeof logSys === 'function') {
+            logSys(`<span class="text-cyan-300 font-bold">⭐ 自動換上更高階變身：【${TRANSFORM_TIERS[card.tier].short}】${esc(card.name)}</span>`);
+          }
+        } catch(e) {}
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
   function unequip() {
     const p = ensurePlayer();
     if (!p) return false;
@@ -577,6 +668,7 @@
     }
 
     grant(card.id, 1);
+    maybeAutoEquipHigherTransform(card);
 
     const ti = TRANSFORM_TIERS[card.tier];
     const ci = TRANSFORM_CLASSES[card.cls];
@@ -628,6 +720,7 @@
     const rareCount = {};
     let firstCount = 0;
     let opened = 0;
+    let bestNewForCurrentClass = null;
 
     for (let i = 0; i < total; i++) {
       const tier = rollOpenTier();
@@ -637,6 +730,13 @@
       const before = Math.max(0, Math.floor(Number(st.owned[card.id] || 0)));
       st.owned[card.id] = before + 1;
       if (before === 0) firstCount++;
+
+      if (player && card.cls === player.cls) {
+        const curBestOrder = bestNewForCurrentClass && TRANSFORM_TIERS[bestNewForCurrentClass.tier]
+          ? TRANSFORM_TIERS[bestNewForCurrentClass.tier].order : 0;
+        const newCardOrder = TRANSFORM_TIERS[card.tier] ? TRANSFORM_TIERS[card.tier].order : 0;
+        if (!bestNewForCurrentClass || newCardOrder > curBestOrder) bestNewForCurrentClass = card;
+      }
 
       tierCount[tier] = (tierCount[tier] || 0) + 1;
       if (tier !== 'red') rareCount[card.id] = (rareCount[card.id] || 0) + 1;
@@ -651,6 +751,8 @@
     }
 
     saveState();
+
+    if (bestNewForCurrentClass) maybeAutoEquipHigherTransform(bestNewForCurrentClass);
 
     try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
     try { render(); } catch(e) {}
@@ -958,6 +1060,7 @@
       if (!result) return false;
       addFusionReward(result, 1);
       rec.fail = 0;
+      maybeAutoEquipHigherTransform(result);
     } else {
       result = randomCardOfTier(tier);
       if (result) addFusionReward(result, 1);
@@ -1031,6 +1134,7 @@
         const result = randomCardOfTier(cfg.next);
         if (!result) break;
         addFusionReward(result, 1);
+        maybeAutoEquipHigherTransform(result);
         rewardCount[result.id] = (rewardCount[result.id] || 0) + 1;
         successes++;
         if (guaranteed) pitySuccesses++;
@@ -1155,7 +1259,24 @@
         <div class="text-lg font-bold">${clsInfo ? clsInfo.icon+' '+esc(clsInfo.name) : '尚未載入角色'}</div>
         <div class="text-sm text-slate-400 mt-3">目前變身</div>
         <div class="text-xl font-bold mt-1">${cur ? badge(cur)+' '+esc(cur.name) : '<span class="text-slate-500">未套用</span>'}</div>
-        ${cur ? '<button class="btn mt-3 px-3 py-1.5 bg-slate-700" onclick="transformUnequip()">解除變身</button>' : ''}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+          <button class="btn px-3 py-2 bg-cyan-900 border-cyan-700 text-cyan-100 font-bold"
+                  onclick="equipBestTransform()">
+            ⭐ 一鍵套用本職最高階
+          </button>
+          ${cur ? '<button class="btn px-3 py-2 bg-slate-700" onclick="transformUnequip()">解除變身</button>' : '<div></div>'}
+        </div>
+
+        <label class="mt-3 flex items-center justify-between gap-3 rounded-lg bg-slate-900/70 border border-slate-700 px-3 py-2 cursor-pointer">
+          <div>
+            <div class="font-bold text-sm text-slate-200">自動換上更高階變身</div>
+            <div class="text-xs text-slate-500">開卡或合成取得本職更高階時自動套用；同階不會亂換。</div>
+          </div>
+          <input type="checkbox" class="w-5 h-5 accent-cyan-600"
+                 ${autoBestTransformEnabled() ? 'checked' : ''}
+                 onchange="setAutoBestTransformEnabled(this.checked)">
+        </label>
       </div>`;
 
     if (!cards.length) {
@@ -1408,6 +1529,11 @@
   window.TRANSFORM_FUSION_CONFIG = TRANSFORM_FUSION_CONFIG;
 
   window.transformUseAllCards = useAllTransformCards;
+
+  window.equipBestTransform = equipBestTransform;
+  window.bestOwnedTransformForClass = bestOwnedTransformForClass;
+  window.setAutoBestTransformEnabled = setAutoBestTransformEnabled;
+  window.autoBestTransformEnabled = autoBestTransformEnabled;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
