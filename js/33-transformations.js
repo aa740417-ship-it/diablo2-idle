@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 16 =====
+// ===== 🧙 天堂M風格變身系統 Phase 17 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -124,6 +124,91 @@
     cyan:   { atkSpdPct:25, dmg:12, hit:12, sub:5, hp:300 }
   };
 
+  // ===== Phase 17：雙卡差異化＋移動速度 =====
+  const TRANSFORM_MOVE_SPEED = {
+    red: 3,
+    purple: 5,
+    gold: 7,
+    cyan: 10
+  };
+
+  function addTransformStat(out, key, val) {
+    if (!out || !key) return;
+    const n = Number(val) || 0;
+    if (!n) return;
+    out[key] = (Number(out[key]) || 0) + n;
+  }
+
+  function applyTransformVariantBonus(card, out, t) {
+    if (!card || !out || !t) return out;
+
+    const is01 = /_01$/.test(card.id || '');
+    const is02 = /_02$/.test(card.id || '');
+
+    // 全部變身都增加移動速度
+    addTransformStat(out, 'moveSpdPct', TRANSFORM_MOVE_SPEED[card.tier] || 0);
+
+    // 青變只有一張，但也補上職業差異化
+    if (card.tier === 'cyan') {
+      switch (card.cls) {
+        case 'royal':    addTransformStat(out, 'mhp', 120); addTransformStat(out, 'moveSpdPct', 2); break;
+        case 'knight':   addTransformStat(out, 'dr', 2); addTransformStat(out, 'mhp', 80); break;
+        case 'elf':      addTransformStat(out, 'rangedCrit', 2); addTransformStat(out, 'moveSpdPct', 3); break;
+        case 'mage':     addTransformStat(out, 'castSpdPct', 8); addTransformStat(out, 'moveSpdPct', 2); break;
+        case 'dark':     addTransformStat(out, 'meleeCrit', 2); addTransformStat(out, 'moveSpdPct', 3); break;
+        case 'dragon':   addTransformStat(out, 'extraDmg', 2); addTransformStat(out, 'dr', 1); break;
+        case 'illusion': addTransformStat(out, 'castSpdPct', 8); addTransformStat(out, 'extraMp', 3); break;
+        case 'warrior':  addTransformStat(out, 'mhp', 150); addTransformStat(out, 'dr', 1); break;
+      }
+      return out;
+    }
+
+    // 兩張同階變身做出差異：_01 偏原本主軸，_02 偏副能力與移速
+    switch (card.cls) {
+      case 'royal':
+        if (is01) addTransformStat(out, 'mhp', Math.max(20, Math.floor((t.hp || 0) * 0.5)));
+        if (is02) { addTransformStat(out, 'dr', 1); addTransformStat(out, 'moveSpdPct', 2); }
+        break;
+
+      case 'knight':
+        if (is01) addTransformStat(out, 'dr', 1);
+        if (is02) addTransformStat(out, 'mhp', Math.max(20, Math.floor((t.hp || 0) * 0.6)));
+        break;
+
+      case 'elf':
+        if (is01) addTransformStat(out, 'rangedCrit', 1);
+        if (is02) { addTransformStat(out, 'rangedHit', 1); addTransformStat(out, 'moveSpdPct', 2); }
+        break;
+
+      case 'mage':
+        if (is01) addTransformStat(out, 'castSpdPct', 5);
+        if (is02) { addTransformStat(out, 'magicHit', 1); addTransformStat(out, 'moveSpdPct', 2); }
+        break;
+
+      case 'dark':
+        if (is01) addTransformStat(out, 'meleeCrit', 1);
+        if (is02) { addTransformStat(out, 'extraDmg', 1); addTransformStat(out, 'moveSpdPct', 2); }
+        break;
+
+      case 'dragon':
+        if (is01) addTransformStat(out, 'extraDmg', 1);
+        if (is02) { addTransformStat(out, 'dr', 1); addTransformStat(out, 'moveSpdPct', 1); }
+        break;
+
+      case 'illusion':
+        if (is01) { addTransformStat(out, 'castSpdPct', 5); addTransformStat(out, 'extraMp', 1); }
+        if (is02) { addTransformStat(out, 'magicDmg', 1); addTransformStat(out, 'moveSpdPct', 2); }
+        break;
+
+      case 'warrior':
+        if (is01) addTransformStat(out, 'mhp', Math.max(25, Math.floor((t.hp || 0) * 0.5)));
+        if (is02) { addTransformStat(out, 'meleeHit', 1); addTransformStat(out, 'moveSpdPct', 1); }
+        break;
+    }
+
+    return out;
+  }
+
   function transformAbilityData(card) {
     if (!card || !TRANSFORM_TIER_POWER[card.tier]) return null;
     const t = TRANSFORM_TIER_POWER[card.tier];
@@ -155,7 +240,7 @@
         out.meleeDmg = t.dmg; out.meleeHit = t.hit; out.dr = t.sub; out.mhp = t.hp;
         break;
     }
-    return out;
+    return applyTransformVariantBonus(card, out, t);
   }
 
   function transformAbilityLines(card) {
@@ -175,6 +260,7 @@
     if (a.dr) lines.push(`傷害減免 +${a.dr}`);
     if (a.meleeCrit) lines.push(`近距離爆擊率 +${a.meleeCrit}%`);
     if (a.rangedCrit) lines.push(`遠距離爆擊率 +${a.rangedCrit}%`);
+    if (a.moveSpdPct) lines.push(`移動速度 +${a.moveSpdPct}%`);
     if (a.mhp) lines.push(`最大 HP +${a.mhp}`);
     if (card.tier === 'cyan' && CYAN_TRANSFORM_SPECIALS[card.cls]) {
       const sp = CYAN_TRANSFORM_SPECIALS[card.cls];
@@ -210,6 +296,16 @@
       if (a.meleeCrit) d.meleeCrit += a.meleeCrit;
       if (a.rangedCrit) d.rangedCrit += a.rangedCrit;
       if (a.mhp) p.mhp += a.mhp;
+
+      if (a.moveSpdPct) {
+        if (d.moveSpdPct != null) d.moveSpdPct += a.moveSpdPct;
+        if (d.moveSpeedPct != null) d.moveSpeedPct += a.moveSpdPct;
+        if (d.runSpdPct != null) d.runSpdPct += a.moveSpdPct;
+        if (d.walkSpdPct != null) d.walkSpdPct += a.moveSpdPct;
+        if (d.moveDelay != null) d.moveDelay = Math.max(1, d.moveDelay / (1 + a.moveSpdPct / 100));
+        if (d.moveCd != null) d.moveCd = Math.max(1, d.moveCd / (1 + a.moveSpdPct / 100));
+        if (d.stepDelay != null) d.stepDelay = Math.max(1, d.stepDelay / (1 + a.moveSpdPct / 100));
+      }
 
       if (a.castSpdPct) {
         const m = 1 + a.castSpdPct / 100;
@@ -2374,6 +2470,7 @@
   window.TRANSFORM_OPEN_RATES = TRANSFORM_OPEN_RATES;
   window.TRANSFORM_TIER_POWER = TRANSFORM_TIER_POWER;
   window.transformAbilityData = transformAbilityData;
+  window.applyTransformVariantBonus = applyTransformVariantBonus;
   window.transformAbilityLines = transformAbilityLines;
   window.applyTransformCombatStats = applyTransformCombatStats;
 
