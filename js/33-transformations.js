@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 11 =====
+// ===== 🧙 天堂M風格變身系統 Phase 12 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -966,6 +966,34 @@
     return out;
   }
 
+  // ===== Phase 12：收藏總能力統計 =====
+  function totalTransformCollectionBonus() {
+    const total = {
+      mhp:0, meleeDmg:0, rangedDmg:0, magicDmg:0,
+      meleeHit:0, rangedHit:0, magicHit:0,
+      extraDmg:0, extraHit:0, extraMp:0, dr:0, meleeCrit:0
+    };
+
+    for (const col of TRANSFORM_COLLECTIONS) {
+      if (!transformCollectionProgress(col).complete) continue;
+      const b = col.bonus || {};
+      for (const k of Object.keys(total)) {
+        total[k] += Number(b[k] || 0);
+      }
+    }
+    return total;
+  }
+
+  function completedTransformCollectionCount() {
+    return TRANSFORM_COLLECTIONS.reduce(
+      (n, col) => n + (transformCollectionProgress(col).complete ? 1 : 0), 0
+    );
+  }
+
+  function totalTransformCollectionBonusLines() {
+    return collectionBonusText(totalTransformCollectionBonus());
+  }
+
   function applyTransformCollectionStats(p, d) {
     if (!p || !d) return;
     for (const col of TRANSFORM_COLLECTIONS) {
@@ -1677,6 +1705,10 @@
 
   function renderAbilityPage() {
     const cur = current();
+    const collectionLines = totalTransformCollectionBonusLines();
+    const completed = completedTransformCollectionCount();
+    const totalSets = TRANSFORM_COLLECTIONS.length;
+
     const odds = TRANSFORM_OPEN_RATES.map(r => {
       const t = TRANSFORM_TIERS[r.tier];
       const pct = Number(r.rate) || 0;
@@ -1685,17 +1717,70 @@
     }).join(' ／ ');
 
     return `
-      <div class="rounded-xl border border-cyan-900/60 bg-cyan-950/10 p-5">
-        <div class="text-xl font-bold text-cyan-300 mb-3">📊 變身能力</div>
-        ${cur ? `<div class="text-lg">${badge(cur)} ${esc(cur.name)}</div><div class="text-slate-300 mt-2">${transformAbilityLines(cur).map(x=>esc(x)).join('<br>')}</div>` : '<div class="text-slate-500">目前未套用變身。</div>'}
-        <div class="mt-4 p-3 rounded-lg bg-slate-800 text-sm">
+      <div class="space-y-3">
+
+        <div class="rounded-xl border border-cyan-900/60 bg-cyan-950/10 p-5">
+          <div class="text-xl font-bold text-cyan-300 mb-3">📊 目前變身能力</div>
+
+          ${cur ? `
+            <div class="text-lg">${badge(cur)} ${esc(cur.name)}</div>
+            <div class="text-sm text-slate-400 mt-1">
+              ${TRANSFORM_CLASSES[cur.cls].icon} ${esc(TRANSFORM_CLASSES[cur.cls].name)}
+            </div>
+            <div class="text-slate-300 mt-3">
+              ${transformAbilityLines(cur).map(x => `<div class="py-0.5">${esc(x)}</div>`).join('')}
+            </div>
+          ` : `
+            <div class="text-slate-500">目前未套用變身。</div>
+          `}
+        </div>
+
+        <div class="rounded-xl border border-amber-800/60 bg-amber-950/10 p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-xl font-bold text-amber-300">✨ 收藏永久能力</div>
+            <div class="text-sm font-bold ${completed > 0 ? 'text-emerald-300' : 'text-slate-500'}">
+              ${completed} / ${totalSets} 組
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-400 mt-1">
+            帳號共用，所有角色永久生效；不需要套用特定變身。
+          </div>
+
+          ${collectionLines.length ? `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+              ${collectionLines.map(x => `
+                <div class="rounded-lg bg-slate-900/70 border border-slate-700 px-3 py-2 text-slate-200">
+                  ${esc(x)}
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="mt-4 rounded-lg bg-slate-900/70 border border-slate-700 p-4 text-slate-500">
+              尚未完成任何變身收藏組合。
+            </div>
+          `}
+
+          <button class="btn w-full mt-4 py-2 bg-slate-800"
+                  onclick="setTransformPage('collection')">
+            📚 前往收藏查看進度
+          </button>
+        </div>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4 text-sm">
           <div class="text-cyan-200 font-bold">變身卡取得</div>
-          <div class="text-slate-300 mt-1">全地圖怪物：每隻 ${(TRANSFORM_CARD_DROP_RATE*100).toFixed(1)}% 機率掉落。</div>
-          <div class="text-slate-300 mt-1">開卡機率：${odds}</div>
+          <div class="text-slate-300 mt-1">
+            全地圖怪物：每隻 ${(TRANSFORM_CARD_DROP_RATE*100).toFixed(1)}% 機率掉落。
+          </div>
+          <div class="text-slate-300 mt-1">
+            開卡機率：${odds}
+          </div>
         </div>
-        <div class="mt-3 p-3 rounded-lg bg-slate-800 text-sm text-amber-200">
-          Phase 3 已接入正式戰鬥能力；套用／解除變身會立即重算角色能力。
+
+        <div class="rounded-xl bg-slate-800/70 border border-slate-700 p-3 text-sm text-amber-200">
+          套用／解除變身會立即重算角色能力；收藏能力則會自動永久套用。
         </div>
+
       </div>`;
   }
 
@@ -1783,6 +1868,10 @@
   window.clearTransformCollectionSearch = clearTransformCollectionSearch;
   window.openTransformCardDetail = openTransformCardDetail;
   window.closeTransformCardDetail = closeTransformCardDetail;
+
+  window.totalTransformCollectionBonus = totalTransformCollectionBonus;
+  window.totalTransformCollectionBonusLines = totalTransformCollectionBonusLines;
+  window.completedTransformCollectionCount = completedTransformCollectionCount;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
