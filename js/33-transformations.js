@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 15 =====
+// ===== 🧙 天堂M風格變身系統 Phase 16 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -668,6 +668,7 @@
     }
 
     grant(card.id, 1);
+    recordTransformOpen(card);
     maybeAutoEquipHigherTransform(card);
     const autoCyanConverted = convertCyanDuplicatesToSouls(true);
     if (autoCyanConverted > 0) saveState();
@@ -720,6 +721,7 @@
     const st = loadState();
     const tierCount = { red:0, purple:0, gold:0, cyan:0 };
     const rareCount = {};
+    const rareRecords = [];
     let firstCount = 0;
     let opened = 0;
     let bestNewForCurrentClass = null;
@@ -741,7 +743,10 @@
       }
 
       tierCount[tier] = (tierCount[tier] || 0) + 1;
-      if (tier !== 'red') rareCount[card.id] = (rareCount[card.id] || 0) + 1;
+      if (tier !== 'red') {
+        rareCount[card.id] = (rareCount[card.id] || 0) + 1;
+        rareRecords.push(card);
+      }
       opened++;
     }
 
@@ -752,6 +757,7 @@
       try { player.inv = player.inv.filter(i => i.uid !== uid); } catch(e) {}
     }
 
+    recordTransformOpenBatch(tierCount, rareRecords);
     const autoCyanConverted = convertCyanDuplicatesToSouls(false);
     saveState();
 
@@ -894,6 +900,8 @@
       const got = gainItem(TRANSFORM_CARD_ITEM_ID, 1, true, true);
       if (!got) return false;
 
+      recordTransformDrop(1);
+
       if (typeof logSys === 'function') {
         logSys(`<span class="text-cyan-300 font-bold">🧙 ${esc(mob.n || '怪物')} 掉落了「變身卡」！</span>`);
       }
@@ -975,6 +983,75 @@
     if (b.dr) out.push(`傷害減免 +${b.dr}`);
     if (b.meleeCrit) out.push(`近距離爆擊率 +${b.meleeCrit}%`);
     return out;
+  }
+
+  // ===== Phase 16：開卡統計＋稀有紀錄 =====
+  const TRANSFORM_STATS_KEY = 'lineage_transform_stats_v1';
+
+  function defaultTransformStats() {
+    return { drops:0, opens:{red:0,purple:0,gold:0,cyan:0}, rareHistory:[] };
+  }
+
+  function loadTransformStats() {
+    try {
+      const raw = getStore(TRANSFORM_STATS_KEY);
+      if (!raw) return defaultTransformStats();
+      const obj = JSON.parse(raw);
+      const st = defaultTransformStats();
+      st.drops = Math.max(0, Math.floor(Number(obj.drops) || 0));
+      for (const k of ['red','purple','gold','cyan']) {
+        st.opens[k] = Math.max(0, Math.floor(Number(obj.opens && obj.opens[k]) || 0));
+      }
+      st.rareHistory = Array.isArray(obj.rareHistory) ? obj.rareHistory.slice(0,30) : [];
+      return st;
+    } catch(e) { return defaultTransformStats(); }
+  }
+
+  function saveTransformStats(st) {
+    try { setStore(TRANSFORM_STATS_KEY, JSON.stringify(st)); return true; }
+    catch(e) { return false; }
+  }
+
+  function recordTransformDrop(n=1) {
+    const st = loadTransformStats();
+    st.drops += Math.max(0, Math.floor(Number(n) || 0));
+    saveTransformStats(st);
+  }
+
+  function recordTransformOpen(card) {
+    if (!card || !TRANSFORM_TIERS[card.tier]) return;
+    const st = loadTransformStats();
+    st.opens[card.tier] = (st.opens[card.tier] || 0) + 1;
+    if (card.tier !== 'red') {
+      st.rareHistory.unshift({
+        id:card.id, tier:card.tier, name:card.name, cls:card.cls, ts:Date.now()
+      });
+      st.rareHistory = st.rareHistory.slice(0,30);
+    }
+    saveTransformStats(st);
+  }
+
+  function recordTransformOpenBatch(tierCount, rareRecords) {
+    const st = loadTransformStats();
+    for (const k of ['red','purple','gold','cyan']) {
+      st.opens[k] = (st.opens[k] || 0) + Math.max(0, Math.floor(Number(tierCount && tierCount[k]) || 0));
+    }
+    if (Array.isArray(rareRecords)) {
+      for (const card of rareRecords) {
+        if (!card || card.tier === 'red') continue;
+        st.rareHistory.unshift({
+          id:card.id, tier:card.tier, name:card.name, cls:card.cls, ts:Date.now()
+        });
+      }
+      st.rareHistory = st.rareHistory.slice(0,30);
+    }
+    saveTransformStats(st);
+  }
+
+  function transformStatsTotalOpens(st) {
+    st = st || loadTransformStats();
+    return ['red','purple','gold','cyan']
+      .reduce((n,k) => n + (Number(st.opens[k]) || 0), 0);
   }
 
   // ===== Phase 13：青變重複兌換 =====
@@ -2132,6 +2209,11 @@
     const collectionLines = totalTransformCollectionBonusLines();
     const completed = completedTransformCollectionCount();
     const totalSets = TRANSFORM_COLLECTIONS.length;
+    const stats = loadTransformStats();
+    const totalOpens = transformStatsTotalOpens(stats);
+    const statPct = (tier) => totalOpens > 0
+      ? ((stats.opens[tier] / totalOpens) * 100).toFixed(tier === 'cyan' ? 3 : 2)
+      : '0.00';
 
     const odds = TRANSFORM_OPEN_RATES.map(r => {
       const t = TRANSFORM_TIERS[r.tier];
@@ -2198,6 +2280,42 @@
           </div>
           <div class="text-slate-300 mt-1">
             開卡機率：${odds}
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="text-lg font-bold text-emerald-300">📈 開卡統計</div>
+            <div class="text-xs text-slate-400">累計掉卡 ${stats.drops} 張</div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+            ${['red','purple','gold','cyan'].map(tier => {
+              const ti = TRANSFORM_TIERS[tier];
+              return `<div class="rounded-lg bg-slate-900/70 border border-slate-700 p-3">
+                <div class="text-xs" style="color:${ti.color}">${ti.short}</div>
+                <div class="text-xl font-bold mt-1">${stats.opens[tier]}</div>
+                <div class="text-xs text-slate-500">${statPct(tier)}%</div>
+              </div>`;
+            }).join('')}
+          </div>
+
+          <div class="mt-3 text-sm text-slate-300">總開卡：<b>${totalOpens}</b> 張</div>
+
+          <div class="mt-4">
+            <div class="text-sm font-bold text-slate-300">最近稀有紀錄</div>
+            ${stats.rareHistory.length ? `
+              <div class="mt-2 space-y-1">
+                ${stats.rareHistory.slice(0,12).map(r => {
+                  const ti = TRANSFORM_TIERS[r.tier];
+                  const ci = TRANSFORM_CLASSES[r.cls];
+                  return `<div class="text-sm rounded bg-slate-900/60 px-2 py-1">
+                    <span style="color:${ti ? ti.color : '#fff'}">【${ti ? ti.short : ''}】${esc(r.name || '')}</span>
+                    <span class="text-slate-500 ml-1">${ci ? ci.icon + ' ' + esc(ci.name) : ''}</span>
+                  </div>`;
+                }).join('')}
+              </div>
+            ` : `<div class="text-sm text-slate-500 mt-2">目前還沒有紫變以上的開卡紀錄。</div>`}
           </div>
         </div>
 
@@ -2307,6 +2425,9 @@
   window.cyanDuplicateCount = cyanDuplicateCount;
   window.dismantleAllDuplicateCyan = dismantleAllDuplicateCyan;
   window.exchangeCyanSoul = exchangeCyanSoul;
+
+  window.loadTransformStats = loadTransformStats;
+  window.transformStatsTotalOpens = transformStatsTotalOpens;
 
   window.transformGrant = grant;
   window.transformOwnedCount = ownedCount;
