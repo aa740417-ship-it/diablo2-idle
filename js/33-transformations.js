@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 14 =====
+// ===== 🧙 天堂M風格變身系統 Phase 15 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -1457,6 +1457,111 @@
     return attempts > 0;
   }
 
+  // ===== Phase 15：一鍵整理全部變身素材 =====
+  function transformFuseAllTiers() {
+    const tiers = ['red','purple','gold'];
+    const summary = {};
+    let totalAttempts = 0;
+    let totalSuccess = 0;
+    let totalFail = 0;
+    let totalPity = 0;
+    let bestNewForCurrentClass = null;
+
+    for (const tier of tiers) {
+      const cfg = TRANSFORM_FUSION_CONFIG[tier];
+      const rec = fusionStateFor(tier);
+      let attempts = 0;
+      let successes = 0;
+      let failures = 0;
+      let pitySuccesses = 0;
+
+      while (fusionMaterialCount(tier) >= cfg.need && attempts < 2000) {
+        const guaranteed = rec.fail >= (cfg.pity - 1);
+        if (!consumeFusionMaterials(tier, cfg.need)) break;
+
+        const success = guaranteed || Math.random() < cfg.success;
+        attempts++;
+
+        if (success) {
+          const result = randomCardOfTier(cfg.next);
+          if (!result) break;
+
+          addFusionReward(result, 1);
+          successes++;
+          if (guaranteed) pitySuccesses++;
+          rec.fail = 0;
+
+          if (typeof player !== 'undefined' && player && result.cls === player.cls) {
+            const oldOrder = bestNewForCurrentClass && TRANSFORM_TIERS[bestNewForCurrentClass.tier]
+              ? TRANSFORM_TIERS[bestNewForCurrentClass.tier].order : 0;
+            const newOrder = TRANSFORM_TIERS[result.tier]
+              ? TRANSFORM_TIERS[result.tier].order : 0;
+            if (!bestNewForCurrentClass || newOrder > oldOrder) bestNewForCurrentClass = result;
+          }
+        } else {
+          const result = randomCardOfTier(tier);
+          if (result) addFusionReward(result, 1);
+          failures++;
+          rec.fail = Math.min(cfg.pity - 1, rec.fail + 1);
+        }
+      }
+
+      summary[tier] = { attempts, successes, failures, pitySuccesses };
+      totalAttempts += attempts;
+      totalSuccess += successes;
+      totalFail += failures;
+      totalPity += pitySuccesses;
+    }
+
+    if (totalAttempts <= 0) {
+      try {
+        if (typeof logSys === 'function') {
+          logSys('<span class="text-slate-400">目前紅／紫／金變都沒有足夠的重複素材可合成。</span>');
+        }
+      } catch(e) {}
+      render();
+      return false;
+    }
+
+    const autoCyanConverted = convertCyanDuplicatesToSouls(false);
+    saveState();
+
+    if (bestNewForCurrentClass) {
+      try { maybeAutoEquipHigherTransform(bestNewForCurrentClass); } catch(e) {}
+    }
+
+    try { if (typeof calcStats === 'function') calcStats(); } catch(e) {}
+    try { if (typeof saveGame === 'function') saveGame(); } catch(e) {}
+
+    try {
+      if (typeof logSys === 'function') {
+        const row = (tier) => {
+          const r = summary[tier];
+          const ti = TRANSFORM_TIERS[tier];
+          return `<span style="color:${ti.color};font-weight:700">${ti.short}</span>` +
+                 ` ${r.attempts} 次／成功 ${r.successes}／失敗 ${r.failures}` +
+                 (r.pitySuccesses ? `／保底 ${r.pitySuccesses}` : '');
+        };
+
+        logSys(
+          `<span class="text-amber-300 font-bold">🔥 一鍵全階合成完成</span>：` +
+          `總計 ${totalAttempts} 次，成功 ${totalSuccess}／失敗 ${totalFail}` +
+          (totalPity ? `／保底成功 ${totalPity}` : '')
+        );
+        logSys(`${row('red')} ｜ ${row('purple')} ｜ ${row('gold')}`);
+
+        if (autoCyanConverted > 0) {
+          logSys(
+            `<span class="text-cyan-300 font-bold">🩵 依自動拆解設定，重複青變 ×${autoCyanConverted} 已轉成青魂。</span>`
+          );
+        }
+      }
+    } catch(e) {}
+
+    render();
+    return true;
+  }
+
   // ===== UI =====
   function ensureDom() {
     let root = document.getElementById('transform-book');
@@ -1596,6 +1701,21 @@
           每次消耗 4 張同階「重複變身」。每種變身的第一張永久保留，不會被合成吃掉。
           合成失敗會返還 1 張隨機同階變身，並累積保底。<br>
           「一鍵合成全部」會持續合到該階重複素材不足 4 張為止。
+        </div>
+
+        <button class="btn w-full mt-4 py-3 font-bold
+                       ${['red','purple','gold'].some(t => fusionMaterialCount(t) >= TRANSFORM_FUSION_CONFIG[t].need)
+                         ? 'bg-amber-800 text-amber-100 border-amber-600'
+                         : 'bg-slate-800 text-slate-500'}"
+                ${['red','purple','gold'].some(t => fusionMaterialCount(t) >= TRANSFORM_FUSION_CONFIG[t].need)
+                  ? ''
+                  : 'disabled'}
+                onclick="transformFuseAllTiers()">
+          🔥 一鍵全階合成（紅 → 紫 → 金 → 青）
+        </button>
+
+        <div class="text-xs text-slate-500 mt-2">
+          會依序把紅變重複卡合到紫變，再把新取得的紫變繼續往金變合成，最後處理金變 → 青變。
         </div>
       </div>
       <div class="grid grid-cols-1 gap-3">
@@ -2151,6 +2271,7 @@
   window.transformCompletedCollections = completedTransformCollectionIds;
   window.applyTransformCollectionStats = applyTransformCollectionStats;
 
+  window.transformFuseAllTiers = transformFuseAllTiers;
   window.transformFuseAll = transformFuseAll;
   window.transformFuse = transformFuse;
   window.transformFusionMaterialCount = fusionMaterialCount;
