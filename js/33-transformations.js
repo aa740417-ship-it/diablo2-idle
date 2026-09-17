@@ -1,4 +1,4 @@
-// ===== 🧙 天堂M風格變身系統 Phase 17 =====
+// ===== 🧙 天堂M風格變身系統 Phase 18 =====
 // 全地圖怪物掉「變身卡」→ 使用後依機率抽紅／紫／金／青變。
 // 收藏帳號共用；目前套用的變身跟角色存檔走 player.transformId。
 // 重複卡保留數量，後續供合成使用。
@@ -206,6 +206,159 @@
         break;
     }
 
+    return out;
+  }
+
+  // ===== Phase 18：定位／比較／最佳偏好 =====
+  const TRANSFORM_BEST_PREF_KEY = 'lineage_transform_best_pref_v1';
+
+  const TRANSFORM_PREFS = {
+    balanced: { label:'均衡', icon:'⚖️' },
+    damage:   { label:'輸出', icon:'⚔️' },
+    speed:    { label:'速度', icon:'⚡' },
+    survival: { label:'生存', icon:'🛡️' }
+  };
+
+  function getTransformBestPreference() {
+    try {
+      const v = getStore(TRANSFORM_BEST_PREF_KEY);
+      return TRANSFORM_PREFS[v] ? v : 'balanced';
+    } catch(e) { return 'balanced'; }
+  }
+
+  function setTransformBestPreference(pref) {
+    const v = TRANSFORM_PREFS[pref] ? pref : 'balanced';
+    setStore(TRANSFORM_BEST_PREF_KEY, v);
+    render();
+    return v;
+  }
+
+  function transformCardRole(card) {
+    if (!card) return { key:'balanced', label:'⚖️ 均衡型' };
+
+    if (card.tier === 'cyan') {
+      const cyanRole = {
+        royal:'👑 統御型',
+        knight:'🛡️ 守護型',
+        elf:'🏹 連射型',
+        mage:'🔮 魔法型',
+        dark:'🌑 爆發型',
+        dragon:'🐉 弱點型',
+        illusion:'🌀 共鳴型',
+        warrior:'⚔️ 反擊型'
+      };
+      return { key:'unique', label:cyanRole[card.cls] || '🩵 唯一型' };
+    }
+
+    if (/_02$/.test(card.id || '')) {
+      const secondRole = {
+        royal:'⚡ 機動統御型',
+        knight:'❤️ 耐久型',
+        elf:'⚡ 機動射手型',
+        mage:'⚡ 機動施法型',
+        dark:'⚡ 機動爆發型',
+        dragon:'🛡️ 龍甲型',
+        illusion:'⚡ 機動魔法型',
+        warrior:'🛡️ 穩定型'
+      };
+      return { key:'speed', label:secondRole[card.cls] || '⚡ 機動型' };
+    }
+
+    const firstRole = {
+      royal:'👑 統御均衡型',
+      knight:'🛡️ 防禦型',
+      elf:'🏹 暴擊輸出型',
+      mage:'🔮 高速施法型',
+      dark:'🌑 暴擊輸出型',
+      dragon:'🐉 傷害型',
+      illusion:'🌀 魔法續航型',
+      warrior:'❤️ 血量防禦型'
+    };
+    return { key:'core', label:firstRole[card.cls] || '⚔️ 主力型' };
+  }
+
+  function transformAbilityValue(a, key) {
+    return a ? (Number(a[key]) || 0) : 0;
+  }
+
+  function transformCardPreferenceScore(card, pref) {
+    if (!card) return -1e12;
+    const a = transformAbilityData(card) || {};
+    const tierOrder = TRANSFORM_TIERS[card.tier] ? TRANSFORM_TIERS[card.tier].order : 0;
+
+    // 階級永遠優先；偏好只用來決定「同階兩張」該選哪張。
+    let score = tierOrder * 100000;
+
+    const dmg =
+      transformAbilityValue(a,'meleeDmg') * 14 +
+      transformAbilityValue(a,'rangedDmg') * 14 +
+      transformAbilityValue(a,'magicDmg') * 14 +
+      transformAbilityValue(a,'extraDmg') * 12 +
+      transformAbilityValue(a,'meleeCrit') * 5 +
+      transformAbilityValue(a,'rangedCrit') * 5 +
+      transformAbilityValue(a,'meleeHit') * 2 +
+      transformAbilityValue(a,'rangedHit') * 2 +
+      transformAbilityValue(a,'magicHit') * 2 +
+      transformAbilityValue(a,'atkSpdPct') * 3 +
+      transformAbilityValue(a,'castSpdPct') * 2;
+
+    const speed =
+      transformAbilityValue(a,'moveSpdPct') * 22 +
+      transformAbilityValue(a,'atkSpdPct') * 5 +
+      transformAbilityValue(a,'castSpdPct') * 4 +
+      transformAbilityValue(a,'meleeHit') +
+      transformAbilityValue(a,'rangedHit') +
+      transformAbilityValue(a,'magicHit');
+
+    const survival =
+      transformAbilityValue(a,'dr') * 30 +
+      transformAbilityValue(a,'mhp') / 6 +
+      transformAbilityValue(a,'meleeHit') +
+      transformAbilityValue(a,'rangedHit') +
+      transformAbilityValue(a,'magicHit');
+
+    if (pref === 'damage') score += dmg;
+    else if (pref === 'speed') score += speed;
+    else if (pref === 'survival') score += survival;
+    else score += dmg * 0.45 + speed * 0.30 + survival * 0.25;
+
+    return score;
+  }
+
+  const TRANSFORM_COMPARE_FIELDS = [
+    ['atkSpdPct','攻擊速度','%'],
+    ['moveSpdPct','移動速度','%'],
+    ['castSpdPct','施法速度','%'],
+    ['meleeDmg','近距離傷害',''],
+    ['meleeHit','近距離命中',''],
+    ['rangedDmg','遠距離傷害',''],
+    ['rangedHit','遠距離命中',''],
+    ['magicDmg','魔法傷害',''],
+    ['magicHit','魔法命中',''],
+    ['extraDmg','額外傷害',''],
+    ['extraMp','額外魔法點數',''],
+    ['dr','傷害減免',''],
+    ['meleeCrit','近距離爆擊率','%'],
+    ['rangedCrit','遠距離爆擊率','%'],
+    ['mhp','最大 HP','']
+  ];
+
+  function transformCompareAbilityLines(card, baseCard) {
+    if (!card || !baseCard || card.id === baseCard.id) return [];
+    const a = transformAbilityData(card) || {};
+    const b = transformAbilityData(baseCard) || {};
+    const out = [];
+
+    for (const [key, label, unit] of TRANSFORM_COMPARE_FIELDS) {
+      const d = (Number(a[key]) || 0) - (Number(b[key]) || 0);
+      if (!d) continue;
+      const sign = d > 0 ? '+' : '';
+      out.push({
+        key,
+        delta:d,
+        text:`${d > 0 ? '▲' : '▼'} ${label} ${sign}${d}${unit}`
+      });
+    }
     return out;
   }
 
@@ -613,12 +766,12 @@
 
   function bestOwnedTransformForClass(cls) {
     if (!cls) return null;
+    const pref = getTransformBestPreference();
     const list = TRANSFORM_CARDS
       .filter(c => c.cls === cls && ownedCount(c.id) > 0)
       .sort((a,b) => {
-        const ao = TRANSFORM_TIERS[a.tier] ? TRANSFORM_TIERS[a.tier].order : 0;
-        const bo = TRANSFORM_TIERS[b.tier] ? TRANSFORM_TIERS[b.tier].order : 0;
-        if (bo !== ao) return bo - ao;
+        const diff = transformCardPreferenceScore(b, pref) - transformCardPreferenceScore(a, pref);
+        if (diff) return diff;
         return String(a.id).localeCompare(String(b.id));
       });
     return list[0] || null;
@@ -641,7 +794,7 @@
       if (!silent) {
         try {
           if (typeof logSys === 'function') {
-            logSys(`<span class="text-cyan-300">目前已經套用本職最高階變身【${TRANSFORM_TIERS[best.tier].short}】${esc(best.name)}。</span>`);
+            logSys(`<span class="text-cyan-300">目前已經套用此偏好的最佳變身【${TRANSFORM_TIERS[best.tier].short}】${esc(best.name)}。</span>`);
           }
         } catch(e) {}
       }
@@ -1815,9 +1968,27 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           <button class="btn px-3 py-2 bg-cyan-900 border-cyan-700 text-cyan-100 font-bold"
                   onclick="equipBestTransform()">
-            ⭐ 一鍵套用本職最高階
+            ⭐ 一鍵套用目前偏好的最佳變身
           </button>
           ${cur ? '<button class="btn px-3 py-2 bg-slate-700" onclick="transformUnequip()">解除變身</button>' : '<div></div>'}
+        </div>
+
+        <div class="mt-3">
+          <div class="text-xs text-slate-500 mb-1.5">最佳變身偏好</div>
+          <div class="grid grid-cols-4 gap-1.5">
+            ${Object.entries(TRANSFORM_PREFS).map(([k,v]) => `
+              <button class="btn py-2 text-xs font-bold
+                             ${getTransformBestPreference()===k
+                               ? 'bg-cyan-800 text-cyan-100 border-cyan-600'
+                               : 'bg-slate-800 text-slate-300'}"
+                      onclick="setTransformBestPreference('${k}')">
+                ${v.icon} ${v.label}
+              </button>
+            `).join('')}
+          </div>
+          <div class="text-xs text-slate-500 mt-1.5">
+            階級仍然優先；只有同階兩張都持有時，才依偏好決定要套哪張。
+          </div>
         </div>
 
         <label class="mt-3 flex items-center justify-between gap-3 rounded-lg bg-slate-900/70 border border-slate-700 px-3 py-2 cursor-pointer">
@@ -1846,6 +2017,7 @@
           <div class="flex justify-between gap-3">
             <div>
               <div class="text-lg font-bold">${badge(c)} ${esc(c.name)}</div>
+              <div class="text-xs text-cyan-300 mt-1">${esc(transformCardRole(c).label)}</div>
               <div class="text-sm text-slate-400">${esc(TRANSFORM_CLASSES[c.cls].icon+' '+TRANSFORM_CLASSES[c.cls].name)}</div>
             </div>
             <div class="text-xs text-slate-500">持有 × ${ownedCount(c.id)}</div>
@@ -2093,12 +2265,16 @@
     const usable = !!(count > 0 && p && p.cls === card.cls);
     const active = !!(current() && current().id === card.id);
     const lines = transformAbilityLines(card);
+    const role = transformCardRole(card);
+    const curCard = current();
+    const compareLines = transformCompareAbilityLines(card, curCard);
 
     body.innerHTML = `
       <div class="flex items-start justify-between gap-3">
         <div>
           <div class="text-2xl font-bold" style="color:${ti.color}">【${ti.short}】${esc(card.name)}</div>
           <div class="text-sm text-slate-400 mt-1">${ci.icon} ${esc(ci.name)} ／ ${esc(ti.name)}</div>
+          <div class="text-sm text-cyan-300 mt-1">${esc(role.label)}</div>
         </div>
         <button class="btn px-3 py-1.5 bg-slate-700" onclick="closeTransformCardDetail()">✕</button>
       </div>
@@ -2114,6 +2290,25 @@
         <div class="font-bold text-cyan-300 mb-2">能力</div>
         ${lines.map(x => `<div class="py-1 text-slate-200">${esc(x)}</div>`).join('')}
       </div>
+
+      ${curCard && curCard.id !== card.id ? `
+        <div class="mt-3 rounded-xl border border-slate-700 bg-slate-800/70 p-4">
+          <div class="font-bold text-amber-300 mb-1">↔ 與目前變身比較</div>
+          <div class="text-xs text-slate-500 mb-2">
+            目前：${badge(curCard)} ${esc(curCard.name)}
+          </div>
+          ${compareLines.length ? `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              ${compareLines.map(x => `
+                <div class="rounded bg-slate-900/60 px-2 py-1.5 text-sm
+                            ${x.delta > 0 ? 'text-emerald-300' : 'text-rose-300'}">
+                  ${esc(x.text)}
+                </div>
+              `).join('')}
+            </div>
+          ` : `<div class="text-sm text-slate-500">兩張卡的基礎數值相同，差異主要在專屬能力。</div>`}
+        </div>
+      ` : ''}
 
       <div class="mt-3 rounded-xl border border-slate-700 bg-slate-800/70 p-4 text-sm">
         <div class="font-bold text-slate-300 mb-1">取得方式</div>
@@ -2470,6 +2665,13 @@
   window.TRANSFORM_OPEN_RATES = TRANSFORM_OPEN_RATES;
   window.TRANSFORM_TIER_POWER = TRANSFORM_TIER_POWER;
   window.transformAbilityData = transformAbilityData;
+  window.TRANSFORM_PREFS = TRANSFORM_PREFS;
+  window.getTransformBestPreference = getTransformBestPreference;
+  window.setTransformBestPreference = setTransformBestPreference;
+  window.transformCardRole = transformCardRole;
+  window.transformCardPreferenceScore = transformCardPreferenceScore;
+  window.transformCompareAbilityLines = transformCompareAbilityLines;
+
   window.applyTransformVariantBonus = applyTransformVariantBonus;
   window.transformAbilityLines = transformAbilityLines;
   window.applyTransformCombatStats = applyTransformCombatStats;
