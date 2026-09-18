@@ -3315,7 +3315,7 @@ function _createMobileGameNav(){
 
     @media (max-width:768px){
         body.mobile-game-nav-on #game-screen{
-            padding-bottom:72px!important;
+            padding-bottom:56px!important;
         }
 
         #mobile-game-nav{
@@ -3323,7 +3323,7 @@ function _createMobileGameNav(){
             left:0;
             right:0;
             bottom:0;
-            height:64px;
+            height:50px;
             z-index:8500;
 
             display:grid;
@@ -3345,16 +3345,16 @@ function _createMobileGameNav(){
             background:#0f1c2f;
             color:#aebbd0;
 
-            font-size:12px;
+            font-size:11px;
             font-weight:700;
 
             display:flex;
             flex-direction:column;
             align-items:center;
             justify-content:center;
-            gap:2px;
+            gap:0;
 
-            padding:4px 1px;
+            padding:2px 1px;
             touch-action:manipulation;
         }
 
@@ -3363,8 +3363,8 @@ function _createMobileGameNav(){
         }
 
         #mobile-game-nav .mgn-icon{
-            font-size:20px;
-            line-height:22px;
+            font-size:17px;
+            line-height:18px;
         }
 
         #mobile-game-nav button.mgn-active{
