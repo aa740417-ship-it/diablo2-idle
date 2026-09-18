@@ -1,4 +1,4 @@
-// ===== 潘朵拉黑市：玩家掛單收購 v1 =====
+// ===== 潘朵拉黑市：玩家掛單收購 v2 =====
 (function(){
 'use strict';
 
@@ -66,15 +66,48 @@ function rangeFor(id){
         );
     }
 
-    // 仿你圖片：最低行情到最高行情約 20 倍區間
-    let min = nicePrice(base * 0.40);
-    let max = nicePrice(base * 8.00);
+    // ===== 黑市行情 v2 =====
+    // 普通物品：基準價 ×1 ～ ×20
+    // 稀有物品：基準價 ×5 ～ ×100
+    // 卡片類：  基準價 ×10 ～ ×200
+    //
+    // 例：基準價 10,000 的卡片
+    // → 黑市行情約 100,000 ～ 2,000,000 金幣
+    let w = Math.max(0, Number(d.gachaWeight)||0);
+    let isCard = d.eff === 'card';
 
-    if(max <= min) max = min * 20;
+    // 掉落權重很低，或本身沒有一般商店售價、只能靠抽取/掉落估價，
+    // 視為稀有物品。卡片另外再拉高一階。
+    let isRare = !isCard && (
+        (w > 0 && w <= 10) ||
+        ((Number(d.p)||0) <= 0 && w > 0)
+    );
+
+    let minMul = 1.00;
+    let maxMul = 20.00;
+    let priceClass = 'normal';
+
+    if(isCard){
+        minMul = 10.00;
+        maxMul = 200.00;
+        priceClass = 'card';
+    }else if(isRare){
+        minMul = 5.00;
+        maxMul = 100.00;
+        priceClass = 'rare';
+    }
+
+    let min = nicePrice(base * minMul);
+    let max = nicePrice(base * maxMul);
+
+    if(max <= min) max = nicePrice(min * 20);
 
     return {
         min:min,
-        max:max
+        max:max,
+        priceClass:priceClass,
+        minMul:minMul,
+        maxMul:maxMul
     };
 }
 
@@ -350,7 +383,8 @@ function search(value){
                 </div>
 
                 <div class="text-xs text-amber-300">
-                    行情 ${fmt(r.min)}～${fmt(r.max)} 金幣
+                    ${r.priceClass==='card'?'🃏 卡片行情':(r.priceClass==='rare'?'💎 稀有行情':'一般行情')}
+                    ${fmt(r.min)}～${fmt(r.max)} 金幣
                 </div>
             </button>`;
         }).join('');
@@ -450,7 +484,7 @@ function preview(){
 
     info.innerHTML = `
         <div class="text-amber-300 font-bold">
-            黑市成交價
+            ${r.priceClass==='card'?'🃏 卡片黑市行情':(r.priceClass==='rare'?'💎 稀有黑市行情':'黑市成交價')}
             ${fmt(r.min)}～${fmt(r.max)}
             金幣
         </div>
