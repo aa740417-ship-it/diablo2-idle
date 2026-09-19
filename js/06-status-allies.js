@@ -880,6 +880,194 @@ function allyQueueStageQuestItem(itemId, cnt) {
     return _queueAllyQuestItem(itemId, cnt, ally => trialStageItemHeldActiveFor(ally, itemId, _allyQuestLootCount(ally, itemId), true));
 }
 // 協力角色攻擊一次（自包含，直接用 ally 的真實衍生值；法師走魔法、其餘走物理）
+
+// ===== 仿正服：傭兵武器四屬性卷軸 =====
+// 火：傷害倍率
+// 水：恢復該名傭兵自己的 MP
+// 地：暈眩
+// 風：傷害擴散
+function _allyAttrAliveMob(m) {
+    return !!(m && !m._dead && (m.curHp || 0) > 0);
+}
+
+function allyAttrProcRoll(ally, target, dmg, wpnInst) {
+    let baseDmg = Math.max(1, Math.floor(dmg || 1));
+
+    if (typeof window !== 'undefined' && !window.OFFICIAL_BALANCE_MODE)
+        return { dmg: baseDmg, proc: null };
+
+    let inst = wpnInst ||
+        (ally && ally.eq && ally.eq.wpn ? ally.eq.wpn : null);
+
+    if (!ally || !inst || !inst.attr || typeof getAttrAffix !== 'function')
+        return { dmg: baseDmg, proc: null };
+
+    let aff = getAttrAffix(inst.attr);
+
+    if (!aff || !aff.tier || !aff.ele)
+        return { dmg: baseDmg, proc: null };
+
+    let rates = [0, 2, 4, 6, 8, 10];
+    let rate = (typeof aff.procRate === 'number')
+        ? aff.procRate
+        : (rates[aff.tier] || 0);
+
+    if (rate <= 0 || Math.random() * 100 >= rate)
+        return { dmg: baseDmg, proc: null };
+
+    let proc = {
+        ele: aff.ele,
+        tier: aff.tier,
+        aff: aff,
+        target: target,
+        fireMult: 1
+    };
+
+    if (aff.ele === 'fire') {
+        let fireMult = [1, 0.8, 1.1, 1.5, 1.7, 2.0];
+
+        let mult = (typeof aff.procDamageMult === 'number')
+            ? aff.procDamageMult
+            : (fireMult[aff.tier] || 1);
+
+        proc.fireMult = mult;
+        baseDmg = Math.max(1, Math.floor(baseDmg * mult));
+    }
+
+    return { dmg: baseDmg, proc: proc };
+}
+
+function allyAttrProcFinish(ally, proc, finalDmg) {
+    if (!ally || !proc || !proc.aff) return;
+
+    let aff = proc.aff;
+    let tier = proc.tier;
+    let target = proc.target;
+    let label = aff.n || '武器屬性';
+    let dmg = Math.max(1, Math.floor(finalDmg || 1));
+
+    // 火
+    if (proc.ele === 'fire') {
+        logCombat(
+            `<span class="font-bold text-red-400">【協力·${ally._allyName}·${label}】</span>`
+            + `火屬性發動！本次傷害 ×${proc.fireMult.toFixed(1)}。`,
+            'player-special'
+        );
+        return;
+    }
+
+    // 水
+    if (proc.ele === 'water') {
+        let waterMp = [
+            null,
+            [10,15],
+            [20,25],
+            [30,35],
+            [40,45],
+            [50,55]
+        ];
+
+        let range = Array.isArray(aff.procMpDrain)
+            ? aff.procMpDrain
+            : (waterMp[tier] || [0,0]);
+
+        let amount =
+            range[0] +
+            Math.floor(Math.random() * (range[1] - range[0] + 1));
+
+        let before = ally.mp || 0;
+        let maxMp = ally.mmp || before;
+
+        ally.mp = Math.min(maxMp, before + amount);
+
+        let gained = Math.max(0, ally.mp - before);
+
+        logCombat(
+            `<span class="font-bold text-cyan-300">【協力·${ally._allyName}·${label}】</span>`
+            + `水屬性發動！吸取 ${amount} MP`
+            + (gained !== amount ? `（實際恢復 ${gained}）` : '')
+            + `。`,
+            'player-special'
+        );
+        return;
+    }
+
+    // 地
+    if (proc.ele === 'earth') {
+        if (!_allyAttrAliveMob(target)) return;
+        if (target.boss) return;
+
+        let stunSec = [0, 1, 1, 1, 1.5, 1.5];
+
+        let sec = (typeof aff.procStunSec === 'number')
+            ? aff.procStunSec
+            : (stunSec[tier] || 1);
+
+        if (!target.st) target.st = newMobStatus();
+
+        target.st.stun = Math.max(
+            target.st.stun || 0,
+            Math.round(sec * 10)
+        );
+
+        mobWake(target);
+
+        logCombat(
+            `<span class="font-bold text-yellow-300">【協力·${ally._allyName}·${label}】</span>`
+            + `地屬性發動！`
+            + `<span class="${getMobColor(target.lv)}">${target.n}</span>`
+            + ` 暈眩 ${sec} 秒。`,
+            'player-special'
+        );
+        return;
+    }
+
+    // 風
+    if (proc.ele === 'wind') {
+        if (
+            typeof mapState === 'undefined' ||
+            !mapState ||
+            !Array.isArray(mapState.mobs)
+        ) return;
+
+        let maxTargets = Math.max(
+            1,
+            Number(aff.procTargets) || 3
+        );
+
+        let extras = mapState.mobs
+            .filter(m => _allyAttrAliveMob(m) && m !== target)
+            .slice(0, Math.max(0, maxTargets - 1));
+
+        let hitCount = 1;
+
+        for (let mob of extras) {
+            mob.curHp -= dmg;
+            mob.justHit = 'wind';
+            mobWake(mob);
+            hitCount++;
+
+            if (mob.curHp <= 0) {
+                let idx = mapState.mobs.findIndex(
+                    x => x && x.uid === mob.uid
+                );
+
+                if (idx !== -1) killMob(idx);
+            }
+        }
+
+        if (!state.ff && typeof renderMobs === 'function')
+            renderMobs();
+
+        logCombat(
+            `<span class="font-bold text-emerald-300">【協力·${ally._allyName}·${label}】</span>`
+            + `風屬性發動！本次 ${dmg} 點傷害擴散，`
+            + `攻擊 ${hitCount} 隻敵人。`,
+            'player-special'
+        );
+    }
+}
+
 // 🔧 對不死/狼人加成（傭兵版，比照玩家 getPhysicalDmg）：武器帶 unBonus、且目標為不死(un)或狼人(isWolf) → 額外 +1D20 固定傷害
 function allyUnbonusBonus(ally, t) {
     let w = (ally.eq && ally.eq.wpn) ? DB.items[ally.eq.wpn.id] : null;
@@ -909,6 +1097,8 @@ function allyQiguAttack(ally, t, wpn) {
     dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(ally)));   // 🔮 幻術士(傭兵)等級加成 ×(1+等級/50)
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(ele, t.e)));   // ⚔️ 屬性剋制倍率（取代舊 +6 固定加值）
     dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/200)
+    let _attrQigu = allyAttrProcRoll(ally, t, dmg);
+    dmg = _attrQigu.dmg;
     t.curHp -= dmg; t.justHit = (ele !== 'none') ? ele : 'magic';
     if (t.st && t.st.mrhalf > 0) t.st.mrhalf = 0;
     mobWake(t);
@@ -916,6 +1106,7 @@ function allyQiguAttack(ally, t, wpn) {
     if (t.curHp > 0 && ally._setIron5 && typeof ironGuardTaunt === 'function' && ironGuardTaunt(t, ally)) logCombat(`<span class="font-bold" style="color:#93c5fd;text-shadow:0 0 6px #3b82f6;">【協力·${ally._allyName}·鐵衛 5/5】</span>嘲諷 <span class="${getMobColor(t.lv)}">${t.n}</span>！（3 秒）`, 'player-special');
     if (ally._setWhiteBird5 && t.curHp > 0 && !t._dead) { if (!t.st) t.st = newMobStatus(); t.st.fragile = 30; }   // 🔮 白鳥 5/5（傭兵奇古獸）：命中附加脆弱（魔法路徑不經 allyOnHitEffects，故此處補上）
     logCombat(`<span class="text-emerald-300 font-bold">【協力·${ally._allyName}】</span>奇古獸對 <span class="${getMobColor(t.lv)}">${t.n}</span> 造成 ${dmg} 點魔法傷害。`, 'magic');
+    allyAttrProcFinish(ally, _attrQigu.proc, dmg);
     // 奇古獸特效（幻影衝擊/心靈破壞，用傭兵最大MP）
     if (wpn.qiguProc) {
         let en = capWpnEn((ally.eq.wpn && ally.eq.wpn.en) || 0);
@@ -957,10 +1148,13 @@ function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選�
         dmg = Math.max(1, Math.floor(dmg * wpnEnFinalMult(ally.eq && ally.eq.wpn)));   // 🔧 武器強化 +11~+20：最終傷害倍率（傭兵法師光箭普攻·與玩家普攻一致）
         dmg = Math.max(1, Math.floor(dmg * allyRlFuryMult(ally)));   // 🔴😡 v2.6.18 紅獅5×狂怒5造傷（法師光箭普攻·原全無·鏡像玩家 procLightArrow）
         dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/200)
+        let _attrMage = allyAttrProcRoll(ally, t, dmg);
+        dmg = _attrMage.dmg;
         t.curHp -= dmg; if (typeof moonShatterOnDamage === 'function') moonShatterOnDamage(ally, t, dmg); t.justHit = 'magic'; mobWake(t);
         if (typeof reflectWallOnDamage === 'function') reflectWallOnDamage(t, dmg, 'magic', ally);   // 🌑 v3.4.14 血壁空間：法師光箭普攻主擊＝魔法反射（普攻主擊反射·玩家傭兵一致）
         if (t.curHp > 0 && ally._setIron5 && typeof ironGuardTaunt === 'function' && ironGuardTaunt(t, ally)) logCombat(`<span class="font-bold" style="color:#93c5fd;text-shadow:0 0 6px #3b82f6;">【協力·${ally._allyName}·鐵衛 5/5】</span>嘲諷 <span class="${getMobColor(t.lv)}">${t.n}</span>！（3 秒）`, 'player-special');
         logCombat(`<span class="text-emerald-300 font-bold">【協力·${ally._allyName}】</span>魔法攻擊 <span class="${getMobColor(t.lv)}">${t.n}</span>，造成 <span class="${isCrit?'text-yellow-500 font-bold':'text-emerald-200'}">${dmg}</span> 點傷害。`, 'magic');
+        allyAttrProcFinish(ally, _attrMage.proc, dmg);
         allyWeaponProcs(ally, t, { hit: true, dmg: dmg });   // 🔧 法師普攻（光箭）也觸發武器特效：共鳴/魔擊/瑪那回魔
         if (ally._setWhiteBird5 && t.curHp > 0 && !t._dead) { if (!t.st) t.st = newMobStatus(); t.st.fragile = 30; }   // 🔮 白鳥 5/5（傭兵法師光箭）：一般攻擊命中附加脆弱（物理分支於 allyOnHitEffects 套用、魔法分支不經該函式，故此處補上）
     } else {
@@ -1066,6 +1260,8 @@ function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選�
         if (wpn && wpn.pierceMainMult) dmg = Math.max(1, Math.floor(dmg * wpn.pierceMainMult));   // 🏺 v3.6.44 艾爾摩尖頭槍（傭兵鏡像）：一般攻擊主目標傷害 ×1.3
         if (wpn && wpn.selfBreakProc && Math.random() < 0.03) { dmg = Math.max(1, Math.floor(dmg * 1.5)); if (!ally.statuses) ally.statuses = {}; ally.statuses.broken = (wpn.selfBreakProc.dur || 5) * 10; }   // 🐍 v3.1.76 特產易碎泥偶（傭兵）：3% 傷害×1.5＋自身壞物術（期間傷害-20%·鏡像玩家 js/04:122）
         if (ally.d && ally.d.instakillFull && t.curHp === t.hp) { let _rif = mapState.mobs.findIndex(m => m && m.uid === t.uid); if (_rif !== -1 && tryInstakill(t, { p: ally.d.instakillFull, tag: null }, `【協力·${ally._allyName}】隱蔽的死亡草葉`, _rif)) return; }   // 🏺 v3.1.76 隱蔽的死亡草葉（傭兵）：命中滿血非BOSS怪機率即死（鏡像玩家 js/04:72）
+        let _attrPhysical = allyAttrProcRoll(ally, t, dmg);
+        dmg = _attrPhysical.dmg;
         markBossPhysicalHit(t);
         t.curHp -= dmg; t.justHit = getWpnEle(ally.eq ? ally.eq.wpn : null, wpn, ally); if (typeof moonShatterOnDamage === 'function') moonShatterOnDamage(ally, t, dmg); mobWake(t);
         if (wpn && wpn.bonespike && (t._bonespike || 0) > 0 && t.curHp > 0) { let _bs = t._bonespike * 20; t._bonespike = 0; t.curHp -= _bs; t._spellHurt = true; mobWake(t); logCombat(`<span class="font-bold" style="color:#e5e7eb;text-shadow:0 0 6px #6b7280;">【協力·${ally._allyName}·骨刺爆裂】</span>引爆目標身上的骨刺，額外造成 ${_bs} 點固定傷害。`, 'player-special'); }   // 🏺 骸骨意志之弓（傭兵）：一般攻擊引爆所有骨刺（每層 20 固定傷害）
@@ -1103,6 +1299,7 @@ function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選�
         let mark = (heavy && isCrit) ? '會心一擊' : (isCrit ? '爆擊' : (heavy ? '重擊' : (_grazeA ? '擦傷' : '')));
         if (_dualX2A) mark += (mark ? '·' : '') + '雙刃×2';   // ⚔️ 雙刀內建特性標記
         logCombat(`${kp}<span class="text-sky-300 font-bold">【協力·${ally._allyName}】</span>攻擊 <span class="${getMobColor(t.lv)}">${t.n}</span>，造成 ${dmg} 點傷害${mark?'（'+mark+'!）':''}。`, 'player');
+        allyAttrProcFinish(ally, _attrPhysical.proc, dmg);
         // 🔧 硬皮消磨：傭兵一般攻擊命中固定再磨 1（basic，與玩家同規則）；單手鈍器鈍擊另由 allyOnHitEffects 觸發
         if (t.curHp > 0) wearHardSkin(t, ally.eq && ally.eq.wpn ? ally.eq.wpn.id : null, heavy, false, true, ally.classicMode);
         allyOnHitEffects(ally, t, { dmg: dmg, heavy: heavy, hardSkin: _hsT });        // 🔧 命中後特效：穿透/即死/出血/鈍擊/切割（hardSkin 供穿透精通無視判定）
@@ -1155,9 +1352,12 @@ function allyComboAttack(ally, t, fullDmg) {
     if (r.crit && wo && wo.critFuryHaste) ally._fangFuryTicks = critFuryDurationTicks(wo.critFuryHaste.sec);   // 🏺 v3.7.52 邪惡利牙（傭兵）：爆擊觸發攻速+30%（js/06 攻擊間隔消費·逐 tick 遞減）
     let dmg = Math.max(1, Math.floor(r.dmg * (fullDmg ? (ally._setShadow5 ? 2.0 : 1.0) : (ally._setShadow5 ? 1.0 : 0.5))));   // 🔧 雙擊(fullDmg)：完整一般攻擊·暗影5/5傷害加倍(×2)；爆擊精通(legacy)×0.5
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(getWpnEle(wi, wo, ally), t.e)));   // ⚔️ 武器屬性剋制倍率（雙擊）
+    let _attrCombo = allyAttrProcRoll(ally, t, dmg, wi);
+    dmg = _attrCombo.dmg;
     if (t.curHp > 0) wearHardSkin(t, wi ? wi.id : null, r.heavy, false, true, ally.classicMode);
     logCombat(`<span class="font-bold" style="color:#c4b5fd;text-shadow:0 0 6px #8b5cf6;">【協力·${ally._allyName}·雙擊】</span>追擊 <span class="${getMobColor(t.lv)}">${t.n}</span>，造成 ${dmg} 點傷害。`, 'player');
     _allyDamageMob(ally, t, dmg, getWpnEle(wi, wo, ally), 'melee');
+    allyAttrProcFinish(ally, _attrCombo.proc, dmg);
 }
 // ⚔️ 迅猛雙斧（傭兵）：主手是否可雙持（單手鈍器／巨斧精通的雙手鈍器）
 function allyWarriorDualWieldWpnOk(ally, id) {
@@ -1215,10 +1415,13 @@ function allyDualWieldOffhandAttack(ally, t) {
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(getWpnEle(ally.eq.offwpn, owpn, ally), t.e)));   // ⚔️ 副手武器屬性剋制倍率
     dmg = allyOffhandDmgMods(ally, owpn, t, dmg);   // ⚔️ v3.5.97 副手扣血前的傷害修飾（selfBreakProc／eleBonusDmg）
     dmg = Math.max(1, dmg);
+    let _attrOffhand = allyAttrProcRoll(ally, t, dmg, ally.eq.offwpn);
+    dmg = _attrOffhand.dmg;
     if (t.curHp > 0) wearHardSkin(t, ally.eq.offwpn.id, r.heavy, false, true, ally.classicMode);
     let mark = (r.heavy && r.crit) ? '會心一擊' : (r.crit ? '爆擊' : (r.heavy ? '重擊' : ''));
     logCombat(`<span class="font-bold" style="color:#fbbf24;text-shadow:0 0 6px #d97706;">【協力·${ally._allyName}·迅猛雙斧】</span>副手 ${owpn.n} 追擊 <span class="${getMobColor(t.lv)}">${t.n}</span>，造成 ${dmg} 點傷害${mark?'（'+mark+'!）':''}。`, 'player');
     _allyDamageMob(ally, t, dmg, getWpnEle(ally.eq.offwpn, owpn, ally), 'melee');
+    allyAttrProcFinish(ally, _attrOffhand.proc, dmg);
     // ⚔️ v3.5.97 副手扣血後的 proc ＋ 附魔施放（鏡像玩家 dualWieldOffhandAttack 尾端；擺在 _allyDamageMob 之後＝擊殺已結算）
     allyOffhandAfterHit(ally, ally.eq.offwpn, owpn, t, dmg);
     allyWeaponProcs(ally, t, { hit: true, dmg: dmg }, ally.eq.offwpn);
