@@ -376,7 +376,7 @@ function _clanBackupBrokenState(raw) {
 }
 
 function _clanTryRecoverDesktopState(raw, u) {
-    if (typeof raw !== 'string' || raw.slice(0, 5) !== 'SIG2:' || !u || u.ok || u.payload == null) return null;
+    if (typeof raw !== 'string' || !/^SIG[12]:/.test(raw) || !u || u.ok || u.payload == null) return null;
     try {
         let parsed = JSON.parse(u.payload);
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
