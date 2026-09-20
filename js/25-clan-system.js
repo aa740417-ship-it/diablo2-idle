@@ -3,6 +3,7 @@
 // separated between normal/classic mode, while contribution belongs to a role.
 const CLAN_STATE_KEY = 'fb5_clan_state_v1';
 const CLAN_LOCK_KEY = 'fb5_clan_state_v1_lock';
+const CLAN_RECOVERY_BACKUP_KEY = 'fb5_clan_state_v1_recovery_backup';
 const CLAN_CREATE_COST = 30000;
 const CLAN_BUFF_HOUR_MS = 60 * 60 * 1000;
 const CLAN_BUFF_HOUR_COST = 5;
@@ -364,6 +365,51 @@ function _clanNormalizeState(raw) {
     return out;
 }
 
+function _clanBackupBrokenState(raw) {
+    try {
+        if (typeof _lzSet === 'function') return !!_lzSet(CLAN_RECOVERY_BACKUP_KEY, String(raw));
+        localStorage.setItem(CLAN_RECOVERY_BACKUP_KEY, String(raw));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function _clanTryRecoverDesktopState(raw, u) {
+    if (typeof raw !== 'string' || raw.slice(0, 5) !== 'SIG2:' || !u || u.ok || u.payload == null) return null;
+    try {
+        let parsed = JSON.parse(u.payload);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+        if (!parsed.modes || typeof parsed.modes !== 'object') return null;
+        if (!parsed.members || typeof parsed.members !== 'object') return null;
+
+        let clean = _clanNormalizeState(parsed);
+        if (!clean.modes.normal && !clean.modes.classic) return null;
+
+        if (!_clanBackupBrokenState(raw)) return null;
+
+        let text = JSON.stringify(clean);
+        let wrapped = (typeof _saveWrap === 'function') ? _saveWrap(text) : text;
+
+        let ok;
+        if (typeof _lzSet === 'function') ok = !!_lzSet(CLAN_STATE_KEY, wrapped);
+        else {
+            localStorage.setItem(CLAN_STATE_KEY, wrapped);
+            ok = true;
+        }
+        if (!ok) return null;
+
+        try {
+            if (typeof logSys === 'function')
+                logSys('<span class="text-emerald-300 font-bold">🛟 已自動修復血盟資料，原始資料已保留救援備份。</span>');
+        } catch (e) {}
+
+        return clean;
+    } catch (e) {
+        return null;
+    }
+}
+
 function _clanReadStateResult() {
     try {
         let raw = (typeof _lzGet === 'function') ? _lzGet(CLAN_STATE_KEY) : localStorage.getItem(CLAN_STATE_KEY);
@@ -371,7 +417,11 @@ function _clanReadStateResult() {
         let text = raw;
         if (typeof _saveUnwrap === 'function') {
             let u = _saveUnwrap(raw);
-            if (u && u.signed && !u.ok) return { ok:false, error:'血盟資料完整性校驗失敗。' };
+            if (u && u.signed && !u.ok) {
+                let recovered = _clanTryRecoverDesktopState(raw, u);
+                if (recovered) return { ok:true, state:recovered, recovered:true };
+                return { ok:false, error:'血盟資料完整性校驗失敗。' };
+            }
             if (u && u.payload != null) text = u.payload;
         }
         return { ok:true, state:_clanNormalizeState(JSON.parse(text)) };
