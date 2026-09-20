@@ -407,7 +407,7 @@ function _clanTryRecoverDesktopState(raw, u) {
     }
 
     try {
-        let parsed = JSON.parse(u.payload);
+        let parsed = JSON.parse(String(u.payload));
 
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
             _clanRecoveryLastError = 'json-not-object';
