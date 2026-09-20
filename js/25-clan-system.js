@@ -375,18 +375,66 @@ function _clanBackupBrokenState(raw) {
     }
 }
 
+let _clanRecoveryLastError = '';
+
 function _clanTryRecoverDesktopState(raw, u) {
-    if (typeof raw !== 'string' || !/^SIG[12]:/.test(raw) || !u || u.ok || u.payload == null) return null;
+    _clanRecoveryLastError = '';
+
+    if (typeof raw !== 'string') {
+        _clanRecoveryLastError = 'raw-not-string';
+        return null;
+    }
+
+    let prefix = raw.slice(0, 5);
+    if (!/^SIG[12]:/.test(raw)) {
+        _clanRecoveryLastError = 'prefix-' + prefix;
+        return null;
+    }
+
+    if (!u) {
+        _clanRecoveryLastError = 'unwrap-null';
+        return null;
+    }
+
+    if (u.ok) {
+        _clanRecoveryLastError = 'signature-ok';
+        return null;
+    }
+
+    if (u.payload == null) {
+        _clanRecoveryLastError = 'no-payload';
+        return null;
+    }
+
     try {
         let parsed = JSON.parse(u.payload);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-        if (!parsed.modes || typeof parsed.modes !== 'object') return null;
-        if (!parsed.members || typeof parsed.members !== 'object') return null;
+
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            _clanRecoveryLastError = 'json-not-object';
+            return null;
+        }
+
+        if (!parsed.modes || typeof parsed.modes !== 'object' || Array.isArray(parsed.modes)) {
+            _clanRecoveryLastError = 'missing-modes';
+            return null;
+        }
+
+        if (!parsed.members || typeof parsed.members !== 'object' || Array.isArray(parsed.members)) {
+            _clanRecoveryLastError = 'missing-members';
+            return null;
+        }
 
         let clean = _clanNormalizeState(parsed);
-        if (!clean.modes.normal && !clean.modes.classic) return null;
 
-        if (!_clanBackupBrokenState(raw)) return null;
+        if (!clean.modes.normal && !clean.modes.classic) {
+            _clanRecoveryLastError = 'no-valid-clan';
+            return null;
+        }
+
+        if (!_clanBackupBrokenState(raw)) {
+            _clanRecoveryLastError = 'backup-failed';
+            return null;
+        }
 
         let text = JSON.stringify(clean);
         let wrapped = (typeof _saveWrap === 'function') ? _saveWrap(text) : text;
@@ -397,7 +445,13 @@ function _clanTryRecoverDesktopState(raw, u) {
             localStorage.setItem(CLAN_STATE_KEY, wrapped);
             ok = true;
         }
-        if (!ok) return null;
+
+        if (!ok) {
+            _clanRecoveryLastError = 'rewrite-failed';
+            return null;
+        }
+
+        _clanRecoveryLastError = 'recovered';
 
         try {
             if (typeof logSys === 'function')
@@ -405,7 +459,9 @@ function _clanTryRecoverDesktopState(raw, u) {
         } catch (e) {}
 
         return clean;
+
     } catch (e) {
+        _clanRecoveryLastError = 'json-parse-failed';
         return null;
     }
 }
@@ -420,7 +476,7 @@ function _clanReadStateResult() {
             if (u && u.signed && !u.ok) {
                 let recovered = _clanTryRecoverDesktopState(raw, u);
                 if (recovered) return { ok:true, state:recovered, recovered:true };
-                return { ok:false, error:'血盟資料完整性校驗失敗。' };
+                return { ok:false, error:'血盟資料完整性校驗失敗。[R3:' + (_clanRecoveryLastError || 'unknown') + ']' };
             }
             if (u && u.payload != null) text = u.payload;
         }
