@@ -407,7 +407,17 @@ function _clanTryRecoverDesktopState(raw, u) {
     }
 
     try {
-        let parsed = JSON.parse(String(u.payload));
+        let payloadText = String(u.payload);
+
+        // 修復舊版血盟存檔：assignedAt 數字遭截斷並黏上 signedAt
+        // 例如：
+        // "assignedAt":178945signedAt":1789442149
+        payloadText = payloadText.replace(
+            /"assignedAt"\s*:\s*\d+signedAt"\s*:\s*(\d+)/g,
+            '"assignedAt":$1'
+        );
+
+        let parsed = JSON.parse(payloadText);
 
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
             _clanRecoveryLastError = 'json-not-object';
