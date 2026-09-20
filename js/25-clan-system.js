@@ -471,8 +471,8 @@ function _clanTryRecoverDesktopState(raw, u) {
             let payload = String(u && u.payload != null ? u.payload : '');
                 let near = '';
                 if (pos >= 0) {
-                    let a = Math.max(0, pos - 30);
-                    let b = Math.min(payload.length, pos + 30);
+                    let a = Math.max(0, pos - 120);
+                    let b = Math.min(payload.length, pos + 120);
                     for (let i = a; i < b; i++) {
                         let ch = payload[i];
                         near += (i === pos ? '>>>[' : '') + ch + '(' + ch.charCodeAt(0) + ')' + (i === pos ? ']<<<' : '');
