@@ -469,9 +469,15 @@ function _clanTryRecoverDesktopState(raw, u) {
             let m = msg.match(/position\s+(\d+)/i);
             let pos = m ? Number(m[1]) : -1;
             let payload = String(u && u.payload != null ? u.payload : '');
-            let near = pos >= 0
-                ? payload.slice(Math.max(0, pos - 80), Math.min(payload.length, pos + 80))
-                : '';
+                let near = '';
+                if (pos >= 0) {
+                    let a = Math.max(0, pos - 30);
+                    let b = Math.min(payload.length, pos + 30);
+                    for (let i = a; i < b; i++) {
+                        let ch = payload[i];
+                        near += (i === pos ? '>>>[' : '') + ch + '(' + ch.charCodeAt(0) + ')' + (i === pos ? ']<<<' : '');
+                    }
+                }
             _clanRecoveryLastError = 'json-parse-failed;' + msg +
                 ';len=' + payload.length +
                 ';near=' + near;
