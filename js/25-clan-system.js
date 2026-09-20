@@ -465,7 +465,7 @@ function _clanTryRecoverDesktopState(raw, u) {
             let probe = String(u && u.payload != null ? u.payload : '').slice(0, 30);
             let codes = [];
             for (let i = 0; i < probe.length; i++) codes.push(probe.charCodeAt(i));
-            _clanRecoveryLastError = 'json-parse-failed;codes=' + codes.join(',');
+            _clanRecoveryLastError = 'json-parse-failed;' + String(e && e.message ? e.message : e) + ';len=' + String(u.payload).length;
         } catch (probeErr) {
             _clanRecoveryLastError = 'json-parse-failed;probe-failed';
         }
