@@ -472,7 +472,7 @@ function _clanTryRecoverDesktopState(raw, u) {
             let near = '';
             if (pos >= 0) {
                 let before = payload.slice(Math.max(0, pos - 180), pos);
-                let bad = payload[pos] || '';
+                let bad = payload[pos] || ''; console.log('CLAN_RAW_B64', btoa(unescape(encodeURIComponent(payload.slice(Math.max(0,pos-300), Math.min(payload.length,pos+301))))));
                 let after = payload.slice(pos + 1, Math.min(payload.length, pos + 181));
                 near = 'BEFORE=[' + before + '] BAD=[' + bad + '] CODE=[' +
                     (bad ? bad.charCodeAt(0) : -1) + '] AFTER=[' + after + ']';
