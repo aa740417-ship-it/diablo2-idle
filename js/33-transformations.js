@@ -495,13 +495,20 @@
 
   function cyanTransformMagicMult(dStats) {
     try {
-      if (typeof player === 'undefined' || !player || !player.d || dStats !== player.d) return 1;
-      if (isCyanTransformActive('mage') || isCyanTransformActive('illusion')) return 1.20;
+      // 玩家與傭兵：青變法師／幻術士最終魔法傷害 +20%
+      if (dStats && (dStats._cyanTransform === 'mage' || dStats._cyanTransform === 'illusion')) return 1.20;
+      if (typeof player !== 'undefined' && player && player.d === dStats &&
+          (isCyanTransformActive('mage') || isCyanTransformActive('illusion'))) return 1.20;
     } catch(e) {}
     return 1;
   }
 
-  function cyanTransformIncomingPhysicalMult() {
+  function cyanTransformIncomingPhysicalMult(ent) {
+    try {
+      // 傭兵自己的青變騎士
+      if (ent && ent.d && ent.d._cyanTransform === 'knight') return 0.85;
+    } catch(e) {}
+    // 玩家原有判定
     return isCyanTransformActive('knight') ? 0.85 : 1;
   }
 
@@ -538,7 +545,7 @@
   }
 
   function cyanTransformTryWarriorReflect(p, mob, totalDmg, idx) {
-    if (!p || !mob || !(totalDmg > 0) || !isCyanTransformActive('warrior')) return false;
+    if (!p || !mob || !(totalDmg > 0) || !((p.d && p.d._cyanTransform === 'warrior') || (p === player && isCyanTransformActive('warrior')))) return false;
     if (Math.random() >= 0.15) return false;
 
     let mult = 1;
@@ -558,7 +565,10 @@
     }
 
     if (mob.curHp <= 0 && typeof killMob === 'function') {
-      try { killMob(idx); } catch(e) {}
+      try {
+        let _mi = Number.isInteger(idx) ? idx : mapState.mobs.findIndex(m => m && m.uid === mob.uid);
+        if (_mi >= 0) killMob(_mi);
+      } catch(e) {}
     }
     return true;
   }

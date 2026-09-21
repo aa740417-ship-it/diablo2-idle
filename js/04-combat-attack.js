@@ -1580,6 +1580,21 @@ function _enemyAttackAllyInner(mob, ally, isBasicAttack = false) {
     totalDmg = Math.max(0, Math.floor(totalDmg * raceDrMult(ally, mob)));   // 🏺 v3.7.52 隨從的護身斗篷（傭兵·物理）
     totalDmg = allyDollDamageReduced(ally, totalDmg);   // 🆕 v2.6.10 #3：魔法娃娃機率減免（受物理傷害）
     totalDmg = shieldDmgReduceProc(ally, totalDmg);   // 🌑 v3.3.33 反叛者的盾牌（傭兵鏡像·物理）
+
+    // 🩵 青變傭兵：騎士終焉守護，受到一般物理傷害 -15%
+    if (typeof cyanTransformIncomingPhysicalMult === 'function')
+        totalDmg = Math.max(0, Math.floor(totalDmg * cyanTransformIncomingPhysicalMult(ally)));
+
+    // 🩵 青變傭兵：戰士泰坦反擊，15% 反射同額傷害並免疫本次攻擊
+    if (typeof cyanTransformTryWarriorReflect === 'function') {
+        let _cyanIdx = mapState.mobs.findIndex(m => m && m.uid === mob.uid);
+        if (cyanTransformTryWarriorReflect(ally, mob, totalDmg, _cyanIdx)) {
+            try { renderMobs(); } catch(e) {}
+            try { renderSquadPanel(); } catch(e) {}
+            return;
+        }
+    }
+
     // 🏺 v3.1.80 魅魔女皇的誘惑（傭兵）：受一般攻擊 dmgReflect% 機率反射相同傷害＋免疫（鏡像玩家 enemyPhysicalAttack）
     if ((d.dmgReflect || 0) > 0 && totalDmg > 0 && mob.curHp > 0 && Math.random() * 100 < d.dmgReflect) {
         let _rf = Math.max(1, Math.floor(totalDmg * fragileMult(mob)));

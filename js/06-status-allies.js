@@ -393,8 +393,20 @@ function allyActiveCap() {
 // 原版王族魅力仍只調整可帶傭兵數量；仿正服固定 4 名。
 // 保留此相容函式供既有各傷害路徑呼叫；固定回傳 1 可一次停用所有舊魅力能力倍率。
 function royalAllyMult() {
-    // 🩵 Phase 6 青變「天命統御」：王族套用青變時，傭兵／召喚最終傷害 +10%。
+    // 🩵 青變「天命統御」：玩家或出戰王族傭兵套用青變時，
+    // 全隊傭兵／召喚最終傷害 +10%（同效果不重複疊加）。
     if (typeof isCyanTransformActive === 'function' && isCyanTransformActive('royal')) return 1.10;
+
+    try {
+        if (player && Array.isArray(player.allies)) {
+            let hasRoyalCyanMerc = player.allies.some(a =>
+                a && !a._downed &&
+                a.d && a.d._cyanTransform === 'royal'
+            );
+            if (hasRoyalCyanMerc) return 1.10;
+        }
+    } catch(e) {}
+
     return 1;
 }
 function isAllyActive(slotN) { return !!(player.allies && player.allies.some(a => a && a._slot === String(slotN))); }
@@ -1262,6 +1274,15 @@ function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選�
         if (ally.d && ally.d.instakillFull && t.curHp === t.hp) { let _rif = mapState.mobs.findIndex(m => m && m.uid === t.uid); if (_rif !== -1 && tryInstakill(t, { p: ally.d.instakillFull, tag: null }, `【協力·${ally._allyName}】隱蔽的死亡草葉`, _rif)) return; }   // 🏺 v3.1.76 隱蔽的死亡草葉（傭兵）：命中滿血非BOSS怪機率即死（鏡像玩家 js/04:72）
         let _attrPhysical = allyAttrProcRoll(ally, t, dmg);
         dmg = _attrPhysical.dmg;
+
+        // 🩵 青變傭兵一般攻擊專屬效果：
+        // 王族天命統御／妖精星界連射／黑妖虛無追擊／龍騎龍魂破綻
+        if (typeof applyCyanTransformPhysicalProc === 'function') {
+            let _cyanRes = { hit:true, dmg:dmg, ranged:isRanged };
+            applyCyanTransformPhysicalProc(ally, t, _cyanRes);
+            dmg = Math.max(1, Math.floor(_cyanRes.dmg || dmg));
+        }
+
         markBossPhysicalHit(t);
         t.curHp -= dmg; t.justHit = getWpnEle(ally.eq ? ally.eq.wpn : null, wpn, ally); if (typeof moonShatterOnDamage === 'function') moonShatterOnDamage(ally, t, dmg); mobWake(t);
         if (wpn && wpn.bonespike && (t._bonespike || 0) > 0 && t.curHp > 0) { let _bs = t._bonespike * 20; t._bonespike = 0; t.curHp -= _bs; t._spellHurt = true; mobWake(t); logCombat(`<span class="font-bold" style="color:#e5e7eb;text-shadow:0 0 6px #6b7280;">【協力·${ally._allyName}·骨刺爆裂】</span>引爆目標身上的骨刺，額外造成 ${_bs} 點固定傷害。`, 'player-special'); }   // 🏺 骸骨意志之弓（傭兵）：一般攻擊引爆所有骨刺（每層 20 固定傷害）

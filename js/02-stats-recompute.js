@@ -749,7 +749,8 @@ d.mr += (baseMr + bonusMr);
     // 🧙 變身系統 Phase 3：正式能力注入
     // 只作用主玩家；數值本體由最後載入的 js/33-transformations.js 提供。
     // 攻速沿既有 spdMult 管線乘算；施法/傷害/命中/HP/DR 直接進 d/p 正式欄位。
-    if (!_recomputingAlly && typeof applyTransformCombatStats === 'function') {
+    // 🧙 變身效果：玩家與傭兵皆完整套用
+    if (typeof applyTransformCombatStats === 'function') {
         let _tf = applyTransformCombatStats(p, d);
         if (_tf && _tf.attackSpeedPct) spdMult *= (1 / (1 + _tf.attackSpeedPct / 100));
     }
