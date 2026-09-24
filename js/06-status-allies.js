@@ -1254,6 +1254,7 @@ function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選�
         if (t._fireVulnUntil > state.ticks && getWpnEle(ally.eq ? ally.eq.wpn : null, wpn, ally) === 'fire') dmg = Math.max(1, Math.floor(dmg * 1.3));   // 🏺 v3.1.76 灼熱蜥蜴長舌（傭兵受益端）：目標帶火屬性弱點時受火屬性攻擊 +30%（鏡像玩家 js/03:901）
         if (d.eleWpnMult && getWpnEle(ally.eq ? ally.eq.wpn : null, wpn, ally) === d.eleWpnMult.ele) dmg = Math.max(1, Math.floor(dmg * d.eleWpnMult.mult));   // 🏺 v3.1.80 四之牙臂甲（傭兵主攻）：裝備對應屬性武器時一般攻擊傷害 ×1.2（鏡像玩家 getPhysicalDmg）
         dmg = Math.max(1, Math.floor(dmg * allyRlFuryMult(ally)));   // 🔴😡 v2.6.18 紅獅5×狂怒5造傷（物理普攻·原全無·鏡像玩家 getPhysicalDmg）
+        dmg = Math.max(1, Math.floor(dmg * balancedNonMagePlayerDamageMult(ally.d)));   // ⚖️ OB59：非法師傭兵物理普攻 ×1.60
         dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/200)
         let _dualX2A = false;   // ⚔️ 雙刀內建特性（傭兵·鏡像玩家）：一般攻擊命中(非擦傷) 5% 機率最終傷害×2·經典停用
         if (!_grazeA && !ally.classicMode && ally.eq && ally.eq.wpn && getWeaponTags(ally.eq.wpn.id).includes('雙刀') && Math.random() < 0.05) { _dualX2A = true; dmg = Math.max(1, dmg * 2); }
@@ -1757,6 +1758,7 @@ function allyRapidfire(ally, forceProc, classicOk) {
         let dmg = Math.max(1, Math.floor((roll(1, dice) + (d.rangedDmg||0) + (d.extraDmg||0) - (mt.dr||0) - _hsSub + allyUnbonusBonus(ally, mt)) * _rfMult * fragileMult(mt) * wpnEnFinalMult(ally.eq && ally.eq.wpn)));   // 🔧 硬皮：額外物理減傷（貫穿時不扣）；對不死/狼人 +1D20；連射倍率（疾風5/5/連射精通）；脆弱；武器強化 +11~+20 最終倍率（與玩家連射一致·古老武器×2 機制已於 v3.1.26 移除）
         dmg = Math.max(1, Math.floor(dmg * elementCounterMult(getWpnEle(ally.eq ? ally.eq.wpn : null, wpn, ally), mt.e)));   // ⚔️ 武器屬性剋制倍率（連射）
         dmg = Math.max(1, Math.floor(dmg * allyRlFuryMult(ally)));   // 🔴😡 v2.6.18 紅獅5×狂怒5造傷（連射每箭·原全無·鏡像玩家連射 getPhysicalDmg）
+        dmg = Math.max(1, Math.floor(dmg * balancedNonMagePlayerDamageMult(ally.d)));   // ⚖️ OB59：非法師傭兵連射 ×1.60
         dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/200)
         mt.curHp -= dmg; if (typeof terrorVisageOnDamage === 'function') terrorVisageOnDamage(mt, dmg, 'ranged'); mt.justHit = getWpnEle(ally.eq ? ally.eq.wpn : null, wpn, ally); mobWake(mt);   // 🌅 巨大骷髏：傭兵連射視為遠距離
         if (wpn && wpn.bonespike && mt.curHp > 0) mt._bonespike = Math.min(10, (mt._bonespike || 0) + 1);   // 🏺 骸骨意志之弓（傭兵）：連射額外箭矢命中→累積 1 層骨刺（上限 10）
@@ -1862,6 +1864,7 @@ function allyStrikeRoll(ally, t, opts) {
     dmg = _allyAtkBuffProcs(ally, dmg, isRanged);   // 🆕 v2.6.9 #1b：攻擊 buff proc（連擊/魔擊/反擊/居合/雙持共用此計算）
     dmg = Math.max(1, Math.floor(dmg * (opts.noEnhance ? 1 : wpnEnFinalMult(wpnInst))));   // 🔧 武器強化 +11~+20：最終傷害倍率（noEnhance＝副手不另計強化）
     dmg = Math.max(1, Math.floor(dmg * allyRlFuryMult(ally)));   // 🔴😡 v2.6.18 紅獅5×狂怒5造傷：物理攻擊樞紐（普攻技/連擊/魔擊/反擊/居合/穿透/雙持/鐵衛/物理技/屠宰者皆經此·鏡像玩家 getPhysicalDmg rlFuryMult；原物理傭兵全無紅獅5）
+    dmg = Math.max(1, Math.floor(dmg * balancedNonMagePlayerDamageMult(ally.d)));   // ⚖️ OB59：非法師傭兵共用物理樞紐 ×1.60
     if (t._fireVulnUntil > state.ticks && getWpnEle(wpnInst, wpn, ally) === 'fire') dmg = Math.max(1, Math.floor(dmg * 1.3));   // 🏺 v3.1.76 灼熱蜥蜴長舌（傭兵受益端·連擊/反擊/居合/副手共用·鏡像玩家 js/03:901）
     if (!opts.forceHit && !opts.forceLand && !opts.forceHeavy && d.eleWpnMult && getWpnEle(wpnInst, wpn, ally) === d.eleWpnMult.ele) dmg = Math.max(1, Math.floor(dmg * d.eleWpnMult.mult));   // 🏺 v3.1.80 四之牙臂甲（傭兵·連擊/副手）：對應屬性武器一般攻擊 ×1.2（v3.2.42 稽核修：排除反擊/居合/魔擊·對齊玩家 js/03 _natRoll 閘＝「一般攻擊」字面）
     if (heavy && wpn && wpn.heavyMult) dmg = Math.max(1, Math.floor(dmg * wpn.heavyMult));   // 🏺 v3.1.76 鎧甲守衛的笨重巨劍（傭兵·鏡像玩家 js/03:903）

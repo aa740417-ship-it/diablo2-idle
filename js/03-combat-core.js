@@ -34,24 +34,27 @@ function magicTierMult(tier) {
     return 1 + Math.max(0, Number(tier) || 0) / 10;
 }
 
-// OB59 職業平衡：非 mage 主玩家最終輸出 ×1.60。
-// 舊服實測後正式同步到仿正服；傭兵／寵物／召喚不藉此偷吃倍率。
+// OB59 職業平衡：非 mage 玩家與傭兵核心輸出 ×1.60。
+// dStats 未傳入時沿用目前 player；傳入 dStats 時也辨識目前出戰傭兵。
+// 寵物／召喚／怪物仍不吃此倍率。
 function balancedNonMagePlayerDamageMult(dStats) {
-    if (
-        typeof player === 'undefined' ||
-        !player ||
-        player.cls === 'mage'
-    ) return 1;
+    if (typeof player === 'undefined' || !player) return 1;
 
-    // 魔法公式傳入 dStats 時，只接受主玩家自己的 d。
-    // 避免傭兵或其他獨立施法者誤吃玩家職業倍率。
-    if (
-        dStats &&
-        player.d &&
-        dStats !== player.d
-    ) return 1;
+    // 主玩家，或暫時把 player 換成傭兵的既有傷害路徑。
+    if (!dStats || (player.d && dStats === player.d)) {
+        return player.cls === 'mage' ? 1 : 1.60;
+    }
 
-    return 1.60;
+    // 傭兵魔法通常直接傳 ally.d，但全域 player 仍是隊長。
+    // 只辨識目前正式出戰傭兵，避免寵物／召喚誤吃。
+    try {
+        if (Array.isArray(player.allies)) {
+            let ally = player.allies.find(a => a && a.d === dStats);
+            if (ally) return ally.cls === 'mage' ? 1 : 1.60;
+        }
+    } catch(e) {}
+
+    return 1;
 }
 function magicDamageCoef(dStats, attrDefense, spellTier) {
     let sp = Math.max(1, magicIntSp(dStats) + magicItemSp(dStats));
@@ -70,8 +73,8 @@ function magicDamageCoef(dStats, attrDefense, spellTier) {
     let base = Math.max(0, 1 - attr + _spWeight * sp / 32);
     let coef = base * (spellTier == null ? 1 : magicTierMult(spellTier));
 
-    // OB59：非 mage 主玩家魔法傷害正式 ×1.60。
-    // 只在 dStats === player.d 時成立，不會提高傭兵或其他獨立角色。
+    // OB59：非 mage 玩家與傭兵的 SP 魔法核心正式 ×1.60。
+    // 只辨識主玩家／出戰傭兵，不擴張到寵物、召喚或怪物。
     coef *= balancedNonMagePlayerDamageMult(dStats);
 
     // 🩵 Phase 6 青變：法師／幻術最終魔法共鳴（主玩家自己的魔法／奇古獸傷害 +20%）
