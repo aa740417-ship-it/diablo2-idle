@@ -2647,6 +2647,11 @@ function getPhysicalDmg(diceStr, target, wpn, arrowData, forceHeavy, forceHit, f
         Math.floor(_outDmg * balancedNonMagePlayerDamageMult())
     );
 
+    // 🏹 妖精遠距離平衡：最終物理傷害 +40%
+    if (player.cls === 'elf' && isRanged) {
+        _outDmg = Math.max(1, Math.floor(_outDmg * 1.40));
+    }
+
     let _dualX2 = false;   // ⚔️ 雙刀內建特性：一般攻擊命中(非擦傷) 5% 機率最終傷害×2（🎮 經典模式停用）
     if (_natRoll && !graze && !player.classicMode && getWeaponTags(_swingId).includes('雙刀') && Math.random() < 0.05) { _dualX2 = true; _outDmg = Math.max(1, _outDmg * 2); }
     if (_natRoll && !graze && _cw && _cw.dblStrikeRate && Math.random() * 100 < _cw.dblStrikeRate) { _dualX2 = true; _outDmg = Math.max(1, _outDmg * 2); }   // 🏺 v3.7.20 艾爾摩古戰場巨劍：一般攻擊 3% 機率 2 倍傷害（沿用 dualx2 標記顯示「×2」·非一般限定=經典亦觸發）
