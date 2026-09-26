@@ -56,7 +56,7 @@ function recomputeStats() {
     // ===== Phase 0：基礎屬性 + 衍生欄位歸零（依基本設定，起始值0；AC起始10）=====
     let pn = player.panacea || {};
     d.str = b.str + a.str + (pn.str||0); d.dex = b.dex + a.dex + (pn.dex||0); d.con = b.con + a.con + (pn.con||0); d.int = b.int + a.int + (pn.int||0); d.wis = b.wis + a.wis + (pn.wis||0);
-    d.cha = (b.cha || 0) + (a.cha || 0) + (pn.cha||0);   // 魅力：第六屬性（自然值≤100；裝備／buff 可再提高，最終上限150）
+    d.cha = (b.cha || 0) + (a.cha || 0) + (pn.cha||0);   // 魅力：第六屬性（自然值≤200；裝備／buff 計入後最終上限200）
 
     d.ac = 10; d.er = 0; d.dr = 0;
     d.meleeDmg = 0; d.meleeHit = 0; d.meleeCrit = 0;
@@ -138,7 +138,7 @@ function recomputeStats() {
           if (_eqHas('acc_curse_green')) { d.dex += 2; d.cha -= 2; }
       }
     }
-    // 🪆 魔法娃娃全收集：裝備收集冊 doll 部位全收集(50 隻) → 六維各 +1（提前套用→吃進 AC/HP/MP/近遠魔傷害/命中/爆擊等衍生值；受下方 100 上限夾擠）。
+    // 🪆 魔法娃娃全收集：裝備收集冊 doll 部位全收集(50 隻) → 六維各 +1（提前套用→吃進 AC/HP/MP/近遠魔傷害/命中/爆擊等衍生值；受下方 200 上限夾擠）。
     //    收集判定走 player.equipDex(共用桶)；傭兵經 buildAlly/_allyLevelRecompute 換身（player 暫指向傭兵）時借用隊長共用桶，同樣吃到此加成。label 由 js/16 EQUIP_CAT_BONUS.doll 顯示。
     if (typeof equipCatComplete === 'function' && equipCatComplete('doll')) { d.str += 1; d.dex += 1; d.con += 1; d.int += 1; d.wis += 1; d.cha += 1; }
 
@@ -160,10 +160,10 @@ function recomputeStats() {
           d.atkSpdPct += (_mag.polyAtkSpdPct || 0);
       } }
 
-    // 🎯 六維最終能力值上限 150：自然值（出生+升級+萬能藥）在配點/用藥端限制為 100；裝備、詞綴、套裝與 buff 可把最終值推到 150。
+    // 🎯 六維最終能力值上限 200：自然值（出生+升級+萬能藥）在配點/用藥端限制為 200；裝備、詞綴、套裝與 buff 計入後最終仍封頂 200。
     //    只夾衍生最終值 d.*，不改 player.base/alloc/panacea，回憶蠟燭仍可正確退還萬能藥。
     //    各系統原本較低的特殊內部上限（例如 ER/MR/MP減耗等）維持原設計，避免一次改動造成戰鬥失衡。
-    { let _ATTR_CAP = 150;
+    { let _ATTR_CAP = 200;
       d.str = Math.min(_ATTR_CAP, d.str); d.dex = Math.min(_ATTR_CAP, d.dex); d.int = Math.min(_ATTR_CAP, d.int);
       d.con = Math.min(_ATTR_CAP, d.con); d.wis = Math.min(_ATTR_CAP, d.wis); d.cha = Math.min(_ATTR_CAP, d.cha); }
 

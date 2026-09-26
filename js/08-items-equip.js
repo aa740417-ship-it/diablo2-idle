@@ -590,10 +590,10 @@ function batchUseItem(u) {
     let d = DB.items[item.id];
     if (!d || !d.batchUse) return;
     if (player.dead) { logSys(`死亡狀態無法使用道具，請先復活。`); return; }
-    // 💊 萬能藥批量使用：不再限制總使用瓶數；只受持有數與該屬性自然值上限 100 限制
+    // 💊 萬能藥批量使用：不再限制總使用瓶數；只受持有數與該屬性自然值上限 200 限制
     if (d.eff === 'panacea') {
         const STAT_CN = { str:'力量', dex:'敏捷', con:'體質', int:'智力', wis:'精神', cha:'魅力' };
-        let st = d.pstat, cap = 100;
+        let st = d.pstat, cap = 200;
         let remainStat = cap - naturalStat(st);
         if (remainStat <= 0) { logSys(`${STAT_CN[st]}已達自然能力上限（${cap}），無法再使用 ${d.n}。`); return; }
         let maxN = Math.min(item.cnt, remainStat);
@@ -827,8 +827,8 @@ function useItem(u, silent = false) {
             // 落到下方 consume(item)，消耗一張卷軸
         } else if (d.eff === 'panacea') {
             const STAT_CN = { str:'力量', dex:'敏捷', con:'體質', int:'智力', wis:'精神', cha:'魅力' };
-            let st = d.pstat, cap = 100;
-            // 萬能藥取消總瓶數限制；只限制單一自然能力值（出生+升級+萬能藥）最高 100
+            let st = d.pstat, cap = 200;
+            // 萬能藥取消總瓶數限制；只限制單一自然能力值（出生+升級+萬能藥）最高 200
             if (naturalStat(st) >= cap) { if(!silent) logSys(`${STAT_CN[st]}已達自然能力上限（${cap}），無法再使用 ${d.n}。`); return; }
             if (!player.panacea) player.panacea = { str:0, dex:0, con:0, int:0, wis:0, cha:0 };
             player.panacea[st] = (player.panacea[st] || 0) + 1;

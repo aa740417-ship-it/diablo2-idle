@@ -1213,7 +1213,7 @@ function adjStat(s, v) {
     let b = createBase[curCreate.cls];
     let spent = curCreate.str + curCreate.dex + curCreate.con + curCreate.int + curCreate.wis + curCreate.cha;
     let left = b.pts - spent;
-    let capN = 20;   // 創角階段各屬性最高點到 20（含魅力，與其他屬性一致；之後靠升級點數／萬能藥提升，出生+升級+萬能藥合計上限 100）
+    let capN = 200;   // 創角階段各屬性最高點到 20（含魅力，與其他屬性一致；之後靠升級點數／萬能藥提升，出生+升級+萬能藥合計上限 200）
     if (v > 0 && left > 0 && (b[s] + curCreate[s]) < capN) curCreate[s]++;
     else if (v < 0 && curCreate[s] > 0) curCreate[s]--;
     updateCreateUI();
@@ -1959,7 +1959,7 @@ function loadGame() {
 // 配點/萬能藥的「自然屬性值」：基礎+配點+萬能藥（不含裝備與 buff）；屬性上限只套用在此值上，裝備/buff 可再往上疊加
 function naturalStat(s) { return (player.base[s] || 0) + (player.alloc[s] || 0) + ((player.panacea && player.panacea[s]) || 0); }
 function adjBonusStat(s) {
-    let capN = 100;   // 自然屬性上限：出生+升級配點+萬能藥合計最高 100；裝備可再把最終能力推到 150
+    let capN = 200;   // 自然屬性上限：出生+升級配點+萬能藥合計最高 200；裝備等加成後最終能力仍封頂 200
     if (player.bonus > 0 && naturalStat(s) < capN) {
         player.alloc[s]++; player.bonus--;
         calcStats();
@@ -1982,7 +1982,7 @@ function startRespec() {
 }
 // 六大屬性的 +/- 路由：重置中＝改草稿；否則＝花用升級點數（僅 +、不可退）
 function adjAlloc(s, dir) {
-    let capN = 100;
+    let capN = 200;
     if (_respec) {
         let b = createBase[player.cls];
         if (dir > 0) { if (respecPtsLeft() > 0 && (b[s] + _respec.draft[s]) < capN) _respec.draft[s]++; }
