@@ -194,7 +194,19 @@ function toggleAuditView() { _auditView = (_auditView === 'stats') ? 'drops' : '
 // 彙整某怪物的掉落物 ID（合併一般/黑暗武器/黑暗水晶三表，去重；不顯示機率）
 function _auditMobDrops(mobName) {
     let ids = [];
-    let push = (tbl) => { if (tbl && tbl[mobName]) tbl[mobName].forEach(e => { let id = Array.isArray(e) ? e[0] : e; let _d = id && DB.items[id]; let _officialRelicBlocked = !!(typeof window !== 'undefined' && window.OFFICIAL_BALANCE_MODE && _d && _d.relic); if (id && _d && !_officialRelicBlocked && ids.indexOf(id) === -1 && !trialDropBlocked(id)) ids.push(id); }); };   // 🔒 非本職試煉兌換道具不顯示；OB61 仿正服 relic 不顯示
+    let push = (tbl) => {
+        if (!tbl || !tbl[mobName]) return;
+        tbl[mobName].forEach(e => {
+            let id = Array.isArray(e) ? e[0] : e;
+            let d = id && DB.items[id];
+            if (
+                id &&
+                d &&
+                ids.indexOf(id) === -1 &&
+                !trialDropBlocked(id)
+            ) ids.push(id);
+        });
+    };   // 🏺 遺物掉落重新開放：掉落查詢同步顯示
     if (typeof MOB_DROPS !== 'undefined') push(MOB_DROPS);
     if (typeof DARK_WEAPON_DROPS !== 'undefined') push(DARK_WEAPON_DROPS);
     if (typeof DARK_CRYSTAL_DROPS !== 'undefined') push(DARK_CRYSTAL_DROPS);

@@ -2075,6 +2075,31 @@ function enhancementAtCap(en, cap) { return (Number(en) || 0) >= cap; }
 function isMaxEnhanced(item) { let d = DB.items[item.id]; return !!d && enhancementAtCap(item.en, enhanceCap(d)); }
 // 🏺 遺物判定（單一真相）：relic:true。維持 wpn/arm/acc 型別（供 equipCatKey 分類·遺物圖鑑）但用此旗標排除 強化/祝福/賦予/潘朵拉，並套海藍色。
 function isRelic(d) { return !!(d && d.relic); }
+
+// 🏺 遺物強化開放：武器/防具/飾品類遺物改走正常強化系統。
+// 武器預設安定 +6、防具預設安定 +4、飾品安定 +0；
+// 強化上限沿用全域規則：武器/防具 +15、飾品 +5。
+(function enableRelicEnhanceV1() {
+    try {
+        Object.keys(DB.items || {}).forEach(function(id) {
+            let d = DB.items[id];
+            if (!d || !d.relic) return;
+            if (d.type !== 'wpn' && d.type !== 'arm' && d.type !== 'acc') return;
+
+            d.noEnhance = false;
+
+            // 只有原本沒有指定安定值時才補預設值，
+            // 已經有 safe 的特殊遺物保留自己的設定。
+            if (!Number.isFinite(Number(d.safe))) {
+                if (d.type === 'wpn') d.safe = 6;
+                else if (d.type === 'arm') d.safe = 4;
+                else d.safe = 0;
+            }
+        });
+    } catch(e) {
+        console.warn('[relic enhance]', e);
+    }
+})();
 // 🏺 遺物「寵物專屬命中」加成：掃玩家所有裝備欄，回傳 partnerHit[petName] 總和；高等進化型同時繼承原型效果。
 function _relicPartnerHit(petName) { if (!petName || typeof player === 'undefined' || !player || !player.eq) return 0; let names = [petName]; if (/^高等/.test(petName)) names.push(petName.replace(/^高等/, '')); let s = 0; for (let k in player.eq) { let e = player.eq[k]; if (!e) continue; let dd = DB.items[e.id]; if (!dd || !dd.partnerHit) continue; for (let n of names) { if (dd.partnerHit[n]) { s += dd.partnerHit[n]; break; } } } return s; }
 // 🏺 v3.1.80 馴獸師的訓狗棒：隊伍（玩家＋非倒地傭兵）任一人裝備 petSkillDmgMult → 寵物技能傷害 ×N（多件不疊加·取最高）

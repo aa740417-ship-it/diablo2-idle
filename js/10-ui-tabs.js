@@ -1683,7 +1683,7 @@ function executeAutoMaxEnhance(targetUid, isEq) {
     if (!target) return;
 
     let d = DB.items[target.id];
-    if (!d || d.noEnhance || (typeof isRelic === 'function' && isRelic(d))) {
+    if (!d || d.noEnhance) {
         logSys(`<span class="text-red-400 font-bold">此裝備無法強化。</span>`);
         return;
     }

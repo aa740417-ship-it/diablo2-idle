@@ -192,22 +192,7 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false, de
         id = id.replace('_b', '').replace('_c', '');
         d = DB.items[id];
     }
-
-    /* ===== 仿正服 OB61：戰鬥遺物掉落封鎖 ===== */
-    // 只封鎖「怪物擊殺掉落」上下文；潘朵拉搜尋／交換、製作、任務交付等非戰鬥來源不受影響。
-    // 用 d.relic 判斷真正的遺物類物品，不用名稱 contains('遺物')，避免誤殺「聖地遺物」等一般材料。
-    if (
-        typeof window !== 'undefined' &&
-        window.OFFICIAL_BALANCE_MODE &&
-        typeof _vfxLootCtx !== 'undefined' &&
-        _vfxLootCtx &&
-        d &&
-        d.relic
-    ) {
-        return null;
-    }
-    /* ===== 仿正服 OB61：戰鬥遺物掉落封鎖 END ===== */
-
+    /* 🏺 遺物怪物掉落已重新開放：沿用 MOB_DROPS 原始專屬掉率。 */
     /* 掛機詳細結算：記錄怪物實際掉出的物品數量 */
     if (
         typeof state !== 'undefined' &&
@@ -1262,7 +1247,7 @@ function doEnhance(targetUid, isEq = true) {
     if(!target) return;
 
     let d = DB.items[target.id];
-    if (isRelic(d) || (d && d.noEnhance)) { logSys(`<span class="c-relic">${getItemFullName(target)} 無法強化。</span>`); activeScroll = null; if (typeof closeModal === 'function') closeModal(); return; }   // 🏺 遺物/古老系列/娃娃：無法強化（防呆·enumeration 已濾除·此為直點路徑保險）
+    if (d && d.noEnhance) { logSys(`<span class="c-relic">${getItemFullName(target)} 無法強化。</span>`); activeScroll = null; if (typeof closeModal === 'function') closeModal(); return; }   // 🏺 遺物/古老系列/娃娃：無法強化（防呆·enumeration 已濾除·此為直點路徑保險）
     let _cap = enhanceCap(d);   // 🔧 強化上限：武器+15 / 防具+15 / 飾品+5
     if ((Number(target.en) || 0) >= _cap) {   // 已達上限：不消耗卷軸，提示後返回
         logSys(`<span class="text-amber-300">${getItemFullName(target)} 已達強化上限（+${_cap}），無法再強化。</span>`);
