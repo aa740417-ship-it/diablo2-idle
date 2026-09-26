@@ -1433,9 +1433,10 @@ function openModal(item, isEq, slot) {
         }
     }
 
-    // 👇 修改：為武器、防具、飾品加入專屬的「強化」按鈕 (加入 !d.isArrow 防呆，箭矢不顯示強化按鈕)
-    if (((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {   // 🔧 已達淬鍊（強化上限）：隱藏強化按鈕；🏛️ 無法強化的裝備（古老系列）不顯示強化鈕
+    // 👇 武器／防具／飾品強化
+    if (((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
+        act += `<button class="col-span-2 w-full btn border-cyan-600 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 py-3 text-lg font-bold mt-2" onclick="executeAutoMaxEnhance('${item.uid}', ${isEq})">🛡️ 自動強化到滿</button>`;
     }
 
     // 廢品勾選（所有背包道具：武器/防具/飾品/藥水/卷軸/魔法書/技能書/材料/試煉道具等）：
@@ -1661,6 +1662,183 @@ function executeAutoSafeEnhance(targetUid, isEq, scrollId, goal) {
     renderTabs();
     closeModal();
     saveGame();
+}
+
+
+// 🛡️ 自動強化到滿：
+// 武器/防具最高 +15、飾品最高 +5。
+// 安定值內直接衝；超過安定值後，每次有爆裝可能前必須先持有防爆卷軸。
+// 爆裝結果 → 自動消耗 1 張防爆、裝備保留原強化值並繼續衝。
+// 防爆卷或一般強化卷用完 → 立即停止，絕不裸衝。
+function executeAutoMaxEnhance(targetUid, isEq) {
+    let target, slot = null;
+
+    if (isEq) {
+        target = Object.values(player.eq).find(e => e && e.uid === targetUid);
+        slot = Object.keys(player.eq).find(k => player.eq[k] === target);
+    } else {
+        target = player.inv.find(i => i.uid === targetUid);
+    }
+
+    if (!target) return;
+
+    let d = DB.items[target.id];
+    if (!d || d.noEnhance || (typeof isRelic === 'function' && isRelic(d))) {
+        logSys(`<span class="text-red-400 font-bold">此裝備無法強化。</span>`);
+        return;
+    }
+
+    target.en = Number(target.en) || 0;
+
+    let cap = enhanceCap(d);
+    if (target.en >= cap) {
+        logSys(`<span class="text-amber-300 font-bold">${getItemFullName(target)} 已達強化上限 +${cap}。</span>`);
+        return;
+    }
+
+    let scrollId = '';
+    if (d.type === 'wpn') scrollId = 'scroll_weapon';
+    else if (d.type === 'arm') scrollId = 'scroll_armor';
+    else if (d.type === 'acc') scrollId = 'scroll_acc';
+
+    if (!scrollId) {
+        logSys(`<span class="text-red-400 font-bold">這件裝備沒有可用的強化卷軸。</span>`);
+        return;
+    }
+
+    let scrollName = (DB.items[scrollId] && DB.items[scrollId].n) || '強化卷軸';
+
+    let firstScroll = player.inv.find(i =>
+        i && i.id === scrollId && Number(i.cnt || 1) > 0
+    );
+
+    if (!firstScroll) {
+        logSys(`<span class="text-red-400 font-bold">${scrollName} 數量不足。</span>`);
+        return;
+    }
+
+    // 背包有堆疊裝備時只拆一件來衝
+    if (!isEq && Number(target.cnt || 1) > 1) {
+        target.cnt = Number(target.cnt || 1) - 1;
+
+        let single = {
+            ...target,
+            cnt: 1,
+            uid: uid()
+        };
+
+        player.inv.push(single);
+        target = single;
+    }
+
+    let startEn = target.en;
+    let safe = Number(d.safe) || 0;
+
+    let usedScroll = 0;
+    let usedProtect = 0;
+    let successCount = 0;
+    let nochangeCount = 0;
+    let stopReason = '';
+
+    while (target.en < cap) {
+
+        // 每一輪重新抓卷軸，避免前一疊用完後參照失效
+        let scrollItem = player.inv.find(i =>
+            i && i.id === scrollId && Number(i.cnt || 1) > 0
+        );
+
+        if (!scrollItem) {
+            stopReason = 'scroll';
+            break;
+        }
+
+        // 從安定值往上衝才有爆裝可能。
+        // 有風險時，沒有防爆卷就「連強化卷都不消耗」，直接安全停止。
+        let risky = target.en >= safe;
+
+        if (risky) {
+            let protectN =
+                (typeof enhanceProtectCount === 'function')
+                    ? enhanceProtectCount()
+                    : 0;
+
+            if (protectN <= 0) {
+                stopReason = 'protect';
+                break;
+            }
+        }
+
+        // 消耗一般強化卷
+        scrollItem.cnt = Number(scrollItem.cnt || 1) - 1;
+        usedScroll++;
+
+        if (scrollItem.cnt <= 0) {
+            player.inv = player.inv.filter(i => i.uid !== scrollItem.uid);
+        }
+
+        // 與手動強化完全相同的機率核心
+        let outcome = enhanceRollOutcome(d, target.en);
+
+        if (outcome === 'ok') {
+
+            target.en = Math.min(cap, target.en + 1);
+            successCount++;
+
+        } else if (outcome === 'none') {
+
+            // 武器 +9 起可能「無事發生」
+            nochangeCount++;
+            continue;
+
+        } else {
+
+            // 原本會爆裝：必須消耗防爆
+            let protectedOk =
+                typeof consumeEnhanceProtectScroll === 'function' &&
+                consumeEnhanceProtectScroll();
+
+            if (!protectedOk) {
+                // 雙重防呆：即使資料異常也不讓自動強化炸裝
+                stopReason = 'protect';
+                break;
+            }
+
+            usedProtect++;
+
+            // 防爆保留原強化值，繼續下一輪
+            continue;
+        }
+    }
+
+    calcStats();
+    renderTabs();
+    closeModal();
+    saveGame();
+
+    let result =
+        `<span class="text-cyan-300 font-bold">🛡️ 自動強化結束</span><br>` +
+        `${d.n}：+${startEn} → <span class="text-yellow-300 font-bold">+${target.en}</span><br>` +
+        `消耗 ${scrollName} ×${usedScroll}、防爆卷軸 ×${usedProtect}`;
+
+    if (nochangeCount > 0) {
+        result += `、無事發生 ${nochangeCount} 次`;
+    }
+
+    if (target.en >= cap) {
+
+        result += `<br><span class="text-green-300 font-bold">✅ 已強化到最高 +${cap}！</span>`;
+
+    } else if (stopReason === 'protect') {
+
+        result += `<br><span class="text-amber-300 font-bold">⚠️ 防爆卷軸已用完，已安全停止，不再冒險強化。</span>`;
+
+    } else if (stopReason === 'scroll') {
+
+        result += `<br><span class="text-amber-300 font-bold">⚠️ ${scrollName} 已用完，停止強化。</span>`;
+
+    }
+
+    logSys(result);
 }
 
 function executeEnhance(scrollUid, targetUid, isEq) {
