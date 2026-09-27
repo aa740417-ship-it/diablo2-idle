@@ -4228,3 +4228,100 @@ button.classic-skill-cell { cursor:pointer; }
   width:4px !important;
   height:4px !important;
 }
+
+/* ===== 🏺 遺物圖鑑手機版：分類列改成橫向滑動 ===== */
+@media (max-width: 768px) {
+
+    /* 遺物圖鑑蓋過底部功能列 */
+    #relic-book {
+        z-index: 120 !important;
+        padding: 8px !important;
+    }
+
+    /* 圖鑑盡量吃滿整個手機畫面 */
+    #relic-book > div {
+        width: 100% !important;
+        height: calc(100dvh - 16px) !important;
+        max-width: none !important;
+        max-height: calc(100dvh - 16px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    /* 上方標題固定高度 */
+    #relic-book > div > div:first-child {
+        flex: 0 0 auto !important;
+        padding: 8px 12px !important;
+        min-height: 48px !important;
+    }
+
+    #relic-book h2 {
+        font-size: 21px !important;
+        line-height: 1.2 !important;
+    }
+
+    /* ★ 關鍵：分類禁止換行，改成左右滑 */
+    #relic-book-tabs {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+
+        flex: 0 0 auto !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+
+        min-height: 46px !important;
+        max-height: 46px !important;
+
+        padding: 5px 7px !important;
+        gap: 5px !important;
+
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+
+        white-space: nowrap !important;
+
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+
+        scrollbar-width: thin;
+    }
+
+    /* 分類文字與按鈕都不縮排、不換行 */
+    #relic-book-tabs > * {
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+    }
+
+    #relic-book-tabs button {
+        flex: 0 0 auto !important;
+        min-width: max-content !important;
+        padding: 5px 9px !important;
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+    }
+
+    #relic-book-tabs > span {
+        flex: 0 0 auto !important;
+        padding: 0 3px !important;
+        font-size: 10px !important;
+    }
+
+    /* 下方真正的圖鑑內容吃剩餘空間 */
+    #relic-book-body {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        width: 100% !important;
+
+        padding: 10px !important;
+
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+}
+
