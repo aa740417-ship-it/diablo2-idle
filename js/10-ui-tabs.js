@@ -1434,7 +1434,7 @@ function openModal(item, isEq, slot) {
     }
 
     // 👇 武器／防具／飾品強化
-    if (((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {
+    if (((d.type === 'wpn' && (!d.isArrow || d.relic)) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
         act += `<button class="col-span-2 w-full btn border-cyan-600 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 py-3 text-lg font-bold mt-2" onclick="executeAutoMaxEnhance('${item.uid}', ${isEq})">🛡️ 自動強化到滿</button>`;
     }
@@ -1888,7 +1888,7 @@ function executeCurseDeEnhance(targetUid, isEq, scrollId) {
 //    防止 noEnhance 等不合格物品顯示可勾（藍框）卻在執行時被靜默略過、表頭全選狀態對不上
 function _qeCanSelect(d, i, type) {
     if (!d || i.lock || d.noEnhance) return false;   // 🪆 無法強化(古老系列/魔法娃娃)不列入快速強化
-    if (type === 'wpn') return d.type === 'wpn' && !d.isArrow;
+    if (type === 'wpn') return d.type === 'wpn' && (!d.isArrow || d.relic);
     return d.type === 'arm' || d.type === 'acc';
 }
 // 該分頁可被批次強化的背包裝備（未鎖定；武器分頁＝武器(非箭矢)，防具分頁＝防具/飾品）

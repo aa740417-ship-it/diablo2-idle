@@ -282,6 +282,27 @@ function recomputeStats() {
     d.castLock = castLockTicks(p); // 🔮 天堂職業施法間隔（攻擊／治癒／淨化／轉換／手動共用速度公式·法師最快）
     d.supportCastLock = d.castLock;
 
+    // 🏺 遺物箭矢強化：只有 relic:true + isArrow:true 才吃。
+    // 一般銀箭／米索莉箭等普通箭矢仍不可強化。
+    // 強化效果比照武器固定加成：每階提升遠距離傷害與命中。
+    if (
+        p.eq &&
+        p.eq.arrow &&
+        DB.items[p.eq.arrow.id] &&
+        DB.items[p.eq.arrow.id].relic &&
+        DB.items[p.eq.arrow.id].isArrow
+    ) {
+        let _arrowEn = enhanceWpnBonus(
+            Math.min(
+                enhanceCap(DB.items[p.eq.arrow.id]),
+                Number(p.eq.arrow.en) || 0
+            )
+        );
+
+        d.rangedDmg += _arrowEn.dmg;
+        d.rangedHit += _arrowEn.hit;
+    }
+
     // ===== Phase 3：非屬性加成（武器傷害 / 裝備防禦 / 套裝 / 增益 / 變身） =====
     // 武器：依遠近距離分別計入（w.str 已於 Phase 1 計入屬性）
     if (p.eq.wpn) {
