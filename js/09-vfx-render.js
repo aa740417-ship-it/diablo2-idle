@@ -2423,6 +2423,21 @@ function _allySpriteTrigger(ally, k, skId) {   // js/06 掛點：allyAttackOnce�
     } catch (e) {}
 }
 function _allySpritesApply() {   // 8fps ticker 驅動
+    // 🧹 效能模式：戰鬥畫面隱藏所有傭兵 Sprite。
+    // 傭兵 AI、攻擊、技能、傷害全部照常運作，只停止畫面繪製。
+    // 若要恢復傭兵顯示，可在主控台執行：
+    // window.__hideAllyBattleSprites = false;
+    if (window.__hideAllyBattleSprites !== false) {
+        for (let slot in _allySpriteStates) {
+            let st = _allySpriteStates[slot];
+            if (st && st.el) {
+                try { st.el.remove(); } catch (e) {}
+            }
+        }
+        _allySpriteStates = {};
+        return;
+    }
+
     let bv = document.getElementById('battle-view');
     let inBattle = bv && !bv.classList.contains('hidden') && bv.classList.contains('area-fit');
     let allies = (typeof player !== 'undefined' && player && player.allies) || [];
