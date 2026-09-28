@@ -1001,7 +1001,7 @@ function buildItemDescHTML(item) {
         desc += `<br><span class="text-orange-300">小型傷害: ${d.dmgS} / 大型傷害: ${d.dmgL}</span>`;
         
         // 🌟 依照你的規則：根據 ranged: true 決定前綴
-        let isRanged = (d.ranged === true);
+        let isRanged = (d.ranged === true || d.isArrow === true);
         let hitLabel = isRanged ? "遠距離命中" : "近距離命中";
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
 
@@ -1014,7 +1014,7 @@ function buildItemDescHTML(item) {
         if (_showEn > 0 && typeof enhanceWpnBonus === 'function') {
             let _enBonus = enhanceWpnBonus(_showEn);
             desc += `<br><span class="text-violet-300 font-bold">強化 +${_showEn}：${dmgLabel} +${_enBonus.dmg}、${hitLabel} +${_enBonus.hit}</span>`;
-            if (_showEn >= 10) {
+            if (!d.isArrow && _showEn >= 10) {
                 desc += `<br><span class="text-rose-300 font-bold">高強化加成：額外傷害 +${_showEn - 9}</span>`;
             }
         }
