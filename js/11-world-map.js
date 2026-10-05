@@ -993,7 +993,7 @@ function doBianAttr(slotKey, ele) {
     if (!item) { logSys('該欄位沒有裝備武器。'); return; }
     let d = DB.items[item.id];
     if (!d || d.type !== 'wpn') { logSys('只能對武器賦予屬性。'); return; }
-    if (isRelic(d)) { logSys('<span class="c-relic">遺物無法賦予屬性。</span>'); return; }   // 🏺 遺物：無法賦予屬性
+    // 🏺 遺物開放使用四種屬性強化卷軸；其餘屬性強化規則完全沿用原系統。
     let cfg = ATTR_SCROLLS[ele]; if (!cfg) return;
     let sc = player.inv.find(i => i.id === cfg.id);
     if (!sc || sc.cnt < 1) { logSys(`<span class="text-red-400">缺少 ${cfg.n}。</span>`); return; }
@@ -2448,7 +2448,7 @@ function _townNpcAnimTick() {
         }
     }
 }
-setInterval(_townNpcAnimTick, 125);   // 8fps 站立循環
+setInterval(_townNpcAnimTick, 166);   // 8fps 站立循環
 
 
 /* === ismael protect scroll shop v1 === */
