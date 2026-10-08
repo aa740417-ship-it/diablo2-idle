@@ -1041,26 +1041,65 @@ function autoActions() {
         }
     });
 
-    // 瞬間移動卷軸：戰鬥中出現 BOSS 時自動使用（自動使用必定為未裝備傳送控制戒指的傳送術效果）
+    // 瞬間移動卷軸：只有「迴避頭目」勾選且場上有存活 BOSS 時才自動使用
     {
-        let tChk = document.getElementById('set-teleport');
-        let bossHuntChk = document.getElementById('set-teleport-boss');
-        let bossHuntActive = !!(
+        const tChk = document.getElementById('set-teleport');
+        const bossHuntChk = document.getElementById('set-teleport-boss');
+
+        const bossHuntActive = !!(
             bossHuntChk &&
             bossHuntChk.checked &&
             hasTeleportRing()
         );
-        if (tChk && tChk.checked && !bossHuntActive && !mapState.mobs.some(m => m && m.boss && !m.noAutoTeleport && !m._dead && (m.curHp == null || m.curHp > 0)) && !isSiegeArea(mapState.current) && !PURE_BOSS_MAPS.includes(mapState.current) && !state.prideClimb && !state.oblivion && !state.riftRun && (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil)) {   // 🕒 手動瞬移後 5 秒內不自動瞬移/自動購買；攻城區與純BOSS房(安塔瑞斯/法利昂/巴拉卡斯)：BOSS為目標，不自動瞬移；🔧 卡瑞(noAutoTeleport)不觸發自動瞬移；🗼 傲慢之塔攀登中不自動瞬移；🌀 時空裂痕不自動瞬移逃離頭目
-            let item = player.inv.find(i => i.id === 'scroll_teleport');
-            if (!item) {
-                let _tpCost = shopPrice(DB.items.scroll_teleport.p);   // 攻城獲勝 8 折亦適用
-                if (player.gold >= _tpCost) {   // 🧪 v3.3.15 自動使用＝自動購買合併：勾選瞬移且缺貨→自動買一張
-                    player.gold -= _tpCost;
-                    gainItem('scroll_teleport', 1, true, true);
-                    item = player.inv.find(i => i.id === 'scroll_teleport');
+
+        // 🛡️ 迴避頭目：必須真的有存活 BOSS 才觸發
+        const hasLiveBoss = mapState.mobs.some(m =>
+            m &&
+            m.boss &&
+            !m.noAutoTeleport &&
+            !m._dead &&
+            (m.curHp == null || m.curHp > 0)
+        );
+
+        const avoidBossOK =
+            tChk &&
+            tChk.checked &&
+            !bossHuntActive &&
+            hasLiveBoss &&
+            !isSiegeArea(mapState.current) &&
+            !PURE_BOSS_MAPS.includes(mapState.current) &&
+            !state.prideClimb &&
+            !state.oblivion &&
+            !state.riftRun &&
+            (state._manualTpUntil == null ||
+                (state.ticks || 0) >= state._manualTpUntil);
+
+        if (avoidBossOK) {
+            // 🛡️ 防止同一場戰鬥連續狂瞬移：5 秒鎖定
+            const now = state.ticks || 0;
+            const lockUntil = state._avoidBossTpUntil || 0;
+
+            if (now >= lockUntil) {
+                let item = player.inv.find(i => i.id === 'scroll_teleport');
+
+                // 沒卷軸時自動購買一張
+                if (!item) {
+                    const _tpCost = shopPrice(DB.items.scroll_teleport.p);
+
+                    if (player.gold >= _tpCost) {
+                        player.gold -= _tpCost;
+                        gainItem('scroll_teleport', 1, true, true);
+                        item = player.inv.find(i => i.id === 'scroll_teleport');
+                    }
+                }
+
+                if (item) {
+                    useItem(item.uid, true);
+
+                    // 5 秒內不再觸發迴避瞬移
+                    state._avoidBossTpUntil = now + 50;
                 }
             }
-            if (item) useItem(item.uid, true);   // silent → 不強制 BOSS
         }
     }
 
